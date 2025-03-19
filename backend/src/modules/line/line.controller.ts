@@ -29,7 +29,6 @@ export class LineController {
       lineUserId: null,
       isConnected: settings.isConnected,
       notifications: settings.notifications,
-      id: null // Add the missing id property
     };
   }
 
