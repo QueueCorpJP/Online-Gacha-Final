@@ -1,12 +1,15 @@
-import { Entity, Column, PrimaryColumn, OneToOne } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToOne, JoinColumn } from 'typeorm';
 import { User } from '../../user/entities/user.entity';
 
 @Entity('line_settings')
 export class LineSettings {
-  @PrimaryColumn({ type: 'uuid' })
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column({ type: 'uuid' })
   userId: string;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, default: null })
   lineUserId: string;
 
   @Column({ default: false })
@@ -16,5 +19,7 @@ export class LineSettings {
   notifications: boolean;
 
   @OneToOne(() => User, user => user.lineSettings)
-  user?: User;
+  @JoinColumn({ name: 'userId' })
+  user: User;
 }
+

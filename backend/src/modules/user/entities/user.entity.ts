@@ -92,7 +92,7 @@ export class User {
   @Column({ nullable: true })
   passwordResetExpires: Date;
 
-  @OneToOne(() => LineSettings, lineSettings => lineSettings.userId)
-  @JoinColumn({ name: 'id', referencedColumnName: 'userId' })
+  @OneToOne(() => LineSettings, lineSettings => lineSettings.user, { cascade: true })
   lineSettings: LineSettings;
 }
+
