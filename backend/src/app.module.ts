@@ -37,7 +37,7 @@ import { FAQModule } from './modules/faqs/faq.module';
       password: databaseConfig.password,
       database: databaseConfig.database,
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      synchronize: false, // Set this to false to prevent automatic schema updates
+      synchronize: true, // Set this to false to prevent automatic schema updates
       logging: false,
     }),
     PaymentModule,
