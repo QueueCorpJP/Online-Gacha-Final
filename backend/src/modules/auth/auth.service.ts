@@ -11,6 +11,7 @@ import * as crypto from 'crypto';
 import { SecurityLogService } from '../security/security-log.service';
 import { SecurityEventType } from '../security/security-log.entity';
 import { Request } from 'express';
+import { LineSettings } from '../user/entities/line-settings.entity';
 
 interface RegisterData {
   email: string;
@@ -33,6 +34,8 @@ export class AuthService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(LineSettings)
+    private readonly lineSettingsRepository: Repository<LineSettings>,
     @InjectRepository(OTP)
     private readonly otpRepository: Repository<OTP>,
     private readonly jwtService: JwtService,
@@ -73,7 +76,15 @@ export class AuthService {
       coinBalance: 0,
     });
 
-    await this.userRepository.save(user);
+    const savedUser = await this.userRepository.save(user);
+
+    const lineSettings = this.lineSettingsRepository.create({
+      userId: savedUser.id,
+      isConnected: false,
+      notifications: false,
+    });
+    
+    await this.lineSettingsRepository.save(lineSettings);
 
     // Generate OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -353,3 +364,4 @@ export class AuthService {
     }
   }
 }
+
