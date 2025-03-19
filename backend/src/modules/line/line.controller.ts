@@ -19,16 +19,17 @@ export class LineController {
 
   @UseGuards(AuthGuard)
   @Get('settings')
-  async getSettings(@CurrentUser() user: User): Promise<LineSettings> {
+  async getSettings(@CurrentUser() user: User): Promise<Partial<LineSettings>> {
     const settings = await this.lineService.getSettings(user.id);
     if ('userId' in settings) {
       return settings;
     }
     return {
       userId: user.id,
-      lineUserId: null,  // Add this with null as default
+      lineUserId: null,
       isConnected: settings.isConnected,
-      notifications: settings.notifications
+      notifications: settings.notifications,
+      id: null // Add the missing id property
     };
   }
 
@@ -194,3 +195,4 @@ export class LineController {
   //   return { success: true };
   // }
 }
+
