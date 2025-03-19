@@ -11,7 +11,7 @@ import * as crypto from 'crypto';
 import { SecurityLogService } from '../security/security-log.service';
 import { SecurityEventType } from '../security/security-log.entity';
 import { Request } from 'express';
-import { LineSettings } from '../user/entities/line-settings.entity';
+import { LineSettings } from '../line/entities/line-settings.entity';
 
 interface RegisterData {
   email: string;
