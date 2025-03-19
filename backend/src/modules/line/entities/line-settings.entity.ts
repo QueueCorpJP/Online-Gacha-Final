@@ -3,9 +3,6 @@ import { User } from '../../user/entities/user.entity';
 
 @Entity('line_settings')
 export class LineSettings {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
   @Column({ type: 'uuid' })
   userId: string;
 
