@@ -9,12 +9,13 @@ import { AuthGuard } from '../../common/auth.guard';
 import { MailModule } from '../mail/mail.module';
 import { OTP } from './entities/otp.entity';
 import { SecurityModule } from '../security/security.module';
+import { LineSettings } from '../line/entities/line-settings.entity';
 
 @Module({
   imports: [
     MailModule,
     SecurityModule,
-    TypeOrmModule.forFeature([BlacklistedToken, User, OTP]),
+    TypeOrmModule.forFeature([BlacklistedToken, User, OTP, LineSettings]),
     JwtModule.register({
       secret: process.env.JWT_SECRET || 'your-secret-key',
       signOptions: { expiresIn: '1d' },
@@ -30,3 +31,4 @@ import { SecurityModule } from '../security/security.module';
   ],
 })
 export class AuthModule {}
+
