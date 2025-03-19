@@ -20,7 +20,7 @@ import { LineSettings } from '../line/entities/line-settings.entity';
       secret: process.env.JWT_SECRET || 'your-secret-key',
       signOptions: { expiresIn: '1d' },
     }),
-  ],
+  ],  
   controllers: [AuthController],
   providers: [AuthService, AuthGuard],
   exports: [
