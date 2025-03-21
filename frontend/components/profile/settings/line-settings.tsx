@@ -62,7 +62,7 @@ export function LineSettings() {
       //   // Redirect to LINE login
       //   window.location.href = result.login
       // }
-      window.open("https://lin.ee/3h4RD4o", '_blank');
+      window.open("https://line.me/R/ti/p/@577vaiyc", '_blank');
     } catch (err) {
       toast.error(t("line.messages.connectError"))
     }
