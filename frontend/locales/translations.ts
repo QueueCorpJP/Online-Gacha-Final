@@ -1433,7 +1433,7 @@ export const translations = {
             sections: {
                 introduction: {
                     title: "1. Introduction",
-                    content: "These Terms of Service (hereinafter referred to as 'Terms') establish the terms and conditions for the use of services (hereinafter referred to as 'Service') provided by Gacha Game (hereinafter referred to as 'Company') on its website. All registered users (hereinafter referred to as 'Users') shall use this Service in accordance with these Terms."
+                    content: "These Terms of Service (hereinafter referred to as 'Terms') establish the terms and conditions for the use of services (hereinafter referred to as 'Service') provided by SHIJON (hereinafter referred to as 'Company') on its website. All registered users (hereinafter referred to as 'Users') shall use this Service in accordance with these Terms."
                 },
                 registration: {
                     title: "2. User Registration",
@@ -2531,7 +2531,7 @@ export const translations = {
             sections: {
                 introduction: {
                     title: "1. Introduction",
-                    content: "Gacha Game (hereinafter referred to as 'Company') establishes this Privacy Policy (hereinafter referred to as 'Policy') regarding the handling of user's personal information in the service provided on this website (hereinafter referred to as 'Service')."
+                    content: "SHIJON (hereinafter referred to as 'Company') establishes this Privacy Policy (hereinafter referred to as 'Policy') regarding the handling of user's personal information in the service provided on this website (hereinafter referred to as 'Service')."
                 },
                 collection: {
                     title: "2. Collection of Personal Information",
@@ -2581,7 +2581,7 @@ export const translations = {
                     content: `For inquiries regarding this Policy, please contact:
       
       Address: 1-2-3 XX, XX Ward, Tokyo XXX-XXXX
-      Company Name: Gacha Game Corporation
+      Company Name: SHIJON Corporation
       Department: Customer Support
       Email: privacy@gachagame.com`
                 }
@@ -2595,7 +2595,7 @@ export const translations = {
             sections: {
                 seller: {
                     title: "Seller",
-                    content: "Gacha Game Corporation"
+                    content: "SHIJON Corporation"
                 },
                 representative: {
                     title: "Representative",
@@ -2767,7 +2767,7 @@ export const translations = {
             sections: {
                 introduction: {
                     title: "1. 简介",
-                    content: "本服务条款（以下简称\"条款\"）规定了Gacha Game（以下简称\"公司\"）在其网站上提供的服务（以下简称\"服务\"）的使用条款和条件。所有注册用户（以下简称\"用户\"）在使用本服务时必须遵守这些条款。"
+                    content: "本服务条款（以下简称\"条款\"）规定了SHIJON（以下简称\"公司\"）在其网站上提供的服务（以下简称\"服务\"）的使用条款和条件。所有注册用户（以下简称\"用户\"）在使用本服务时必须遵守这些条款。"
                 },
                 registration: {
                     title: "2. 用户注册",
@@ -3938,7 +3938,7 @@ export const translations = {
             sections: {
                 introduction: {
                     title: "1. 简介",
-                    content: "Gacha Game（以下简称\"公司\"）制定本隐私政策（以下简称\"政策\"），规定在本网站提供的服务（以下简称\"服务\"）中对用户个人信息的处理方式。"
+                    content: "SHIJON（以下简称\"公司\"）制定本隐私政策（以下简称\"政策\"），规定在本网站提供的服务（以下简称\"服务\"）中对用户个人信息的处理方式。"
                 },
                 collection: {
                     title: "2. 个人信息收集方式",
@@ -3988,7 +3988,7 @@ export const translations = {
                     content: `关于本政策的咨询，请通过以下方式联系：
       
       地址：邮编XXX-XXXX 东京都XX区XX1-2-3
-      公司名称：Gacha Game株式会社
+      公司名称：SHIJON株式会社
       负责部门：客户支持
       电子邮件：privacy@gachagame.com`
                 }

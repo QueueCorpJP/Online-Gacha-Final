@@ -32,7 +32,7 @@ export class MailService {
       await this.transporter.verify();
       
       const mailOptions = {
-        from: `"Gacha Game" <${this.configService.get<string>('GMAIL_USER')}>`,
+        from: `"SHIJON" <${this.configService.get<string>('GMAIL_USER')}>`,
         to: email,
         subject: '認証コードの確認',
         html: `
@@ -64,7 +64,7 @@ export class MailService {
       await this.transporter.verify();
       
       const mailOptions = {
-        from: `"Gacha Game" <${this.configService.get<string>('GMAIL_USER')}>`,
+        from: `"SHIJON" <${this.configService.get<string>('GMAIL_USER')}>`,
         to: email,
         subject: 'パスワードリセットのリクエスト',
         html: `
