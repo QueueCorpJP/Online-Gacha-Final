@@ -61,6 +61,8 @@ jobs:
           key: ${{ secrets.EC2_KEY }}
           script: |
             # Navigate to your backend folder (adjust the path as needed)
+            export NVM_DIR=~/.nvm
+            source ~/.nvm/nvm.sh
             cd /var/www/html/Online-Gacha-Final
             sudo git pull origin master
             cd backend
