@@ -27,6 +27,8 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_KEY }}
           script: |
+            export NVM_DIR=~/.nvm
+            source ~/.nvm/nvm.sh
             npm install yarn -g
             cd /var/www/html/Online-Gacha-Final
             sudo git pull origin master
