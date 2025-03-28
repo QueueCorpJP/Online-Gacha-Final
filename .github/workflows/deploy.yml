@@ -1,0 +1,72 @@
+name: Deploy to AWS EC2
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy-frontend:
+    name: Deploy Frontend (Next.js)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Option 1: Build locally and copy files
+      #- name: Build Frontend
+      #  working-directory: frontend-nextjs
+      #  run: |
+      #    npm run build
+
+      # Option 2: Run commands remotely (e.g., git pull on server)
+      - name: Deploy Frontend to EC2
+        uses: appleboy/ssh-action@v0.1.8
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_KEY }}
+          script: |
+            export NVM_DIR=~/.nvm
+            source ~/.nvm/nvm.sh
+            npm install yarn -g
+            cd /var/www/html/Online-Gacha-Final
+            sudo git pull origin master
+            cd frontend
+            yarn install
+            npm run build
+            # Restart the process using PM2 (or start if not running)
+            pm2 restart gacha-frontend
+
+  deploy-backend:
+    name: Deploy Backend (NestJS)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Option 1: Build locally and copy files
+      #- name: Build Backend
+      #  working-directory: backend-nestjs
+      #  run: |
+      #    npm install
+      #    npm run build
+
+      # Option 2: Run commands remotely (e.g., git pull on server)
+      - name: Deploy Backend to EC2
+        uses: appleboy/ssh-action@v0.1.8
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_KEY }}
+          script: |
+            # Navigate to your backend folder (adjust the path as needed)
+            export NVM_DIR=~/.nvm
+            source ~/.nvm/nvm.sh
+            cd /var/www/html/Online-Gacha-Final
+            sudo git pull origin master
+            cd backend
+            yarn install
+            npm run build
+            # Restart the process using PM2 (or start if not running)
+            pm2 restart gacha-backend
