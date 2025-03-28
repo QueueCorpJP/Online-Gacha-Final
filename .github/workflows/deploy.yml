@@ -17,7 +17,6 @@ jobs:
       #- name: Build Frontend
       #  working-directory: frontend-nextjs
       #  run: |
-      #    npm install
       #    npm run build
 
       # Option 2: Run commands remotely (e.g., git pull on server)
@@ -28,6 +27,7 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_KEY }}
           script: |
+            npm install yarn -g
             cd /var/www/html/Online-Gacha-Final
             sudo git pull origin master
             cd frontend
