@@ -512,8 +512,11 @@ export function GachaForm({ initialData }: GachaFormProps) {
                     <Input
                       id="price"
                       type="number"
-                      value={price}
-                      onChange={(e) => setPrice(Number(e.target.value))}
+                      value={price === 0 ? '' : price}
+                      onChange={(e) => {
+                        const value = e.target.value === '' ? 0 : Number(e.target.value);
+                        setPrice(value);
+                      }}
                       placeholder={t('gachaForm.commonSettings.price.placeholder')}
                       className={`h-12 rounded-lg bg-white ${errors.price ? 'border-red-500' : ''}`}
                     />
@@ -528,8 +531,11 @@ export function GachaForm({ initialData }: GachaFormProps) {
                     <Input
                       id="period"
                       type="number"
-                      value={period}
-                      onChange={(e) => setPeriod(Number(e.target.value))}
+                      value={period === 0 ? '' : period}
+                      onChange={(e) => {
+                        const value = e.target.value === '' ? 0 : Number(e.target.value);
+                        setPeriod(value);
+                      }}
                       placeholder={t('gachaForm.commonSettings.period.placeholder')}
                       className="h-12 rounded-lg bg-white"
                     />
@@ -542,8 +548,11 @@ export function GachaForm({ initialData }: GachaFormProps) {
                       <Input
                         id="dailyLimit"
                         type="number"
-                        value={dailyLimit}
-                        onChange={(e) => setDailyLimit(Number(e.target.value))}
+                        value={dailyLimit === 0 ? '' : dailyLimit}
+                        onChange={(e) => {
+                          const value = e.target.value === '' ? 0 : Number(e.target.value);
+                          setDailyLimit(value);
+                        }}
                         disabled={isLimitless}
                         placeholder={t('gachaForm.commonSettings.dailyLimit.placeholder')}
                         className="h-12 rounded-lg bg-white"
