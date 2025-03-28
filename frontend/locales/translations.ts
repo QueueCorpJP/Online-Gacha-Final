@@ -2525,7 +2525,7 @@ export const translations = {
             }
         },
         privacy: {
-            title: "Privacy Policy !",
+            title: "Privacy Policy !!!",
             established: "Established: {date}",
             lastUpdated: "Last Updated: {date}",
             sections: {
