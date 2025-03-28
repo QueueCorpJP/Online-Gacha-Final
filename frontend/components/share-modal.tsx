@@ -19,7 +19,7 @@ export function ShareModal({ open, onOpenChange, url, title }: ShareModalProps) 
       icon: Twitter,
       label: 'Twitter',
       onClick: () => window.open(
-        `https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(url)}`,
+        `https://twitter.com/intent/tweet?text=${title}&url=${encodeURIComponent(url)}`,
         "_blank"
       )
     },
