@@ -3,7 +3,7 @@ name: Deploy to AWS EC2
 on:
   push:
     branches:
-      - main
+      - master
 
 jobs:
   deploy-frontend:
@@ -29,7 +29,7 @@ jobs:
           key: ${{ secrets.EC2_KEY }}
           script: |
             cd /var/www/html/Online-Gacha-Final
-            sudo git pull origin
+            sudo git pull origin master
             cd frontend
             yarn install
             npm run build
@@ -60,7 +60,7 @@ jobs:
           script: |
             # Navigate to your backend folder (adjust the path as needed)
             cd /var/www/html/Online-Gacha-Final
-            sudo git pull origin main
+            sudo git pull origin master
             cd backend
             yarn install
             npm run build
