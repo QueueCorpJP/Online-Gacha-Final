@@ -31,6 +31,7 @@ jobs:
             source ~/.nvm/nvm.sh
             npm install yarn -g
             cd /var/www/html/Online-Gacha-Final
+            sudo git config pull.rebase false
             sudo git pull origin master
             cd frontend
             yarn install
@@ -64,6 +65,7 @@ jobs:
             export NVM_DIR=~/.nvm
             source ~/.nvm/nvm.sh
             cd /var/www/html/Online-Gacha-Final
+            sudo git config pull.rebase false
             sudo git pull origin master
             cd backend
             yarn install
