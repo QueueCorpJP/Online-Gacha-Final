@@ -1272,7 +1272,7 @@ export const translations = {
                 },
                 url: {
                     title: "URL",
-                    content: "https://www.gachagame.com"
+                    content: "https://oripa-shijon.com/"
                 },
                 businessDetails: {
                     title: "事業内容",
@@ -2615,7 +2615,7 @@ export const translations = {
                 },
                 url: {
                     title: "URL",
-                    content: "https://www.gachagame.com"
+                    content: "https://oripa-shijon.com/"
                 },
                 businessDetails: {
                     title: "事業内容",
