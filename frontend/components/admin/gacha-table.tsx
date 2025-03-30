@@ -10,6 +10,7 @@ import { useTranslations } from "@/hooks/use-translations"
 import { useDispatch, useSelector } from "react-redux"
 import type { AppDispatch, RootState } from "@/redux/store"
 import { fetchAdminGachas, selectGacha } from "@/redux/features/gachaSlice"
+import { useIsMobile } from "@/hooks/use-mobile"
 
 interface GachaTableProps {
   onEdit?: (id: string) => void;
@@ -20,6 +21,7 @@ export function GachaTable({ onEdit }: GachaTableProps) {
   const dispatch = useDispatch()
   const [page, setPage] = useState(1)
   const [limit] = useState(10)
+  const isMobile = useIsMobile()
   
   const { gachas, loading, error, total } = useSelector((state: RootState) => state.gacha)
   const totalPages = Math.ceil(total / limit)
@@ -61,67 +63,163 @@ export function GachaTable({ onEdit }: GachaTableProps) {
     return <div>Error: {error}</div>
   }
 
-  return (
-    <div className="rounded-lg">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-[120px]">{t("admin.gachaTable.headers.thumbnail")}</TableHead>
-            <TableHead>{t("admin.gachaTable.headers.name")}</TableHead>
-            <TableHead>{t("admin.gachaTable.headers.type")}</TableHead>
-            <TableHead>{t("admin.gachaTable.headers.price")}</TableHead>
-            <TableHead>{t("admin.gachaTable.headers.period")}</TableHead>
-            <TableHead>{t("admin.gachaTable.headers.status")}</TableHead>
-            <TableHead className="text-right">{t("admin.gachaTable.headers.actions")}</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {gachas.map((item) => (
-            <TableRow key={item.id}>
-              <TableCell>
-                <div className="relative h-16 w-16 overflow-hidden rounded-lg bg-gray-100">
-                  <Image 
-                    src={item.thumbnail ? `${process.env.NEXT_PUBLIC_API_URL}${item.thumbnail}` : "/placeholder.svg"} 
-                    alt={item.name} 
-                    fill 
-                    className="object-cover" 
-                  />
-                </div>
-              </TableCell>
-              <TableCell className="font-medium">{item.translations.ja.name}</TableCell>
-              <TableCell>{t(`admin.gachaTable.types.${item.type}`)}</TableCell>
-              <TableCell>{item.price} {t("admin.gachaTable.points")}</TableCell>
-              <TableCell>
-                {item.duration 
-                  ? t("admin.gachaTable.period.days", { days: item.duration })
-                  : t("admin.gachaTable.period.unlimited")}
-              </TableCell>
-              <TableCell>
+  // Mobile card view
+  if (isMobile) {
+    return (
+      <div className="space-y-4">
+        {gachas.map((item) => (
+          <div key={item.id} className="bg-white border rounded-lg p-4 shadow-sm">
+            <div className="flex items-center space-x-3 mb-3">
+              <div className="relative h-12 w-12 overflow-hidden rounded-lg bg-gray-100 flex-shrink-0">
+                <Image 
+                  src={item.thumbnail ? `${process.env.NEXT_PUBLIC_API_URL}${item.thumbnail}` : "/placeholder.svg"} 
+                  alt={item.name} 
+                  fill 
+                  className="object-cover" 
+                />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-medium text-gray-900 truncate">{item.translations.ja.name}</h3>
+                <p className="text-xs text-gray-500">{t(`admin.gachaTable.types.${item.type}`)}</p>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => handleEdit(item.id)}
+                className="flex-shrink-0"
+              >
+                <Pencil className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="bg-gray-50 p-2 rounded">
+                <span className="text-gray-500">{t("admin.gachaTable.headers.price")}</span>
+                <p className="font-medium">{item.price} {t("admin.gachaTable.points")}</p>
+              </div>
+              <div className="bg-gray-50 p-2 rounded">
+                <span className="text-gray-500">{t("admin.gachaTable.headers.period")}</span>
+                <p className="font-medium">
+                  {item.duration 
+                    ? t("admin.gachaTable.period.days", { days: item.duration })
+                    : t("admin.gachaTable.period.unlimited")}
+                </p>
+              </div>
+              <div className="bg-gray-50 p-2 rounded col-span-2">
+                <span className="text-gray-500">{t("admin.gachaTable.headers.status")}</span>
                 <span className={cn(
-                  "text-sm", 
-                  item.isActive ? "text-green-600" : "text-gray-500"
+                  "ml-2 text-xs font-medium px-2 py-0.5 rounded-full", 
+                  item.isActive 
+                    ? "bg-green-100 text-green-800" 
+                    : "bg-gray-100 text-gray-800"
                 )}>
                   {t(item.isActive 
                     ? "admin.gachaTable.status.active" 
                     : "admin.gachaTable.status.inactive")}
                 </span>
-              </TableCell>
-              <TableCell className="text-right">
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  onClick={() => handleEdit(item.id)}
-                >
-                  <Pencil className="h-4 w-4" />
-                  <span className="sr-only">
-                    {t("admin.gachaTable.edit")} {item.name}
-                  </span>
-                </Button>
-              </TableCell>
+              </div>
+            </div>
+          </div>
+        ))}
+        
+        {/* Mobile pagination */}
+        <div className="flex items-center justify-between px-2 py-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handlePageChange(page - 1)}
+            disabled={page === 1 || loading}
+            className="w-24"
+          >
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            {t("common.previous")}
+          </Button>
+          
+          <span className="text-xs text-center">
+            {t("common.page")} {page}/{totalPages}
+          </span>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handlePageChange(page + 1)}
+            disabled={page === totalPages || loading}
+            className="w-24"
+          >
+            {t("common.next")}
+            <ChevronRight className="h-4 w-4 ml-1" />
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  // Desktop table view
+  return (
+    <div className="rounded-lg">
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[120px]">{t("admin.gachaTable.headers.thumbnail")}</TableHead>
+              <TableHead>{t("admin.gachaTable.headers.name")}</TableHead>
+              <TableHead>{t("admin.gachaTable.headers.type")}</TableHead>
+              <TableHead>{t("admin.gachaTable.headers.price")}</TableHead>
+              <TableHead>{t("admin.gachaTable.headers.period")}</TableHead>
+              <TableHead>{t("admin.gachaTable.headers.status")}</TableHead>
+              <TableHead className="text-right">{t("admin.gachaTable.headers.actions")}</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {gachas.map((item) => (
+              <TableRow key={item.id}>
+                <TableCell>
+                  <div className="relative h-16 w-16 overflow-hidden rounded-lg bg-gray-100">
+                    <Image 
+                      src={item.thumbnail ? `${process.env.NEXT_PUBLIC_API_URL}${item.thumbnail}` : "/placeholder.svg"} 
+                      alt={item.name} 
+                      fill 
+                      className="object-cover" 
+                    />
+                  </div>
+                </TableCell>
+                <TableCell className="font-medium">{item.translations.ja.name}</TableCell>
+                <TableCell>{t(`admin.gachaTable.types.${item.type}`)}</TableCell>
+                <TableCell>{item.price} {t("admin.gachaTable.points")}</TableCell>
+                <TableCell>
+                  {item.duration 
+                    ? t("admin.gachaTable.period.days", { days: item.duration })
+                    : t("admin.gachaTable.period.unlimited")}
+                </TableCell>
+                <TableCell>
+                  <span className={cn(
+                    "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium", 
+                    item.isActive 
+                      ? "bg-green-100 text-green-800" 
+                      : "bg-gray-100 text-gray-800"
+                  )}>
+                    {t(item.isActive 
+                      ? "admin.gachaTable.status.active" 
+                      : "admin.gachaTable.status.inactive")}
+                  </span>
+                </TableCell>
+                <TableCell className="text-right">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => handleEdit(item.id)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                    <span className="sr-only">
+                      {t("admin.gachaTable.edit")} {item.name}
+                    </span>
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
       
       <div className="flex items-center justify-center px-2 py-4">
         <div className="flex items-center justify-center space-x-2">
@@ -142,7 +240,7 @@ export function GachaTable({ onEdit }: GachaTableProps) {
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <span className="text-sm">
-            Page {page} of {totalPages}
+            {t("common.page")} {page} / {totalPages}
           </span>
           <Button
             variant="outline"
