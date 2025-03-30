@@ -175,10 +175,10 @@ ${values.message}
               </FormControl>
               <div className="space-y-1 leading-none">
                 <FormLabel className="text-sm font-normal text-black">
-                  {t("contact.form.privacy.agreement")}{" "}
                   <Link href="/privacy" className="text-purple-500 hover:underline">
-                    {t("contact.form.privacy.link")}
+                    {t("contact.form.privacy.agreement")}
                   </Link>
+                  {" "}{t("contact.form.privacy.link")}
                 </FormLabel>
                 <FormMessage />
               </div>
