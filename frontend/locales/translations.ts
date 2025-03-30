@@ -542,7 +542,7 @@ export const translations = {
                 twitter: "Twitter",
                 instagram: "Instagram"
             },
-            copyright: "© 2025 SHIJON. All rights reserved."
+            copyright: "© 2025 合同会社 OMOTENASHI. All rights reserved."
         },
         messages: {
             confirmDelete: "本当に削除しますか？",
@@ -1252,19 +1252,19 @@ export const translations = {
             sections: {
                 seller: {
                     title: "販売事業者",
-                    content: "株式会社ガチャゲーム"
+                    content: "合同会社 OMOTENASHI"
                 },
                 representative: {
                     title: "代表者",
-                    content: "代表取締役 山田 太郎"
+                    content: "岩村 雄二"
                 },
                 address: {
                     title: "所在地",
-                    content: "〒123-4567\n東京都渋谷区ガチャ町1-2-3 ガチャビル5F"
+                    content: "〒104-0061\n東京都中央区銀座1-12-4 N&E BLD.7階"
                 },
                 phone: {
                     title: "電話番号",
-                    content: "03-1234-5678（受付時間：平日10:00〜18:00）"
+                    content: "03-4222-3343"
                 },
                 email: {
                     title: "メールアドレス",
@@ -1273,6 +1273,10 @@ export const translations = {
                 url: {
                     title: "URL",
                     content: "https://www.gachagame.com"
+                },
+                businessDetails: {
+                    title: "事業内容",
+                    content: "オンラインサービス"
                 },
                 price: {
                     title: "商品の販売価格",
@@ -1429,7 +1433,7 @@ export const translations = {
             sections: {
                 introduction: {
                     title: "1. Introduction",
-                    content: "These Terms of Service (hereinafter referred to as 'Terms') establish the terms and conditions for the use of services (hereinafter referred to as 'Service') provided by SHIJON (hereinafter referred to as 'Company') on its website. All registered users (hereinafter referred to as 'Users') shall use this Service in accordance with these Terms."
+                    content: "These Terms of Service (hereinafter referred to as 'Terms') establish the terms and conditions for the use of services (hereinafter referred to as 'Service') provided by 合同会社 OMOTENASHI (hereinafter referred to as 'Company') on its website. All registered users (hereinafter referred to as 'Users') shall use this Service in accordance with these Terms."
                 },
                 registration: {
                     title: "2. User Registration",
@@ -1865,7 +1869,7 @@ export const translations = {
                 twitter: "Twitter",
                 instagram: "Instagram"
             },
-            copyright: "© 2025 SHIJON. All rights reserved."
+            copyright: "© 2025 合同会社 OMOTENASHI. All rights reserved."
         },
         messages: {
             confirmDelete: "Are you sure you want to delete?",
@@ -2576,8 +2580,8 @@ export const translations = {
                     title: "9. Contact Information",
                     content: `For inquiries regarding this Policy, please contact:
       
-      Address: 1-2-3 XX, XX Ward, Tokyo XXX-XXXX
-      Company Name: SHIJON Corporation
+      Address: 〒104-0061 東京都中央区銀座1-12-4 N&E BLD.7階
+      Company Name: 合同会社 OMOTENASHI
       Department: Customer Support
       Email: privacy@gachagame.com`
                 }
@@ -2591,19 +2595,19 @@ export const translations = {
             sections: {
                 seller: {
                     title: "Seller",
-                    content: "SHIJON Corporation"
+                    content: "合同会社 OMOTENASHI"
                 },
                 representative: {
                     title: "Representative",
-                    content: "CEO Taro Yamada"
+                    content: "岩村 雄二"
                 },
                 address: {
                     title: "Address",
-                    content: "Gacha Building 5F, 1-2-3 Gacha-cho\nShibuya-ku, Tokyo 123-4567"
+                    content: "〒104-0061\n東京都中央区銀座1-12-4 N&E BLD.7階"
                 },
                 phone: {
                     title: "Phone",
-                    content: "03-1234-5678 (Business hours: Weekdays 10:00-18:00)"
+                    content: "03-4222-3343"
                 },
                 email: {
                     title: "Email",
@@ -2613,42 +2617,46 @@ export const translations = {
                     title: "URL",
                     content: "https://www.gachagame.com"
                 },
+                businessDetails: {
+                    title: "事業内容",
+                    content: "オンラインサービス"
+                },
                 price: {
-                    title: "Product Pricing",
-                    content: "Listed on each product page."
+                    title: "商品の販売価格",
+                    content: "各商品ページに記載しております。"
                 },
                 additionalFees: {
-                    title: "Additional Fees",
-                    content: "Consumption tax"
+                    title: "商品以外の必要料金",
+                    content: "消費税"
                 },
                 paymentMethods: {
-                    title: "Payment Methods",
-                    content: "Credit card, carrier billing, and other methods specified by the company"
+                    title: "支払方法",
+                    content: "クレジットカード決済、キャリア決済、その他当社が定める決済方法"
                 },
                 paymentTiming: {
-                    title: "Payment Timing",
-                    content: "At time of purchase"
+                    title: "支払期間",
+                    content: "商品購入時"
                 },
                 delivery: {
-                    title: "Delivery Timing",
-                    content: "Digital content will be provided immediately after purchase completion."
+                    title: "商品の引渡し時期",
+                    content: "商品購入完了後、即時にデジタルコンテンツを提供いたします。"
                 },
                 returns: {
-                    title: "Returns and Cancellations",
-                    content: "Due to the nature of digital content, returns and cancellations are not accepted after purchase. However, if digital content is not provided due to reasons attributable to our company, please contact us through the inquiry form."
+                    title: "返品・キャンセルについて",
+                    content: "デジタルコンテンツの性質上、購入後の返品・キャンセルはお受けできません。ただし、当社の責めに帰すべき事由により、デジタルコンテンツが提供されない場合は、お問い合わせフォームよりご連絡ください。"
                 },
                 requirements: {
-                    title: "System Requirements",
-                    content: "Recommended: iOS 14.0 or later, Android 8.0 or later\nMay not work on some devices."
+                    title: "動作環境",
+                    content: "推奨環境：iOS 14.0以降、Android 8.0以降\n一部お使いの端末によっては動作しない場合がございます。"
                 },
                 security: {
-                    title: "Security",
-                    content: "This site uses SSL encryption. Your personal information is properly managed and will not be shared with third parties."
+                    title: "セキュリティ",
+                    content: "当サイトはSSL暗号化通信に対応しています。お客様の個人情報は適切に管理し、第三者への提供は行いません。"
                 }
             },
             footer: {
-                update: "The content on this page may be updated periodically.",
-                contact: "For the latest information, please contact us through the inquiry form."
+                update: "本ページの記載内容は、随時更新される可能性があります。",
+                contact: "最新の情報については、お問い合わせフォームよりお問い合わせください。"
             }
         },
         forgotPassword: {
@@ -3205,7 +3213,7 @@ export const translations = {
                 twitter: "Twitter",
                 instagram: "Instagram"
             },
-            copyright: "© 2025 SHIJON. 版权所有。"
+            copyright: "© 2025 合同会社 OMOTENASHI. 版权所有。"
         },
         messages: {
             confirmDelete: "确定要删除吗？",
@@ -4019,6 +4027,10 @@ export const translations = {
                 url: {
                     title: "网址",
                     content: "https://www.gachagame.com"
+                },
+                businessDetails: {
+                    title: "事業内容",
+                    content: "オンラインサービス"
                 },
                 price: {
                     title: "商品价格",

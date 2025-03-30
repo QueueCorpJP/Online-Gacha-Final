@@ -30,6 +30,10 @@ export function TransactionDetails() {
       content: t("legal.sections.url.content"),
     },
     {
+      title: t("legal.sections.businessDetails.title"),
+      content: t("legal.sections.businessDetails.content"),
+    },
+    {
       title: t("legal.sections.price.title"),
       content: t("legal.sections.price.content"),
     },
