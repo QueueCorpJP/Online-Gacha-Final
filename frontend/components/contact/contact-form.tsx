@@ -83,7 +83,7 @@ ${values.message}
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5 md:space-y-6 px-2 sm:px-4 md:px-6 py-5 md:py-6 bg-white rounded-lg shadow-sm">
         <FormField
           control={form.control}
           name="name"
@@ -92,12 +92,12 @@ ${values.message}
               <FormControl>
                 <Input 
                   placeholder={t("contact.form.placeholders.name")} 
-                  className="bg-white" 
+                  className="bg-white text-base sm:text-base focus:ring-purple-500" 
                   {...field}
                   disabled={isSubmitting}
                 />
               </FormControl>
-              <FormMessage />
+              <FormMessage className="text-xs sm:text-sm" />
             </FormItem>
           )}
         />
@@ -109,12 +109,13 @@ ${values.message}
               <FormControl>
                 <Input 
                   placeholder={t("contact.form.placeholders.email")} 
-                  className="bg-white" 
+                  className="bg-white text-base sm:text-base focus:ring-purple-500" 
+                  type="email"
                   {...field}
                   disabled={isSubmitting}
                 />
               </FormControl>
-              <FormMessage />
+              <FormMessage className="text-xs sm:text-sm" />
             </FormItem>
           )}
         />
@@ -129,18 +130,18 @@ ${values.message}
                 disabled={isSubmitting}
               >
                 <FormControl>
-                  <SelectTrigger className="bg-white">
+                  <SelectTrigger className="bg-white text-base sm:text-base focus:ring-purple-500">
                     <SelectValue placeholder={t("contact.form.placeholders.category")} />
                   </SelectTrigger>
                 </FormControl>
-                <SelectContent>
+                <SelectContent className="text-base sm:text-base">
                   <SelectItem value="general">{t("contact.form.categories.general")}</SelectItem>
                   <SelectItem value="technical">{t("contact.form.categories.technical")}</SelectItem>
                   <SelectItem value="billing">{t("contact.form.categories.billing")}</SelectItem>
                   <SelectItem value="other">{t("contact.form.categories.other")}</SelectItem>
                 </SelectContent>
               </Select>
-              <FormMessage />
+              <FormMessage className="text-xs sm:text-sm" />
             </FormItem>
           )}
         />
@@ -152,12 +153,12 @@ ${values.message}
               <FormControl>
                 <Textarea 
                   placeholder={t("contact.form.placeholders.message")} 
-                  className="min-h-[200px] bg-white" 
+                  className="min-h-[150px] sm:min-h-[200px] bg-white text-base sm:text-base focus:ring-purple-500" 
                   {...field}
                   disabled={isSubmitting}
                 />
               </FormControl>
-              <FormMessage />
+              <FormMessage className="text-xs sm:text-sm" />
             </FormItem>
           )}
         />
@@ -171,29 +172,30 @@ ${values.message}
                   checked={field.value} 
                   onCheckedChange={field.onChange}
                   disabled={isSubmitting}
+                  className="data-[state=checked]:bg-purple-600 focus:ring-purple-500"
                 />
               </FormControl>
               <div className="space-y-1 leading-none">
-                <FormLabel className="text-sm font-normal text-black">
+                <FormLabel className="text-xs sm:text-sm font-normal text-black">
                   <Link href="/privacy" className="text-purple-500 hover:underline">
                     {t("contact.form.privacy.agreement")}
                   </Link>
                   {" "}{t("contact.form.privacy.link")}
                 </FormLabel>
-                <FormMessage />
+                <FormMessage className="text-xs sm:text-sm" />
               </div>
             </FormItem>
           )}
         />
         <Alert className="bg-purple-50 border-purple-100">
           <InfoIcon color="#9333EA" className="h-4 w-4 text-purple-500" />
-          <AlertDescription className="text-sm">
+          <AlertDescription className="text-xs sm:text-sm">
             {t("contact.form.notice")}
           </AlertDescription>
         </Alert>
         <Button 
           type="submit" 
-          className="w-full bg-purple-600 hover:bg-purple-700"
+          className="w-full py-2 sm:py-3 text-sm sm:text-base bg-purple-600 hover:bg-purple-700 transition-colors"
           disabled={isSubmitting}
         >
           {isSubmitting ? t("contact.form.submitting") : t("contact.form.submit")}
