@@ -18,7 +18,7 @@ interface UploadZoneProps {
 
 export function UploadZone({
   onFileSelect,
-  maxSize = 5 * 1024 * 1024, // 5MB default
+  maxSize = 10 * 1024 * 1024, // 10MB default (increased from 5MB)
   accept = {
     "image/jpeg": [".jpg", ".jpeg"],
     "image/png": [".png"],

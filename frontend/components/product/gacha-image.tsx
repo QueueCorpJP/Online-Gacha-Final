@@ -12,9 +12,9 @@ export function GachaImage({ src, alt, className }: GachaImageProps) {
     <div className={cn("relative rounded-2xl bg-gray-100 h-[100vw] lg:h-auto", className)}>
       <Image
         src={src || "/placeholder.svg"}
-        alt={alt}
+        alt={alt || "ガチャ画像"}
         fill
-        className="object-cover rounded-2xl"
+        className="object-contain rounded-2xl"
         priority
       />
     </div>

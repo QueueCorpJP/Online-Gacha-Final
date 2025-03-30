@@ -39,8 +39,8 @@ export function GachaCard({
           NEW
         </div>
       )}
-      <div className={`${variant === "square" ? "aspect-square" : "aspect-[4/3]"} relative bg-gray-100`}>
-        <Image src={`${process.env.NEXT_PUBLIC_API_URL}${imageUrl}` || "/placeholder.svg"} alt={title} fill className="object-cover" />
+      <div className="relative h-48 md:h-56 overflow-hidden rounded-t-xl">
+        <Image src={`${process.env.NEXT_PUBLIC_API_URL}${imageUrl}` || "/placeholder.svg"} alt={title} fill className="object-contain" />
       </div>
       <div className="p-4">
         <h3 className="mb-2 text-lg font-bold tracking-tight">{title}</h3>

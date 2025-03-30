@@ -1012,8 +1012,8 @@ export const translations = {
             },
             thumbnail: {
                 title: "サムネイル",
-                recommendedSize: "推奨サイズ: 800x600px",
-                maxFileSize: "最大ファイルサイズ: 5MB",
+                recommendedSize: "推奨サイズ: 1200x900px",
+                maxFileSize: "最大ファイルサイズ: 10MB",
                 supportedFormats: "対応フォーマット: JPG, PNG"
             },
             status: {
@@ -2339,8 +2339,8 @@ export const translations = {
             },
             thumbnail: {
                 title: "Thumbnail",
-                recommendedSize: "Recommended size: 800x600px",
-                maxFileSize: "Maximum file size: 5MB",
+                recommendedSize: "Recommended size: 1200x900px",
+                maxFileSize: "Maximum file size: 10MB",
                 supportedFormats: "Supported formats: JPG, PNG"
             },
             status: {
@@ -3747,9 +3747,9 @@ export const translations = {
                         },
                         thumbnail: {
                             title: "缩略图",
-                            recommendedSize: "建议尺寸：800x600px",
-                            maxFileSize: "最大文件大小：5MB",
-                            supportedFormats: "支持格式：JPG、PNG"
+                            recommendedSize: "推荐尺寸: 1200x900px",
+                            maxFileSize: "最大文件大小：10MB",
+                            supportedFormats: "支持格式：JPG，PNG"
                         },
                         status: {
                             active: "启用"

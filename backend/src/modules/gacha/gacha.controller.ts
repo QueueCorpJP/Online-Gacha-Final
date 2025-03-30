@@ -96,7 +96,7 @@ export class GachaController {
       },
     }),
     fileFilter: (req, file, cb) => {
-      if (file.fieldname === 'itemImages' || file.fieldname === 'thumbnail') {
+      if (file.fieldname === 'itemImages' || file.fieldname === 'thumbnail' || file.fieldname === 'lastOnePrizeImage') {
         // Allow empty.png files (these are our placeholder Blobs)
         if (file.originalname === 'empty.png') {
           return cb(null, true);
@@ -111,7 +111,7 @@ export class GachaController {
       }
     },
     limits: {
-      fileSize: 5 * 1024 * 1024 // 5MB
+      fileSize: 10 * 1024 * 1024 // 10MB (increased from 5MB)
     }
   }))
   async createGacha(
@@ -191,7 +191,7 @@ export class GachaController {
       },
     }),
     fileFilter: (req, file, cb) => {
-      if (file.fieldname === 'itemImages' || file.fieldname === 'thumbnail') {
+      if (file.fieldname === 'itemImages' || file.fieldname === 'thumbnail' || file.fieldname === 'lastOnePrizeImage') {
         // Allow empty.png files (these are our placeholder Blobs)
         if (file.originalname === 'empty.png') {
           return cb(null, true);
@@ -206,7 +206,7 @@ export class GachaController {
       }
     },
     limits: {
-      fileSize: 5 * 1024 * 1024 // 5MB
+      fileSize: 10 * 1024 * 1024 // 10MB (increased from 5MB)
     }
   }))
   async updateGacha(

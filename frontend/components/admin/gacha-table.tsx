@@ -75,7 +75,7 @@ export function GachaTable({ onEdit }: GachaTableProps) {
                   src={item.thumbnail ? `${process.env.NEXT_PUBLIC_API_URL}${item.thumbnail}` : "/placeholder.svg"} 
                   alt={item.name} 
                   fill 
-                  className="object-cover" 
+                  className="object-contain" 
                 />
               </div>
               <div className="flex-1 min-w-0">
@@ -179,7 +179,7 @@ export function GachaTable({ onEdit }: GachaTableProps) {
                       src={item.thumbnail ? `${process.env.NEXT_PUBLIC_API_URL}${item.thumbnail}` : "/placeholder.svg"} 
                       alt={item.name} 
                       fill 
-                      className="object-cover" 
+                      className="object-contain" 
                     />
                   </div>
                 </TableCell>

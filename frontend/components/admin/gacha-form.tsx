@@ -754,11 +754,10 @@ export function GachaForm({ initialData }: GachaFormProps) {
                                 <div className="h-full w-full relative">
                                   <Image
                                     src={item.imageUrl ? item.imageUrl : '/placeholder.svg'}
-                                    alt="Preview"
-                                    width={48}
-                                    height={48}
-                                    className="h-full w-full object-cover rounded-md"
-                                    style={{ objectFit: 'cover' }}
+                                    alt={item.name || '商品画像'}
+                                    width={80}
+                                    height={80}
+                                    className="h-full w-full object-contain rounded-md"
                                   />
                                 </div>
                                 <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-md">
