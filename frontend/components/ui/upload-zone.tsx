@@ -80,7 +80,7 @@ export function UploadZone({
     >
       <input {...getInputProps()} />
       {preview ? (
-        <div className="relative h-48 w-full">
+        <div className="relative h-64 w-full">
           <Image
             src={preview}
             alt="Preview"

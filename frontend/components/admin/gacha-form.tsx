@@ -748,15 +748,15 @@ export function GachaForm({ initialData }: GachaFormProps) {
                           </Label>
                         </div>
                         <div className="flex gap-2">
-                          <div className="relative h-12">
+                          <div className="relative h-16 w-16">
                             {(item.image || item.imageUrl) ? (
                               <div className="relative group h-full">
                                 <div className="h-full w-full relative">
                                   <Image
                                     src={item.imageUrl ? item.imageUrl : '/placeholder.svg'}
                                     alt={item.name || '商品画像'}
-                                    width={80}
-                                    height={80}
+                                    width={100}
+                                    height={100}
                                     className="h-full w-full object-contain rounded-md"
                                   />
                                 </div>
@@ -808,7 +808,7 @@ export function GachaForm({ initialData }: GachaFormProps) {
                                   className="absolute inset-0 cursor-pointer opacity-0 w-full h-full"
                                 />
                                 <div className="p-2 h-full w-full flex items-center justify-center rounded-md border border-input bg-violet-50 text-sm font-semibold text-violet-700 hover:bg-violet-100">
-                                  Image
+                                  画像
                                 </div>
                               </>
                             )}
