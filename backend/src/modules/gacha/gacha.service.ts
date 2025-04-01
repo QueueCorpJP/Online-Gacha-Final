@@ -676,12 +676,12 @@ export class GachaService {
         const inventoryCount = await queryRunner.manager.count('inventory', {
           where: { itemId: In(gacha.items.map(item => item.id)) }
         });
-        
+
         if (inventoryCount > 0) {
-          throw new BadRequestException(
-            'Cannot delete this gacha because it is being used by other records. ' +
-            'Please remove those references first.'
-          );
+          // Delete inventory records instead of throwing an error
+          await queryRunner.manager.delete('inventory', {
+            itemId: In(gacha.items.map(item => item.id))
+          });
         }
 
         await queryRunner.manager.query(
