@@ -672,6 +672,18 @@ export class GachaService {
     try {
       // First, update inventory status to 'locked' for all items in this gacha
       if (gacha.items && gacha.items.length > 0) {
+        // Check if any items are referenced in inventory
+        const inventoryCount = await queryRunner.manager.count('inventory', {
+          where: { itemId: In(gacha.items.map(item => item.id)) }
+        });
+        
+        if (inventoryCount > 0) {
+          throw new BadRequestException(
+            'Cannot delete this gacha because it is being used by other records. ' +
+            'Please remove those references first.'
+          );
+        }
+
         await queryRunner.manager.query(
           `UPDATE inventory SET status = 'locked' WHERE "itemId" IN (${gacha.items.map(item => `'${item.id}'`).join(',')})`
         );
@@ -694,6 +706,10 @@ export class GachaService {
     } catch (error) {
       // Rollback in case of error
       await queryRunner.rollbackTransaction();
+      
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
       
       if (error.code === '23503') { // Foreign key constraint violation
         throw new BadRequestException(

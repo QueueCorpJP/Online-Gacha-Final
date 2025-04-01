@@ -199,7 +199,10 @@ export const deleteGacha = createAsyncThunk(
       await api.delete(`/admin/gacha/${id}`);
       return id;
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to delete gacha');
+      // Return the specific error message from the backend
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to delete gacha'
+      );
     }
   }
 );
