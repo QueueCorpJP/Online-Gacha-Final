@@ -670,30 +670,17 @@ export class GachaService {
     await queryRunner.startTransaction();
 
     try {
-      // First, update inventory status to 'locked' for all items in this gacha
+      // First, handle inventory records for all items in this gacha
       if (gacha.items && gacha.items.length > 0) {
-        // Check if any items are referenced in inventory
-        const inventoryCount = await queryRunner.manager.count('inventory', {
-          where: { itemId: In(gacha.items.map(item => item.id)) }
+        // Delete inventory records referencing these items
+        await queryRunner.manager.delete('inventory', {
+          itemId: In(gacha.items.map(item => item.id))
         });
-
-        if (inventoryCount > 0) {
-          // Delete inventory records instead of throwing an error
-          await queryRunner.manager.delete('inventory', {
-            itemId: In(gacha.items.map(item => item.id))
-          });
+        
+        // Delete all gacha items first (this is important for the FK constraint)
+        for (const item of gacha.items) {
+          await queryRunner.manager.remove(item);
         }
-
-        await queryRunner.manager.query(
-          `UPDATE inventory SET status = 'locked' WHERE "itemId" IN (${gacha.items.map(item => `'${item.id}'`).join(',')})`
-        );
-
-        // Soft delete all gacha items
-        await queryRunner.manager.update(
-          GachaItem,
-          { id: In(gacha.items.map(item => item.id)) },
-          { deletedAt: new Date() }
-        );
       }
 
       // Then delete the gacha itself
@@ -707,35 +694,10 @@ export class GachaService {
       // Rollback in case of error
       await queryRunner.rollbackTransaction();
       
+      console.error('Error deleting gacha:', error);
+      
       if (error instanceof BadRequestException) {
         throw error;
-      }
-      
-      if (error.code === '23503') { // Foreign key constraint violation
-        // Instead of throwing an error, handle the constraint by removing references
-        try {
-          // Get the constraint details to identify which table has references
-          const constraintMatch = error.detail?.match(/referenced from table "([^"]+)"/);
-          const referencingTable = constraintMatch ? constraintMatch[1] : null;
-          
-          console.log(`Handling foreign key constraint from table: ${referencingTable}`);
-          
-          // Delete references from the referencing table
-          if (referencingTable) {
-            // For inventory, favorites, pull_history, etc.
-            await queryRunner.manager.query(
-              `DELETE FROM "${referencingTable}" WHERE "gachaId" = '${id}' OR "gacha_id" = '${id}'`
-            );
-            
-            // Try the delete operation again
-            await queryRunner.manager.remove(gacha);
-            await queryRunner.commitTransaction();
-            return { success: true, message: 'Gacha deleted successfully' };
-          }
-        } catch (innerError) {
-          console.error('Error while handling foreign key constraint:', innerError);
-          // Continue to the generic error handler
-        }
       }
       
       throw new BadRequestException(
