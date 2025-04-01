@@ -15,18 +15,16 @@ async function bootstrap() {
     origin: [
       process.env.FRONTEND_URL || 'http://localhost:3000',
       'https://oripa-shijon.com',
-      'https://www.oripa-shijon.com'
+      'https://www.oripa-shijon.com',
+      'https://api.oripa-shijon.com'
     ],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
-  app.use(bodyParser.json({
-    verify: (req: any, res, buf) => {
-      req.rawBody = buf.toString();
-    },
-  }));
+  app.use(bodyParser.json({ limit: '50mb' }));
+  app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
   const lineConfig = {
     channelSecret: process.env.LINE_CLIENT_SECRET,

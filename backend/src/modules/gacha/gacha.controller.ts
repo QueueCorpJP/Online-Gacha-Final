@@ -111,7 +111,7 @@ export class GachaController {
       }
     },
     limits: {
-      fileSize: 10 * 1024 * 1024 // 10MB (increased from 5MB)
+      fileSize: 50 * 1024 * 1024 // Increase from 10MB to 50MB
     }
   }))
   async createGacha(
@@ -206,7 +206,7 @@ export class GachaController {
       }
     },
     limits: {
-      fileSize: 10 * 1024 * 1024 // 10MB (increased from 5MB)
+      fileSize: 50 * 1024 * 1024 // Increase from 10MB to 50MB
     }
   }))
   async updateGacha(
