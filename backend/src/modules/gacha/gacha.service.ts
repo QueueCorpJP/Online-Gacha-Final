@@ -712,10 +712,30 @@ export class GachaService {
       }
       
       if (error.code === '23503') { // Foreign key constraint violation
-        throw new BadRequestException(
-          'Cannot delete this gacha because it is being used by other records. ' +
-          'Please remove those references first.'
-        );
+        // Instead of throwing an error, handle the constraint by removing references
+        try {
+          // Get the constraint details to identify which table has references
+          const constraintMatch = error.detail?.match(/referenced from table "([^"]+)"/);
+          const referencingTable = constraintMatch ? constraintMatch[1] : null;
+          
+          console.log(`Handling foreign key constraint from table: ${referencingTable}`);
+          
+          // Delete references from the referencing table
+          if (referencingTable) {
+            // For inventory, favorites, pull_history, etc.
+            await queryRunner.manager.query(
+              `DELETE FROM "${referencingTable}" WHERE "gachaId" = '${id}' OR "gacha_id" = '${id}'`
+            );
+            
+            // Try the delete operation again
+            await queryRunner.manager.remove(gacha);
+            await queryRunner.commitTransaction();
+            return { success: true, message: 'Gacha deleted successfully' };
+          }
+        } catch (innerError) {
+          console.error('Error while handling foreign key constraint:', innerError);
+          // Continue to the generic error handler
+        }
       }
       
       throw new BadRequestException(
