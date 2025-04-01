@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DeepPartial, Brackets, DataSource } from 'typeorm';
+import { Repository, DeepPartial, Brackets, DataSource, In } from 'typeorm';
 import { Gacha } from './entities/gacha.entity';
 import { GachaItem, RarityType } from './entities/gacha-item.entity';
 import { CreateGachaDto } from './dto/gacha.dto';
@@ -651,6 +651,63 @@ export class GachaService {
       //   await this.gachaRepository.increment({ id: gachaId }, 'dislikes', 1);
       // }
       return { favorited: type === 'like' };
+    }
+  }
+
+  async deleteGacha(id: string) {
+    const gacha = await this.gachaRepository.findOne({
+      where: { id },
+      relations: ['items'],
+    });
+
+    if (!gacha) {
+      throw new NotFoundException('Gacha not found');
+    }
+
+    // Start a transaction to ensure all operations succeed or fail together
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // First, update inventory status to 'locked' for all items in this gacha
+      if (gacha.items && gacha.items.length > 0) {
+        await queryRunner.manager.query(
+          `UPDATE inventory SET status = 'locked' WHERE "itemId" IN (${gacha.items.map(item => `'${item.id}'`).join(',')})`
+        );
+
+        // Soft delete all gacha items
+        await queryRunner.manager.update(
+          GachaItem,
+          { id: In(gacha.items.map(item => item.id)) },
+          { deletedAt: new Date() }
+        );
+      }
+
+      // Then delete the gacha itself
+      await queryRunner.manager.remove(gacha);
+
+      // Commit the transaction
+      await queryRunner.commitTransaction();
+      
+      return { success: true, message: 'Gacha deleted successfully' };
+    } catch (error) {
+      // Rollback in case of error
+      await queryRunner.rollbackTransaction();
+      
+      if (error.code === '23503') { // Foreign key constraint violation
+        throw new BadRequestException(
+          'Cannot delete this gacha because it is being used by other records. ' +
+          'Please remove those references first.'
+        );
+      }
+      
+      throw new BadRequestException(
+        'Failed to delete gacha: ' + (error.message || 'Unknown error')
+      );
+    } finally {
+      // Release the query runner
+      await queryRunner.release();
     }
   }
 }

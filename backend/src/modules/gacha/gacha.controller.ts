@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Body, Param, Query, UseGuards, UseInterceptors, UploadedFiles, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, UseInterceptors, UploadedFiles, BadRequestException } from '@nestjs/common';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { GachaService } from './gacha.service';
 import { CreateGachaDto } from './dto/create-gacha.dto';
@@ -315,5 +315,12 @@ export class GachaController {
     console.log(type);
     const favoriteStatus = await this.gachaService.getFavoriteStatus(id, user.id);
     return this.gachaService.toggleReaction(id, user.id, type);
+  }
+
+  @Delete(':id')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  async deleteGacha(@Param('id') id: string) {
+    return this.gachaService.deleteGacha(id);
   }
 }

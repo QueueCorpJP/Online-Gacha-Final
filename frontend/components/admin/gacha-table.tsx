@@ -2,14 +2,26 @@
 
 import { useEffect, useState } from "react"
 import Image from "next/image"
-import { Loader2, Pencil, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react"
+import { Loader2, Pencil, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Trash2 } from "lucide-react"
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { toast } from "@/components/ui/use-toast"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { useTranslations } from "@/hooks/use-translations"
 import { useDispatch, useSelector } from "react-redux"
 import type { AppDispatch, RootState } from "@/redux/store"
-import { fetchAdminGachas, selectGacha } from "@/redux/features/gachaSlice"
+import { fetchAdminGachas, selectGacha, deleteGacha } from "@/redux/features/gachaSlice"
 import { useIsMobile } from "@/hooks/use-mobile"
 
 interface GachaTableProps {
@@ -49,6 +61,26 @@ export function GachaTable({ onEdit }: GachaTableProps) {
 
   const handlePageChange = (newPage: number) => {
     setPage(newPage);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (confirm(t("admin.gachaTable.confirmDelete"))) {
+      try {
+        await dispatch(deleteGacha(id)).unwrap();
+        toast({
+          title: t("admin.gachaTable.deleteSuccess"),
+          description: t("admin.gachaTable.deleteSuccessDescription"),
+        });
+        // Refresh the gacha list
+        dispatch(fetchAdminGachas({ page, limit }));
+      } catch (error) {
+        toast({
+          title: t("admin.gachaTable.deleteError"),
+          description: typeof error === 'string' ? error : t("admin.gachaTable.deleteErrorDescription"),
+          variant: "destructive",
+        });
+      }
+    }
   };
 
   if (loading) {
@@ -212,6 +244,17 @@ export function GachaTable({ onEdit }: GachaTableProps) {
                     <Pencil className="h-4 w-4" />
                     <span className="sr-only">
                       {t("admin.gachaTable.edit")} {item.name}
+                    </span>
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    className="text-red-500 hover:text-red-700"
+                    onClick={() => handleDelete(item.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    <span className="sr-only">
+                      {t("admin.gachaTable.delete")} {item.name}
                     </span>
                   </Button>
                 </TableCell>

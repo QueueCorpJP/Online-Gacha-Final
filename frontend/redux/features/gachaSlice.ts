@@ -191,6 +191,18 @@ export const fetchAdminGachas = createAsyncThunk(
   }
 );
 
+export const deleteGacha = createAsyncThunk(
+  'gacha/deleteGacha',
+  async (id: string, { rejectWithValue }) => {
+    try {
+      await api.delete(`/admin/gacha/${id}`);
+      return id;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to delete gacha');
+    }
+  }
+);
+
 const gachaSlice = createSlice({
   name: 'gacha',
   initialState,
@@ -439,6 +451,10 @@ const gachaSlice = createSlice({
       .addCase(updateGacha.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
+      })
+      .addCase(deleteGacha.fulfilled, (state, action) => {
+        state.loading = false;
+        state.gachas = state.gachas.filter(gacha => gacha.id !== action.payload);
       });
   },
 });

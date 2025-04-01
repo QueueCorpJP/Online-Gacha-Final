@@ -1054,7 +1054,13 @@ export const translations = {
                     days: "{days}日"
                 },
                 points: "ポイント",
-                edit: "編集"
+                edit: "編集",
+                delete: "削除",
+                confirmDelete: "このガチャを削除してもよろしいですか？",
+                deleteSuccess: "ガチャを削除しました",
+                deleteSuccessDescription: "ガチャが正常に削除されました",
+                deleteError: "ガチャの削除に失敗しました",
+                deleteErrorDescription: "ガチャの削除中にエラーが発生しました"
             },
             payments: {
                 title: "支払い管理",
@@ -2381,7 +2387,13 @@ export const translations = {
                     days: "{days} days"
                 },
                 points: "points",
-                edit: "Edit"
+                edit: "Edit",
+                delete: "Delete",
+                confirmDelete: "Are you sure you want to delete this gacha?",
+                deleteSuccess: "Gacha deleted",
+                deleteSuccessDescription: "The gacha has been successfully deleted",
+                deleteError: "Failed to delete gacha",
+                deleteErrorDescription: "An error occurred while deleting the gacha"
             },
             payments: {
                 title: "Payment Management",
@@ -3789,7 +3801,13 @@ export const translations = {
                                 days: "{days}天"
                             },
                             points: "点数",
-                            edit: "编辑"
+                            edit: "编辑",
+                            delete: "删除",
+                            confirmDelete: "您确定要删除这个扭蛋吗？",
+                            deleteSuccess: "扭蛋已删除",
+                            deleteSuccessDescription: "扭蛋已成功删除",
+                            deleteError: "删除扭蛋失败",
+                            deleteErrorDescription: "删除扭蛋时发生错误"
                         },
                         payments: {
                             title: "支付管理",
