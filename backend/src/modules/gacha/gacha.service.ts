@@ -670,20 +670,28 @@ export class GachaService {
     await queryRunner.startTransaction();
 
     try {
-      // First, handle inventory records for all items in this gacha
+      // Delete all related records in the correct order to avoid FK constraint violations
+      
+      // 1. Delete favorites related to this gacha
+      await queryRunner.manager.delete('favorites', { gachaId: id });
+      
+      // 2. Delete pull history related to this gacha
+      await queryRunner.manager.delete('gacha_pull_history', { gachaId: id });
+      
+      // 3. Handle inventory and gacha items
       if (gacha.items && gacha.items.length > 0) {
         // Delete inventory records referencing these items
         await queryRunner.manager.delete('inventory', {
           itemId: In(gacha.items.map(item => item.id))
         });
         
-        // Delete all gacha items first (this is important for the FK constraint)
+        // Delete all gacha items
         for (const item of gacha.items) {
           await queryRunner.manager.remove(item);
         }
       }
 
-      // Then delete the gacha itself
+      // 4. Finally delete the gacha itself
       await queryRunner.manager.remove(gacha);
 
       // Commit the transaction
