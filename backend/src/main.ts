@@ -23,14 +23,23 @@ async function bootstrap() {
     allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
-  app.use(bodyParser.json({ limit: '50mb' }));
-  app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
+  app.use(bodyParser.json({
+    verify: (req, res, buf) => {
+      req.rawBody = buf.toString();
+    },
+    limit: '50mb'
+  }));
+  app.use(bodyParser.urlencoded({ 
+    extended: true,
+    limit: '50mb'
+  }));
 
   const lineConfig = {
     channelSecret: process.env.LINE_CLIENT_SECRET,
+    channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN
   };
 
-  app.use('/line/callback', lineMiddleware(lineConfig));
+  app.use('/line/webhook', lineMiddleware(lineConfig));
 
   // const config = new DocumentBuilder()
   //   .setTitle('Gacha API')
