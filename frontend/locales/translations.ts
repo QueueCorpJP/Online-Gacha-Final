@@ -1060,7 +1060,8 @@ export const translations = {
                 deleteSuccess: "ガチャを削除しました",
                 deleteSuccessDescription: "ガチャが正常に削除されました",
                 deleteError: "ガチャの削除に失敗しました",
-                deleteErrorDescription: "ガチャの削除中にエラーが発生しました"
+                deleteErrorDescription: "ガチャの削除中にエラーが発生しました",
+                deleteConfirmDescription: "この操作は元に戻せません。ガチャとそれに関連するすべてのデータが完全に削除されます。"
             },
             payments: {
                 title: "支払い管理",
@@ -2393,7 +2394,8 @@ export const translations = {
                 deleteSuccess: "Gacha deleted",
                 deleteSuccessDescription: "The gacha has been successfully deleted",
                 deleteError: "Failed to delete gacha",
-                deleteErrorDescription: "An error occurred while deleting the gacha"
+                deleteErrorDescription: "An error occurred while deleting the gacha",
+                deleteConfirmDescription: "This action cannot be undone. This will permanently delete the gacha and all its related data."
             },
             payments: {
                 title: "Payment Management",
@@ -3807,7 +3809,8 @@ export const translations = {
                             deleteSuccess: "扭蛋已删除",
                             deleteSuccessDescription: "扭蛋已成功删除",
                             deleteError: "删除扭蛋失败",
-                            deleteErrorDescription: "删除扭蛋时发生错误"
+                            deleteErrorDescription: "删除扭蛋时发生错误",
+                            deleteConfirmDescription: "此操作无法撤销。这将永久删除扭蛋及其所有相关数据。"
                         },
                         payments: {
                             title: "支付管理",

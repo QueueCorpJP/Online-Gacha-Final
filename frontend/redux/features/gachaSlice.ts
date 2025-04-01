@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { gachaApi } from '@/services/gachaApi';
+import { api } from '@/lib/axios';
 import { GachaFormData } from '@/types/gacha';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL

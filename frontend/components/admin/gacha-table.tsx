@@ -63,23 +63,37 @@ export function GachaTable({ onEdit }: GachaTableProps) {
     setPage(newPage);
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm(t("admin.gachaTable.confirmDelete"))) {
-      try {
-        await dispatch(deleteGacha(id)).unwrap();
-        toast({
-          title: t("admin.gachaTable.deleteSuccess"),
-          description: t("admin.gachaTable.deleteSuccessDescription"),
-        });
-        // Refresh the gacha list
-        dispatch(fetchAdminGachas({ page, limit }));
-      } catch (error) {
-        toast({
-          title: t("admin.gachaTable.deleteError"),
-          description: typeof error === 'string' ? error : t("admin.gachaTable.deleteErrorDescription"),
-          variant: "destructive",
-        });
-      }
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  const handleDeleteClick = (id: string) => {
+    setDeleteId(id);
+    setShowDeleteDialog(true);
+  };
+
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    
+    setIsDeleting(true);
+    try {
+      await dispatch(deleteGacha(deleteId)).unwrap();
+      toast({
+        title: t("admin.gachaTable.deleteSuccess"),
+        description: t("admin.gachaTable.deleteSuccessDescription"),
+      });
+      // Refresh the gacha list
+      dispatch(fetchAdminGachas({ page, limit }));
+    } catch (error) {
+      toast({
+        title: t("admin.gachaTable.deleteError"),
+        description: typeof error === 'string' ? error : t("admin.gachaTable.deleteErrorDescription"),
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteDialog(false);
+      setDeleteId(null);
     }
   };
 
@@ -188,122 +202,150 @@ export function GachaTable({ onEdit }: GachaTableProps) {
 
   // Desktop table view
   return (
-    <div className="rounded-lg">
-      <div className="overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[120px]">{t("admin.gachaTable.headers.thumbnail")}</TableHead>
-              <TableHead>{t("admin.gachaTable.headers.name")}</TableHead>
-              <TableHead>{t("admin.gachaTable.headers.type")}</TableHead>
-              <TableHead>{t("admin.gachaTable.headers.price")}</TableHead>
-              <TableHead>{t("admin.gachaTable.headers.period")}</TableHead>
-              <TableHead>{t("admin.gachaTable.headers.status")}</TableHead>
-              <TableHead className="text-right">{t("admin.gachaTable.headers.actions")}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {gachas.map((item) => (
-              <TableRow key={item.id}>
-                <TableCell>
-                  <div className="relative h-16 w-16 overflow-hidden rounded-lg bg-gray-100">
-                    <Image 
-                      src={item.thumbnail ? `${process.env.NEXT_PUBLIC_API_URL}${item.thumbnail}` : "/placeholder.svg"} 
-                      alt={item.name} 
-                      fill 
-                      className="object-contain" 
-                    />
-                  </div>
-                </TableCell>
-                <TableCell className="font-medium">{item.translations.ja.name}</TableCell>
-                <TableCell>{t(`admin.gachaTable.types.${item.type}`)}</TableCell>
-                <TableCell>{item.price} {t("admin.gachaTable.points")}</TableCell>
-                <TableCell>
-                  {item.duration 
-                    ? t("admin.gachaTable.period.days", { days: item.duration })
-                    : t("admin.gachaTable.period.unlimited")}
-                </TableCell>
-                <TableCell>
-                  <span className={cn(
-                    "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium", 
-                    item.isActive 
-                      ? "bg-green-100 text-green-800" 
-                      : "bg-gray-100 text-gray-800"
-                  )}>
-                    {t(item.isActive 
-                      ? "admin.gachaTable.status.active" 
-                      : "admin.gachaTable.status.inactive")}
-                  </span>
-                </TableCell>
-                <TableCell className="text-right">
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={() => handleEdit(item.id)}
-                  >
-                    <Pencil className="h-4 w-4" />
-                    <span className="sr-only">
-                      {t("admin.gachaTable.edit")} {item.name}
-                    </span>
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="icon"
-                    className="text-red-500 hover:text-red-700"
-                    onClick={() => handleDelete(item.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    <span className="sr-only">
-                      {t("admin.gachaTable.delete")} {item.name}
-                    </span>
-                  </Button>
-                </TableCell>
+    <>
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("admin.gachaTable.confirmDelete")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("admin.gachaTable.deleteConfirmDescription")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>
+              {t("common.cancel")}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isDeleting ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : null}
+              {t("admin.gachaTable.delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <div className="rounded-lg">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[120px]">{t("admin.gachaTable.headers.thumbnail")}</TableHead>
+                <TableHead>{t("admin.gachaTable.headers.name")}</TableHead>
+                <TableHead>{t("admin.gachaTable.headers.type")}</TableHead>
+                <TableHead>{t("admin.gachaTable.headers.price")}</TableHead>
+                <TableHead>{t("admin.gachaTable.headers.period")}</TableHead>
+                <TableHead>{t("admin.gachaTable.headers.status")}</TableHead>
+                <TableHead className="text-right">{t("admin.gachaTable.headers.actions")}</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-      
-      <div className="flex items-center justify-center px-2 py-4">
-        <div className="flex items-center justify-center space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handlePageChange(1)}
-            disabled={page === 1 || loading}
-          >
-            <ChevronsLeft className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handlePageChange(page - 1)}
-            disabled={page === 1 || loading}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <span className="text-sm">
-            {t("common.page")} {page} / {totalPages}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handlePageChange(page + 1)}
-            disabled={page === totalPages || loading}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handlePageChange(totalPages)}
-            disabled={page === totalPages || loading}
-          >
-            <ChevronsRight className="h-4 w-4" />
-          </Button>
+            </TableHeader>
+            <TableBody>
+              {gachas.map((item) => (
+                <TableRow key={item.id}>
+                  <TableCell>
+                    <div className="relative h-16 w-16 overflow-hidden rounded-lg bg-gray-100">
+                      <Image 
+                        src={item.thumbnail ? `${process.env.NEXT_PUBLIC_API_URL}${item.thumbnail}` : "/placeholder.svg"} 
+                        alt={item.name} 
+                        fill 
+                        className="object-contain" 
+                      />
+                    </div>
+                  </TableCell>
+                  <TableCell className="font-medium">{item.translations.ja.name}</TableCell>
+                  <TableCell>{t(`admin.gachaTable.types.${item.type}`)}</TableCell>
+                  <TableCell>{item.price} {t("admin.gachaTable.points")}</TableCell>
+                  <TableCell>
+                    {item.duration 
+                      ? t("admin.gachaTable.period.days", { days: item.duration })
+                      : t("admin.gachaTable.period.unlimited")}
+                  </TableCell>
+                  <TableCell>
+                    <span className={cn(
+                      "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium", 
+                      item.isActive 
+                        ? "bg-green-100 text-green-800" 
+                        : "bg-gray-100 text-gray-800"
+                    )}>
+                      {t(item.isActive 
+                        ? "admin.gachaTable.status.active" 
+                        : "admin.gachaTable.status.inactive")}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => handleEdit(item.id)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                      <span className="sr-only">
+                        {t("admin.gachaTable.edit")} {item.name}
+                      </span>
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      className="text-red-500 hover:text-red-700"
+                      onClick={() => handleDeleteClick(item.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      <span className="sr-only">
+                        {t("admin.gachaTable.delete")} {item.name}
+                      </span>
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+        
+        <div className="flex items-center justify-center px-2 py-4">
+          <div className="flex items-center justify-center space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(1)}
+              disabled={page === 1 || loading}
+            >
+              <ChevronsLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(page - 1)}
+              disabled={page === 1 || loading}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="text-sm">
+              {t("common.page")} {page} / {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(page + 1)}
+              disabled={page === totalPages || loading}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(totalPages)}
+              disabled={page === totalPages || loading}
+            >
+              <ChevronsRight className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   )
 }
 
