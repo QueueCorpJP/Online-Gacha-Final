@@ -554,6 +554,26 @@ export const translations = {
             categoryAdded: "カテゴリーを追加しました",
             categoryDeleted: "カテゴリーを削除しました",
         },
+        about: {
+            title: "会社概要",
+            companyName: "会社名",
+            companyNameValue: "合同会社 OMOTENASHI",
+            established: "設立",
+            establishedValue: "2023年4月1日",
+            representative: "代表者",
+            representativeValue: "岩村 雄二",
+            address: "所在地",
+            addressValue: "〒104-0061 東京都中央区銀座1-12-4 N&E BLD.7階",
+            business: "事業内容",
+            businessValue: "オンラインゲームの企画・開発・運営\nトレーディングカードの販売\nデジタルコンテンツの制作",
+            phone: "電話番号",
+            phoneValue: "03-4222-3343",
+            email: "メールアドレス",
+            emailValue: "info@oripa-shijon.com",
+            url: "URL",
+            urlValue: "https://oripa-shijon.com/",
+            copyright: "© 2023-2025 合同会社 OMOTENASHI All Rights Reserved."
+        },
         contact: {
             pageTitle: "お問い合わせ",
             form: {
@@ -1256,7 +1276,7 @@ export const translations = {
             }
         },
         legal: {
-            title: "会社概要",
+            title: "特定商取引に基づく表記",
             sections: {
                 seller: {
                     title: "販売事業者",
@@ -1887,6 +1907,26 @@ export const translations = {
             settingsError: "Failed to save settings",
             categoryAdded: "Category added successfully",
             categoryDeleted: "Category deleted successfully",
+        },
+        about: {
+            title: "About Us",
+            companyName: "Company Name",
+            companyNameValue: "OMOTENASHI",
+            established: "Established",
+            establishedValue: "April 1, 2023",
+            representative: "Representative",
+            representativeValue: "Yuji Ikemura",
+            address: "Location",
+            addressValue: "1-12-4 Ginza, Chuo-ku, Tokyo 104-0061, Japan",
+            business: "Business",
+            businessValue: "Online game planning and development\nSales of trading cards\nProduction of digital content",
+            phone: "Phone",
+            phoneValue: "+81 3-4222-3343",
+            email: "Email",
+            emailValue: "info@oripa-shijon.com",
+            url: "Website",
+            urlValue: "https://oripa-shijon.com/",
+            copyright: "© 2023-2025 OMOTENASHI. All rights reserved."
         },
         contact: {
             pageTitle: "Contact Us",
@@ -3238,6 +3278,26 @@ export const translations = {
             settingsError: "设置保存失败",
             categoryAdded: "类别添加成功",
             categoryDeleted: "类别删除成功",
+        },
+        about: {
+            title: "关于我们",
+            companyName: "公司名称",
+            companyNameValue: "OMOTENASHI",
+            established: "成立",
+            establishedValue: "2023年4月1日",
+            representative: "代表者",
+            representativeValue: "岩村 雄二",
+            address: "所在地",
+            addressValue: "〒104-0061 東京都中央区銀座1-12-4 N&E BLD.7階",
+            business: "事业内容",
+            businessValue: "在线游戏策划与开发\n交易卡牌销售\n数字内容制作",
+            phone: "电话号码",
+            phoneValue: "+81 3-4222-3343",
+            email: "电子邮箱",
+            emailValue: "info@oripa-shijon.com",
+            url: "网站",
+            urlValue: "https://oripa-shijon.com/",
+            copyright: "© 2023-2025 OMOTENASHI. 版权所有。"
         },
         contact: {
             pageTitle: "联系我们",
