@@ -1256,7 +1256,7 @@ export const translations = {
             }
         },
         legal: {
-            title: "特定商取引法に基づく表記",
+            title: "会社概要",
             sections: {
                 seller: {
                     title: "販売事業者",
