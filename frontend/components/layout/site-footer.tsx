@@ -37,7 +37,7 @@ export function SiteFooter() {
               </li>
               <li>
                 <Link href="/legal" className="hover:text-white">
-                  {t("footer.links.legal")}
+                  特定商取引に基づく表記
                 </Link>
               </li>
               <li>
