@@ -29,10 +29,10 @@ const coinOptions = [
   { coins: 50_000, price: 50_000 },
   { coins: 100_000, price: 100_000 },
   { coins: 200_000, price: 200_000 },
-  // 以下はPayPay以外では制限あり (Stripeの要件により200,000円以上は不可)
-  { coins: 300_000, price: 300_000 },
-  { coins: 500_000, price: 500_000 },
-  { coins: 1_000_000, price: 1_000_000 },
+  // Stripeの要件により200,000円以上は購入できません
+  // { coins: 300_000, price: 300_000 },
+  // { coins: 500_000, price: 500_000 },
+  // { coins: 1_000_000, price: 1_000_000 },
 ]
 
 export function Charge() {
@@ -56,15 +56,8 @@ export function Charge() {
       return
     }
 
-    // PayPay以外の支払い方法では200,000円の制限を適用
-    if (paymentMethod !== 'paypay' && price > 200_000) {
-      toast({
-        title: "制限を超えています",
-        description: "PayPay以外の支払い方法では20万円までしか購入できません",
-        variant: "destructive",
-      })
-      return
-    }
+    // 200,000円の上限チェックは不要になりました。
+    // すべての支払い方法で200,000円までしか選択できないようにUI上で制限されています。
 
     try {
       setIsProcessing(true)
