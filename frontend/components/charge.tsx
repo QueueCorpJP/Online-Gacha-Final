@@ -28,6 +28,7 @@ const coinOptions = [
   { coins: 30_000, price: 30_000 },
   { coins: 50_000, price: 50_000 },
   { coins: 100_000, price: 100_000 },
+  { coins: 200_000, price: 200_000 },
   { coins: 300_000, price: 300_000 },
   { coins: 500_000, price: 500_000 },
   { coins: 1_000_000, price: 1_000_000 },
@@ -51,6 +52,17 @@ export function Charge() {
   const handlePurchase = async (coins: number, price: number) => {
     if (!paymentMethod) {
       setIsMethodDialogOpen(true)
+      return
+    }
+
+    // Check if current payment method is credit card, Google Pay, or Apple Pay
+    const limitedPaymentMethods = ['credit-card', 'google-pay', 'apple-pay']
+    if (limitedPaymentMethods.includes(paymentMethod) && price > 200_000) {
+      toast({
+        title: "制限を超えています",
+        description: "クレジットカード、Apple Pay、Google Payでは20万円までしか購入できません",
+        variant: "destructive",
+      })
       return
     }
 
