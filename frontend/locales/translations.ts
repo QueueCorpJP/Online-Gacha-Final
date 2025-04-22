@@ -6,14 +6,14 @@ export const translations = {
             menu: "メニュー",
             add: "追加",
             delete: "削除",
-            save: "保存",
+            save: "保存する",
             cancel: "キャンセル",
-            edit: "編集",
+            edit: "編集する",
             search: "検索",
             searching: "検索中...",
             loading: "読み込み中...",
             error: "エラー",
-            success: "成功",
+            success: "完了しました",
             actions: {
                 retry: "再試行",
                 // ... other action translations
@@ -27,7 +27,7 @@ export const translations = {
         },
         forgotPassword: {
             title: "パスワードをリセット",
-            description: "メールアドレスを入力してください。パスワードリセットのリンクを送信します。",
+            description: "メールアドレスを入力してください。パスワードリセットのリンクをお送りします。",
             email: {
               label: "メールアドレス",
               placeholder: "メールアドレスを入力",
@@ -40,29 +40,29 @@ export const translations = {
             toast: {
               success: {
                 title: "メールをご確認ください",
-                description: "アカウントが存在する場合、パスワードリセットの手順を送信しました。"
+                description: "アカウントが存在する場合、パスワードリセットの手順をメールでお送りしました。"
               },
               error: {
-                title: "エラー",
-                description: "エラーが発生しました。後でもう一度お試しください。"
+                title: "エラーが発生しました",
+                description: "処理中にエラーが発生しました。後ほど再度お試しください。"
               }
             }
           },
         resetPassword: {
             title: "パスワードのリセット",
-            description: "新しいパスワードを入力してください",
+            description: "新しいパスワードを設定してください",
             form: {
               newPassword: "新しいパスワード",
-              confirmPassword: "パスワードの確認",
-              submit: "パスワードをリセット",
-              submitting: "リセット中...",
+              confirmPassword: "パスワード（確認用）",
+              submit: "パスワードを変更する",
+              submitting: "処理中...",
             },
             toast: {
               error: {
-                invalidToken: "無効なリセットトークンです",
+                invalidToken: "リセットトークンが無効です",
                 failed: "パスワードのリセットに失敗しました。もう一度お試しください。"
               },
-              success: "パスワードが正常にリセットされました"
+              success: "パスワードが正常に変更されました"
             }
           },
         otp: {
@@ -120,24 +120,24 @@ export const translations = {
                     itemName: "アイテム名",
                     quantity: "在庫数",
                     percentage: "在庫割合",
-                    threshold: "アラート反映値 (%)",
+                    threshold: "アラート閾値 (%)",
                     status: "ステータス"
                 },
                 status: {
-                    low: "在庫低下",
-                    normal: "正常"
+                    low: "在庫わずか",
+                    normal: "在庫あり"
                 },
                 mobile: {
                     itemName: "アイテム名:",
                     quantity: "在庫数:",
                     percentage: "在庫割合:",
-                    threshold: "アラート反映値 (%):",
+                    threshold: "アラート閾値 (%):",
                     status: "ステータス:"
                 }
             }
         },
         navigation: {
-            originalGacha: "オリバガチャ",
+            originalGacha: "オリジナルガチャ",
             gachaRanking: "ガチャランキング",
             exchange: "交換所",
         },
@@ -610,10 +610,10 @@ export const translations = {
         login: {
             title: "ログイン",
             description: "アカウントにログインしてガチャを楽しもう！",
-            error: "ログインエラー",
+            error: "ログインに失敗しました",
             success: {
                 title: "ログイン成功",
-                description: "ログインに成功しました"
+                description: "ログインしました"
             },
             form: {
                 email: {
@@ -623,7 +623,7 @@ export const translations = {
                 },
                 password: {
                     label: "パスワード",
-                    error: "パスワードは8文字以上である必要があります"
+                    error: "パスワードは8文字以上で入力してください"
                 },
                 submit: "ログイン",
                 submitting: "ログイン中..."
@@ -647,7 +647,7 @@ export const translations = {
                 username: "ユーザー名",
                 email: "メールアドレス",
                 password: "パスワード",
-                confirmPassword: "パスワード（確認）",
+                confirmPassword: "パスワード（確認用）",
                 passwordHint: "パスワードは8文字以上で入力してください",
                 submit: "登録する",
                 submitting: "登録中...",
@@ -669,14 +669,14 @@ export const translations = {
                     termsRequired: "利用規約とプライバシーポリシーに同意する必要があります"
                 }
             },
-            success: "アカウントの作成が完了しました！ログインしてください。",
+            success: "アカウントを作成しました！ログインしてください。",
             error: "アカウントの作成に失敗しました。もう一度お試しください。"
         },
         gacha: {
             header: {
-                reviews: "{count}件",
-                share: "シェア",
-                likes: "いいね数",
+                reviews: "{count}件のレビュー",
+                share: "シェアする",
+                likes: "いいね",
                 dislikes: "よくないね",
             },
             details: {
@@ -694,7 +694,7 @@ export const translations = {
             },
             card: {
                 remaining: "残り{count}個",
-                pricePerTry: "¥{price}/回",
+                pricePerTry: "1回 ¥{price}",
             },
             purchase: {
                 options: {
@@ -702,7 +702,7 @@ export const translations = {
                     once: "1回引く",
                     tenTimes: "10回引く",
                     hundredTimes: "100回引く",
-                    free: "FREE",
+                    free: "無料",
                     discount: {
                         ten: "10%お得！",
                         twenty: "20%お得！"
@@ -734,13 +734,13 @@ export const translations = {
                     description: "ポケモンカードの限定ガチャです。レアカードやホロカードなど、貴重なカードを手に入れるチャンス！1回の購入で1枚のカードが当たります。"
                 },
                 button: {
-                    pull: "1回引く",
+                    pull: "ガチャを引く",
                     processing: "処理中...",
                     buy: "購入する"
                 },
             },
             success: {
-                title: "ガチャ成功",
+                title: "ガチャ成功！",
                 description: "獲得したアイテム"
             },
             error: {
@@ -751,7 +751,7 @@ export const translations = {
                 insufficient: {
                     balance: {
                         title: "残高不足",
-                        description: "ポイントが不足しています"
+                        description: "コインが不足しています"
                     }
                 },
                 fetch: {
@@ -762,7 +762,7 @@ export const translations = {
             result: {
                 title: "ガチャ結果",
                 congratulations: "おめでとうございます！",
-                drawAgain: "もう一度引く？",
+                drawAgain: "もう一度引きますか？",
                 oneDraw: "1回引く",
                 tenDraws: "10回引く",
                 discount: "10%お得！",
@@ -781,7 +781,7 @@ export const translations = {
             points: {
                 magic: "M",
                 coin: "C",
-                add: "ポイントを追加"
+                add: "コインを追加"
             },
             notifications: {
                 title: "通知",
@@ -805,7 +805,7 @@ export const translations = {
                 featured: "特集"
             },
             menu: {
-                originalGacha: "オリバガチャ",
+                originalGacha: "オリジナルガチャ",
                 gachaRanking: "ガチャランキング",
                 exchange: "交換所"
             },
@@ -818,7 +818,7 @@ export const translations = {
         },
         home: {
             news: {
-                title: "ニュース & ブログ",
+                title: "ニュース & お知らせ",
                 viewMore: "もっと見る"
             },
             featured: {
@@ -845,13 +845,13 @@ export const translations = {
                 pay: "PayPayで{amount}円を支払う"
             },
             dialog: {
-                title: "入金方法の選択",
-                description: "コインのチャージをします。以下の入金方法からお選びください。",
+                title: "お支払い方法の選択",
+                description: "コインをチャージします。以下のお支払い方法からお選びください。",
                 close: "閉じる",
                 methods: {
                     bank: {
                         name: "銀行振込",
-                        description: "当社指定の口座に振込"
+                        description: "指定口座にお振込みいただきます"
                     },
                     "google-pay": {
                         name: "Google Pay",
@@ -867,11 +867,11 @@ export const translations = {
                     },
                     paypay: {
                         name: "PayPay",
-                        description: "PayPayアプリで支払い"
+                        description: "PayPayアプリでお支払い"
                     },
                     convenience: {
                         name: "コンビニ払い",
-                        description: "全国のコンビニで支払い可能"
+                        description: "全国のコンビニでお支払い可能"
                     }
                 }
             },
@@ -889,7 +889,7 @@ export const translations = {
                     branchName: "支店名",
                     accountNumber: "口座番号"
                 },
-                submit: "支払いを確定する",
+                submit: "お支払いを確定する",
                 processing: "処理中...",
                 pay: "¥{amount}を支払う",
             },
@@ -925,7 +925,7 @@ export const translations = {
                         week: "過去7日間",
                         month: "過去30日間"
                     },
-                    results: "{count} 件の結果"
+                    results: "{count}件の結果"
                 },
                 headers: {
                     id: "ID",
@@ -947,14 +947,14 @@ export const translations = {
             }
         },
         charge: {
-            title: "クレジットカードでチャージ",
+            title: "コインチャージ",
             description: "クレジットカードでコインをチャージします。チャージ金額を選択してください。",
             currentBalance: "現在の保有コイン：",
-            coin: "coin",
-            coins: "coins",
-            legal: "特定商取引法の表記",
+            coin: "コイン",
+            coins: "コイン",
+            legal: "特定商取引法に基づく表記",
             button: {
-                charge: "¥{price}",
+                charge: "¥{price}をチャージ",
                 processing: "処理中..."
             },
             success: {
@@ -998,7 +998,7 @@ export const translations = {
                     special: "スペシャル"
                 },
                 price: {
-                    label: "価格（ポイント）",
+                    label: "価格（コイン）",
                     placeholder: "価格を入力"
                 },
                 period: {
@@ -1033,14 +1033,14 @@ export const translations = {
             },
             thumbnail: {
                 title: "サムネイル",
-                recommendedSize: "推奨サイズ: 1200x900px",
+                recommendedSize: "推奨サイズ: 1200×900ピクセル",
                 maxFileSize: "最大ファイルサイズ: 10MB",
-                supportedFormats: "対応フォーマット: JPG, PNG"
+                supportedFormats: "対応形式: JPG, PNG"
             },
             status: {
-                active: "アクティブ"
+                active: "公開する"
             },
-            submit: "保存",
+            submit: "保存する",
             validation: {
                 categoryRequired: "カテゴリーを選択してください",
                 thumbnailRequired: "サムネイル画像を選択してください"
@@ -1048,7 +1048,7 @@ export const translations = {
         },
         upload: {
             clickToUpload: "クリックしてアップロード",
-            dragAndDrop: "または、ドラッグ＆ドロップ"
+            dragAndDrop: "またはファイルをドロップ"
         },
         admin: {
             gachaTable: {
@@ -1058,23 +1058,23 @@ export const translations = {
                     type: "種類",
                     price: "価格",
                     period: "期間",
-                    status: "状態",
-                    actions: "アクション"
+                    status: "ステータス",
+                    actions: "操作"
                 },
                 types: {
-                    normal: "ノーマル",
+                    normal: "通常",
                     limited: "限定",
                     special: "スペシャル"
                 },
                 status: {
-                    active: "アクティブ",
-                    inactive: "非アクティブ"
+                    active: "公開中",
+                    inactive: "非公開"
                 },
                 period: {
                     unlimited: "無期限",
-                    days: "{days}日"
+                    days: "{days}日間"
                 },
-                points: "ポイント",
+                points: "コイン",
                 edit: "編集",
                 delete: "削除",
                 confirmDelete: "このガチャを削除してもよろしいですか？",
@@ -1110,15 +1110,15 @@ export const translations = {
                     username: "ユーザー名",
                     email: "メールアドレス",
                     status: "ステータス",
-                    points: "ポイント残高",
+                    points: "コイン残高",
                     registrationDate: "登録日",
-                    actions: "アクション",
+                    actions: "操作",
                     details: "詳細"
                 },
                 status: {
-                    active: "アクティブ",
-                    suspended: "停止",
-                    banned: "BAN"
+                    active: "有効",
+                    suspended: "停止中",
+                    banned: "利用禁止"
                 },
                 search: {
                     placeholder: "ユーザー名またはメールアドレスで検索",
