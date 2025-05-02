@@ -1,5 +1,7 @@
 "use client"
 
+import { useSelector } from "react-redux"
+import { RootState } from "@/redux/store"
 import Link from "next/link"
 import { Gift, Trophy, RefreshCw, Sparkles, TrendingUp, Star, Package } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -15,6 +17,8 @@ interface NavItem {
 
 export function SiteSidebar({ className }: { className?: string }) {
   const { t } = useTranslations()
+  const { user } = useSelector((state: RootState) => state.auth)
+  const isLoggedIn = !!user
 
   const menuItems: NavItem[] = [
     {
@@ -27,11 +31,13 @@ export function SiteSidebar({ className }: { className?: string }) {
       icon: <Trophy className="h-4 w-4" />,
       href: "/rankings",
     },
-    {
-      title: t("sidebar.menu.exchange"),
-      icon: <RefreshCw className="h-4 w-4" />,
-      href: "/profile/inventory",
-    },
+    ...(isLoggedIn ? [
+      {
+        title: t("sidebar.menu.exchange"),
+        icon: <RefreshCw className="h-4 w-4" />,
+        href: "/profile/inventory",
+      },
+    ] : []),
   ]
 
   const featuredItems: NavItem[] = [

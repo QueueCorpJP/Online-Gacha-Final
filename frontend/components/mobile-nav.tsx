@@ -6,6 +6,8 @@ import { Gift, Trophy, RefreshCw, Sparkles, TrendingUp, Star, Package } from "lu
 import { cn } from "@/lib/utils"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
+import { useSelector } from "react-redux"
+import { RootState } from "@/redux/store"
 
 const menuItems = [
   {
@@ -57,6 +59,8 @@ const menuItems = [
 
 export function MobileNav() {
   const pathname = usePathname()
+  const { user } = useSelector((state: RootState) => state.auth)
+  const isLoggedIn = !!user
 
   return (
     <ScrollArea className="h-[calc(100vh-4rem)] pb-10">

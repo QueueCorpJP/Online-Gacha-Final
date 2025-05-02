@@ -58,7 +58,7 @@ export function MobileMenu({ open, onOpenChange, setPaymentDialogOpen }: MobileM
     const unauthenticatedMenuItems = [
         { href: "/products", label: t("navigation.originalGacha") },
         { href: "/rankings", label: t("navigation.gachaRanking") },
-        { href: "/profile/inventory", label: t("navigation.exchange") },
+        // 未ログイン時は交換所を表示しない
     ]
 
     const AuthenticatedHeader = () => (
