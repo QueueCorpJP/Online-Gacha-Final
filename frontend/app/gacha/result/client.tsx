@@ -31,6 +31,11 @@ interface GachaResult {
   imageUrl: string;
   rarity: string;
   probability: number;
+  translations?: {
+    ja: { name: string; description: string };
+    en: { name: string; description: string };
+    zh: { name: string; description: string };
+  };
 }
 
 interface GroupedResults {
@@ -48,7 +53,7 @@ interface PullResult {
 }
 
 export default function GachaResultClient() {
-  const { t } = useTranslations()
+  const { t, language } = useTranslations()
   const dispatch = useDispatch()
   const searchParams = useSearchParams()
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -59,6 +64,14 @@ export default function GachaResultClient() {
   const [showResults, setShowResults] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
   const [isDrawing, setIsDrawing] = useState(false)
+
+  // 言語に応じたアイテム名を取得する関数
+  const getLocalizedName = (item: GachaResult): string => {
+    if (item.translations && item.translations[language]?.name) {
+      return item.translations[language].name;
+    }
+    return item.name;
+  }
 
   useEffect(() => {
     const data = searchParams.get('data')
@@ -200,172 +213,113 @@ export default function GachaResultClient() {
         </p>
       </div>
 
-      {/* Rarity Summary */}
-      <div className="w-full max-w-3xl mb-8">
-        <div className="flex flex-wrap gap-4 justify-center">
-          {Object.entries(groupedResults)
-            .sort(([a], [b]) => (RARITY_ORDER[a.toLowerCase() as RarityKey] || 999) - (RARITY_ORDER[b.toLowerCase() as RarityKey] || 999))
-            .map(([rarity, items]) => {
-              const totalCount = items.reduce<number>((sum, item) => sum + (item as UniqueGachaResult).count, 0);
-              return (
-                <div key={rarity} className="flex items-center gap-2">
-                  <Badge 
-                    className={`bg-gradient-to-r ${getRarityColor(rarity)} text-white border-none`}
-                  >
-                    {formatRarity(rarity)}
-                  </Badge>
-                  <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-sm">
-                    ×{totalCount.toString()}
-                  </span>
-                </div>
-              );
-            })}
-        </div>
-      </div>
-
-      {/* Navigation and Card Display */}
-      <div className="relative mb-8 flex items-center gap-4">
-        <Button
-          variant="ghost"
-          onClick={handlePrevious}
-          disabled={currentIndex === 0}
-          className="p-2"
-        >
-          <ChevronLeft className="h-6 w-6" />
-        </Button>
-
-        <div className="relative p-2">
-          <div className="absolute inset-0 rounded-[8px] bg-gradient-to-r from-purple-500 to-pink-500 shadow-xl p-3" />
-          <Image
-            src={currentItem.imageUrl ? `${process.env.NEXT_PUBLIC_API_URL}${currentItem.imageUrl}` : "/placeholder.svg"}
-            alt={currentItem.name}
-            width={225}
-            height={396}
-            className="aspect-[3/4] rounded-[8px] relative object-cover"
-          />
-        </div>
-
-        <Button
-          variant="ghost"
-          onClick={handleNext}
-          disabled={currentIndex === uniqueResults.length - 1}
-          className="p-2"
-        >
-          <ChevronRight className="h-6 w-6" />
-        </Button>
-      </div>
-
-      {/* Card Info */}
-      <div className="text-center mb-8">
-        <div className="flex items-center justify-between gap-28 mb-4">
-          <h2 className="text-xl font-bold">{currentItem.name}</h2>
-          <div className="flex items-center gap-2">
-            <Badge 
-              className={`bg-gradient-to-r ${getRarityColor(currentItem.rarity)} text-white border-none flex items-center gap-1`}
-            >
-              <span className="text-white">✨</span>
+      {/* Main item card display */}
+      <div className="w-full max-w-md relative">
+        <Card className="border-0 bg-zinc-50 overflow-hidden rounded-xl shadow-lg">
+          <div className="aspect-square relative">
+            <Image 
+              src={`${process.env.NEXT_PUBLIC_API_URL}${currentItem.imageUrl}` || "/placeholder.svg"}
+              alt={getLocalizedName(currentItem)}
+              fill
+              className="object-contain p-4"
+            />
+          </div>
+          <div className="p-6 text-center">
+            <Badge className={`mb-3 ${getRarityColor(currentItem.rarity)}`}>
               {formatRarity(currentItem.rarity)}
             </Badge>
-            <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-sm">
-              ×{currentItem.count}
-            </span>
+            <h2 className="text-2xl font-bold mb-2">{getLocalizedName(currentItem)}</h2>
+            <p className="text-gray-500 mb-4">×{currentItem.count}</p>
           </div>
-        </div>
+        </Card>
 
-        <div className="flex items-center justify-between gap-28 text-gray-600 font-normal mb-4">
-          <div className="text-sm text-left">
-            <p>{t("gacha.result.cardInfo.id")}: {currentItem.id}</p>
-            <p>{t("gachaForm.itemSettings.probability")}: {currentItem.probability}</p>
-          </div>
+        {/* Navigation buttons */}
+        <div className="absolute inset-y-0 left-0 flex items-center">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-10 w-10 rounded-full bg-white shadow-md"
+            onClick={handlePrevious}
+            disabled={currentIndex === 0}
+          >
+            <ChevronLeft className="h-6 w-6" />
+          </Button>
+        </div>
+        <div className="absolute inset-y-0 right-0 flex items-center">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-10 w-10 rounded-full bg-white shadow-md"
+            onClick={handleNext}
+            disabled={currentIndex === uniqueResults.length - 1}
+          >
+            <ChevronRight className="h-6 w-6" />
+          </Button>
         </div>
       </div>
 
-      {/* Pagination Dots */}
-      <div className="flex gap-2 mb-8">
-        {uniqueResults.map((_, index) => (
-          <button
-            key={index}
-            className={`w-2 h-2 rounded-full transition-all ${
-              index === currentIndex 
-                ? 'bg-purple-600 w-4' 
-                : 'bg-gray-300'
-            }`}
-            onClick={() => setCurrentIndex(index)}
-          />
-        ))}
-      </div>
-
-      {/* Draw Again Options */}
-      <Card className="w-full max-w-lg mb-8">
-        <div className="p-6">
-          <h3 className="text-lg font-bold mb-4">{t("gacha.result.drawAgain")}</h3>
-
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-              <div>
-                <p className="font-medium">{t("gacha.result.oneDraw")}</p>
-                <p className="text-lg font-bold">¥{gacha?.price?.toLocaleString()}</p>
-              </div>
-              <Button 
-                className="bg-purple-600 hover:bg-purple-700"
-                onClick={() => handleDraw(1)}
-              >
-                <RotateCcw className="h-4 w-4 mr-2" />
-                {t("gacha.result.oneDraw")}
-              </Button>
-            </div>
-
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-              <div>
-                <p className="font-medium">{t("gacha.result.tenDraws")}</p>
-                <p className="text-lg font-bold">¥{(gacha?.price * 10)?.toLocaleString()}</p>
-                <p className="text-sm text-purple-600 font-medium">{t("gacha.result.discount")}</p>
-              </div>
-              <Button 
-                className="bg-purple-600 hover:bg-purple-700"
-                onClick={() => handleDraw(10)}
-                disabled={isDrawing}
-              >
-                {isDrawing ? (
-                  <div className="flex items-center">
-                    <span className="animate-spin h-4 w-4 mr-2">
-                      <svg className="h-full w-full" viewBox="0 0 24 24">
-                        <circle 
-                          className="opacity-25" 
-                          cx="12" 
-                          cy="12" 
-                          r="10" 
-                          stroke="currentColor" 
-                          strokeWidth="4"
-                          fill="none"
-                        />
-                        <path 
-                          className="opacity-75" 
-                          fill="currentColor" 
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        />
-                      </svg>
-                    </span>
-                    {t("common.loading")}
+      {/* Results summary */}
+      <div className="w-full max-w-3xl mt-8 space-y-4">
+        <h3 className="text-xl font-semibold">{t("gacha.result.summary")}</h3>
+        <div className="bg-white p-4 rounded-xl shadow">
+          {Object.entries(groupedResults).sort(([rarityA], [rarityB]) => {
+            return (RARITY_ORDER[rarityB.toUpperCase() as RarityKey] || 0) - 
+                  (RARITY_ORDER[rarityA.toUpperCase() as RarityKey] || 0);
+          }).map(([rarity, items]) => (
+            <div key={rarity} className="mb-4 last:mb-0">
+              <h4 className={`${getRarityColor(rarity)} inline-block px-2 py-1 rounded text-sm font-medium mb-2`}>
+                {formatRarity(rarity)}
+              </h4>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {items.map((item) => (
+                  <div key={item.id} className="flex items-center gap-2 bg-zinc-50 p-2 rounded">
+                    <div className="h-10 w-10 relative flex-shrink-0">
+                      <Image 
+                        src={`${process.env.NEXT_PUBLIC_API_URL}${item.imageUrl}` || "/placeholder.svg"}
+                        alt={getLocalizedName(item)}
+                        fill
+                        className="object-contain"
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{getLocalizedName(item)}</p>
+                      <p className="text-xs text-gray-500">×{(item as UniqueGachaResult).count}</p>
+                    </div>
                   </div>
-                ) : (
-                  <>
-                    <RotateCcw className="h-4 w-4 mr-2" />
-                    {t("gacha.result.tenDraws")}
-                  </>
-                )}
-              </Button>
+                ))}
+              </div>
             </div>
-          </div>
+          ))}
         </div>
-      </Card>
+      </div>
 
-      <Link 
-        href={`/products`}
-        className="text-gray-600 hover:text-gray-900 text-sm"
-      >
-        {t("gacha.result.returnToList")}
-      </Link>
+      {/* Action buttons */}
+      <div className="w-full max-w-3xl mt-8 flex flex-col sm:flex-row gap-4 justify-center">
+        <Link href={`/gacha/${gacha?.id}`} className="w-full sm:w-auto">
+          <Button variant="outline" className="w-full">
+            <ChevronLeft className="mr-2 h-4 w-4" />
+            {t("gacha.result.backToGacha")}
+          </Button>
+        </Link>
+        <div className="grid grid-cols-2 gap-4 w-full">
+          <Button 
+            onClick={() => handleDraw(1)}
+            disabled={isDrawing}
+            className="bg-[#7C3AED] hover:bg-[#6D28D9]"
+          >
+            <Coins className="mr-2 h-4 w-4" />
+            <p className="text-lg font-bold">¥{gacha?.price?.toLocaleString()}</p>
+          </Button>
+          <Button 
+            onClick={() => handleDraw(10)}
+            disabled={isDrawing}
+            className="bg-[#7C3AED] hover:bg-[#6D28D9]"
+          >
+            <RotateCcw className="mr-2 h-4 w-4" />
+            <p className="text-lg font-bold">¥{(gacha?.price * 10)?.toLocaleString()}</p>
+          </Button>
+        </div>
+      </div>
     </div>
   )
 }

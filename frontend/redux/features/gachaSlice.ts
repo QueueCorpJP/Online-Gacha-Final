@@ -248,8 +248,8 @@ const gachaSlice = createSlice({
             }
           },
           id: action.payload.id,
-          name: action.payload.translations.en.name,
-          description: action.payload.translations.en.description,
+          name: action.payload.translations.ja.name || action.payload.translations.en.name,
+          description: action.payload.translations.ja.description || action.payload.translations.en.description,
           type: action.payload.type,
           price: action.payload.price.toString(),
           duration: action.payload.period?.toString() || '',

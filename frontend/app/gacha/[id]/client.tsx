@@ -37,7 +37,7 @@ import type { Metadata } from "next"
 // }
 
 export default function GachaDetailPage() {
-    const { t } = useTranslations()
+    const { t, language } = useTranslations()
     const params = useParams()
     const { toast } = useToast()
     const dispatch = useDispatch<AppDispatch>()
@@ -132,17 +132,21 @@ export default function GachaDetailPage() {
         </div>
     }
 
+    // 言語設定に応じたガチャ情報を取得
+    const gachaTitle = gacha.translations?.[language]?.name || gacha.name;
+    const gachaDescription = gacha.translations?.[language]?.description || gacha.description;
+
     return (
         <div className="container mx-auto px-4 py-8">
             <div className="grid gap-8 lg:grid-cols-2">
                 <GachaImage
                     src={`${process.env.NEXT_PUBLIC_API_URL}${gacha.thumbnail}` || "/placeholder.svg"}
-                    alt={gacha.name}
+                    alt={gachaTitle}
                 />
                 <div className="space-y-6">
                     <GachaHeader
                         category={gacha.category?.name || t("gacha.purchase.category.limited")}
-                        title={gacha.name}
+                        title={gachaTitle}
                         
                         reviews={(gacha.likes || 0) + (gacha.dislikes || 0)}
                         likes={gacha.likes || 0}
@@ -156,7 +160,7 @@ export default function GachaDetailPage() {
                 </div>
             </div>
             <GachaDetails
-                description={gacha.description}
+                description={gachaDescription}
                 details={productDetails}
                 items={gacha.items}
             />
