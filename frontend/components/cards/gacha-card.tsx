@@ -3,11 +3,13 @@ import { Star } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useTranslations } from "@/hooks/use-translations"
 
+type Language = 'ja' | 'en' | 'zh';
+
 interface GachaCardProps {
   title: string;
   remaining?: number;
-  price?: number;
-  pricePerTry?: number;
+  price?: number | string;
+  pricePerTry?: number | string;
   rating?: number;
   isNew?: boolean;
   variant?: "rect" | "square";
@@ -35,9 +37,29 @@ export function GachaCard({
   const { t, language } = useTranslations()
   
   // 言語設定に応じたタイトルを取得
-  const localizedTitle = translations && translations[language]?.name
-    ? translations[language].name
+  const localizedTitle = translations && translations[language as Language]?.name
+    ? translations[language as Language].name
     : title;
+  
+  // 価格の表示フォーマットを処理する関数
+  const formatPrice = (value: number | string | undefined): string => {
+    if (value === undefined || value === null) return "";
+    
+    // 文字列の場合は数値に変換を試みる
+    if (typeof value === 'string') {
+      // 小数点を含む数値文字列の場合
+      if (value.includes('.')) {
+        const parsedValue = parseFloat(value);
+        return isNaN(parsedValue) ? "" : parsedValue.toLocaleString();
+      } 
+      // 整数の場合
+      const parsedValue = parseInt(value, 10);
+      return isNaN(parsedValue) ? "" : parsedValue.toLocaleString();
+    }
+    
+    // すでに数値の場合
+    return value.toLocaleString();
+  };
   
   return (
     <div
@@ -68,9 +90,10 @@ export function GachaCard({
             </span>
           )}
           <span className="text-lg font-bold text-[#7C3AED]">
-            {pricePerTry ? `¥${pricePerTry.toLocaleString()}/回` : 
-             price !== undefined ? `¥${price.toLocaleString()}` : 
-             "¥10"}
+            {pricePerTry 
+              ? `¥${formatPrice(pricePerTry)}/回` 
+              : `¥${formatPrice(price)}`
+            }
           </span>
         </div>
       </div>

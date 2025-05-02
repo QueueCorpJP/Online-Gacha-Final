@@ -272,8 +272,8 @@ export default function Home() {
                             <Link key={card.id} href={`/gacha/${card.id}`}>
                               <GachaCard
                                 title={card.title}
-                                remaining={card.remaining}
-                                price={card.price}
+                                rating={card.rating}
+                                pricePerTry={card.pricePerTry}
                                 variant="rect"
                                 imageUrl={card.image}
                                 translations={card.translations}
@@ -316,8 +316,8 @@ export default function Home() {
                         <Link href={`/gacha/${card.id}`}>
                           <GachaCard
                             title={card.title}
-                            remaining={card.remaining}
-                            price={card.price}
+                            rating={card.rating}
+                            pricePerTry={card.pricePerTry}
                             variant="rect"
                             imageUrl={card.image}
                             translations={card.translations}
