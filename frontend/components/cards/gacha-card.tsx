@@ -13,6 +13,11 @@ interface GachaCardProps {
   variant?: "rect" | "square";
   imageUrl?: string;
   className?: string;
+  translations?: {
+    ja?: { name: string; description: string };
+    en?: { name: string; description: string };
+    zh?: { name: string; description: string };
+  };
 }
 
 export function GachaCard({
@@ -24,9 +29,16 @@ export function GachaCard({
   imageUrl = "/placeholder.svg",
   isNew = false,
   className,
-  variant = "square"
+  variant = "square",
+  translations
 }: GachaCardProps) {
-  const { t } = useTranslations()
+  const { t, language } = useTranslations()
+  
+  // 言語設定に応じたタイトルを取得
+  const localizedTitle = translations && translations[language]?.name
+    ? translations[language].name
+    : title;
+  
   return (
     <div
       className={cn(
@@ -40,10 +52,10 @@ export function GachaCard({
         </div>
       )}
       <div className="relative h-48 md:h-56 overflow-hidden rounded-t-xl">
-        <Image src={`${process.env.NEXT_PUBLIC_API_URL}${imageUrl}` || "/placeholder.svg"} alt={title} fill className="object-contain" />
+        <Image src={`${process.env.NEXT_PUBLIC_API_URL}${imageUrl}` || "/placeholder.svg"} alt={localizedTitle} fill className="object-contain" />
       </div>
       <div className="p-4">
-        <h3 className="mb-2 text-lg font-bold tracking-tight">{title}</h3>
+        <h3 className="mb-2 text-lg font-bold tracking-tight">{localizedTitle}</h3>
         <div className="flex items-center justify-between">
           {rating ? (
             <div className="flex items-center gap-1">

@@ -304,8 +304,8 @@ const gachaSlice = createSlice({
             }
           },
           id: gacha.id,
-          name: gacha.translations.en.name,
-          description: gacha.translations.en.description,
+          name: gacha.translations.ja.name || gacha.translations.en.name,
+          description: gacha.translations.ja.description || gacha.translations.en.description,
           type: gacha.type,
           price: gacha.price.toString(),
           duration: gacha.period?.toString() || '',
@@ -371,8 +371,8 @@ const gachaSlice = createSlice({
             }
           },
           id: action.payload.id,
-          name: action.payload.translations.en.name,
-          description: action.payload.translations.en.description,
+          name: action.payload.translations.ja.name || action.payload.translations.en.name,
+          description: action.payload.translations.ja.description || action.payload.translations.en.description,
           type: action.payload.type,
           price: action.payload.price.toString(),
           duration: action.payload.period?.toString() || '',
@@ -425,8 +425,8 @@ const gachaSlice = createSlice({
               }
             },
             id: action.payload.id,
-            name: action.payload.translations.en.name,
-            description: action.payload.translations.en.description,
+            name: action.payload.translations.ja.name || action.payload.translations.en.name,
+            description: action.payload.translations.ja.description || action.payload.translations.en.description,
             type: action.payload.type,
             price: action.payload.price.toString(),
             duration: action.payload.period?.toString() || '',

@@ -223,15 +223,17 @@ export function GachaGrid({ initialFilters }: GachaGridProps) {
           ) : (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {gachas.slice(0, visibleGachas).map((gacha) => (
-                <Link href={`/gacha/${gacha.id}`} key={gacha.id}>
-                  <GachaCard
-                    title={gacha.name}
-                    rating={gacha.rating}
-                    pricePerTry={parseFloat(gacha.price)}
-                    remaining={gacha.totalStock}
-                    imageUrl={gacha.thumbnail}
-                  />
-                </Link>
+                <div key={gacha.id} className="p-4">
+                  <Link href={`/gacha/${gacha.id}`}>
+                    <GachaCard
+                      title={gacha.name}
+                      pricePerTry={Number(gacha.price)}
+                      isNew={gacha.createdAt ? new Date(gacha.createdAt).getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000 : false}
+                      imageUrl={gacha.thumbnail}
+                      translations={gacha.translations}
+                    />
+                  </Link>
+                </div>
               ))}
             </div>
           )}

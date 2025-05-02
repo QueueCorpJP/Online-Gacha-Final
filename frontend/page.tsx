@@ -118,7 +118,8 @@ export default function Home() {
       image: gacha.thumbnail || "/placeholder.png",
       remaining: gacha.items.reduce((total, item) => total + (item.stock || 0), 0),
       price: Number(gacha.price),
-      title: gacha.translations?.en?.name || gacha.name
+      title: gacha.name,
+      translations: gacha.translations
     }));
 
   // Select 4 popular gachas - could be based on different criteria
@@ -132,7 +133,8 @@ export default function Home() {
       rating: gacha.rating || 0,
       pricePerTry: Number(gacha.price),
       isNew: gacha.createdAt ? new Date(gacha.createdAt).getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000 : false, // 7 days
-      title: gacha.translations?.en?.name || gacha.name
+      title: gacha.name,
+      translations: gacha.translations
     }));
 
   if (loading) {
@@ -185,6 +187,7 @@ export default function Home() {
                                 price={card.price}
                                 variant="rect"
                                 imageUrl={card.image}
+                                translations={card.translations}
                               />
                             </Link>
                           ))}
@@ -229,6 +232,7 @@ export default function Home() {
                             price={card.price}
                             variant="rect"
                             imageUrl={card.image}
+                            translations={card.translations}
                           />
                         </Link>
                       </CarouselItem>
@@ -268,10 +272,11 @@ export default function Home() {
                             <Link key={card.id} href={`/gacha/${card.id}`}>
                               <GachaCard
                                 title={card.title}
-                                rating={card.rating}
-                                pricePerTry={card.pricePerTry}
-                                isNew={card.isNew}
+                                remaining={card.remaining}
+                                price={card.price}
+                                variant="rect"
                                 imageUrl={card.image}
+                                translations={card.translations}
                               />
                             </Link>
                           ))}
@@ -311,10 +316,11 @@ export default function Home() {
                         <Link href={`/gacha/${card.id}`}>
                           <GachaCard
                             title={card.title}
-                            rating={card.rating}
-                            pricePerTry={card.pricePerTry}
-                            isNew={card.isNew}
+                            remaining={card.remaining}
+                            price={card.price}
+                            variant="rect"
                             imageUrl={card.image}
+                            translations={card.translations}
                           />
                         </Link>
                       </CarouselItem>
