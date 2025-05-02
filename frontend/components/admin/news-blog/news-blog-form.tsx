@@ -118,8 +118,22 @@ export function NewsBlogForm() {
                                     }));
                                     setPreview(imageUrl)
                                 })
-                                .catch(() => {
-                                    toast.error("画像のアップロードに失敗しました");
+                                .catch((error) => {
+                                    console.error('画像アップロードエラー', error);
+                                    if (error.response) {
+                                        // サーバーからのレスポンスがある場合
+                                        console.error('Response:', error.response.data);
+                                        console.error('Status:', error.response.status);
+                                        toast.error(`画像アップロード失敗: ${error.response.status} ${error.response.data.message || ''}`);
+                                    } else if (error.request) {
+                                        // リクエストは行われたがレスポンスがない場合
+                                        console.error('Request:', error.request);
+                                        toast.error("ネットワークエラー: サーバーから応答がありません");
+                                    } else {
+                                        // リクエスト設定中にエラーが発生した場合
+                                        console.error('Error:', error.message);
+                                        toast.error(`エラー: ${error.message}`);
+                                    }
                                 });
                         }
                     }}
