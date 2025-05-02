@@ -286,9 +286,18 @@ const gachaSlice = createSlice({
       })
       .addCase(fetchGachas.fulfilled, (state, action) => {
 
-        console.log("payload", action.payload)
+        console.log("Raw payload from API:", action.payload);
+        // 最初の要素の詳細内容を確認
+        if (action.payload && action.payload.length > 0) {
+          console.log("First gacha item:", action.payload[0]);
+          console.log("Price type:", typeof action.payload[0].price);
+          console.log("Price value:", action.payload[0].price);
+        }
+        
         state.loading = false;
-        state.gachas = action.payload.map(gacha => ({
+        state.gachas = action.payload.map(gacha => {
+          console.log(`Processing gacha ${gacha.id}, price: ${gacha.price}, type: ${typeof gacha.price}`);
+          return {
           translations: {
             ja: { 
               name: gacha.translations.ja.name,
@@ -329,7 +338,7 @@ const gachaSlice = createSlice({
           createdAt: gacha.createdAt || new Date().toISOString(),
           isOneTimeFreeEnabled: gacha.isOneTimeFreeEnabled || false,
           pityThreshold: gacha.pityThreshold || 50
-        }));
+        }});
       })
       .addCase(fetchGachas.rejected, (state, action) => {
         state.loading = false;
