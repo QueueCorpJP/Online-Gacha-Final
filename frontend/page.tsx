@@ -117,7 +117,7 @@ export default function Home() {
       id: gacha.id,
       image: gacha.thumbnail || "/placeholder.png",
       remaining: gacha.items.reduce((total, item) => total + (item.stock || 0), 0),
-      price: Number(gacha.price),
+      price: Number(gacha.price) || 10,
       title: gacha.name,
       translations: gacha.translations
     }));
@@ -131,7 +131,7 @@ export default function Home() {
       id: gacha.id,
       image: gacha.thumbnail || "/placeholder.png",
       rating: gacha.rating || 0,
-      pricePerTry: Number(gacha.price),
+      pricePerTry: Number(gacha.price) || 10,
       isNew: gacha.createdAt ? new Date(gacha.createdAt).getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000 : false, // 7 days
       title: gacha.name,
       translations: gacha.translations

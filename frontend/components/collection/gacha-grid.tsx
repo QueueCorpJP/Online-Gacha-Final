@@ -227,7 +227,7 @@ export function GachaGrid({ initialFilters }: GachaGridProps) {
                   <Link href={`/gacha/${gacha.id}`}>
                     <GachaCard
                       title={gacha.name}
-                      pricePerTry={Number(gacha.price)}
+                      pricePerTry={Number(gacha.price) || 10}
                       isNew={gacha.createdAt ? new Date(gacha.createdAt).getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000 : false}
                       imageUrl={gacha.thumbnail}
                       translations={gacha.translations}

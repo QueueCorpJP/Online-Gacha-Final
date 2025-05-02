@@ -68,7 +68,9 @@ export function GachaCard({
             </span>
           )}
           <span className="text-lg font-bold text-[#7C3AED]">
-            {pricePerTry ? `¥${pricePerTry.toLocaleString()}/回` : `¥${price?.toLocaleString()}`}
+            {pricePerTry ? `¥${pricePerTry.toLocaleString()}/回` : 
+             price !== undefined ? `¥${price.toLocaleString()}` : 
+             "¥10"}
           </span>
         </div>
       </div>
