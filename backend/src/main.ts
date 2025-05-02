@@ -16,11 +16,16 @@ async function bootstrap() {
       process.env.FRONTEND_URL || 'http://localhost:3000',
       'https://oripa-shijon.com',
       'https://www.oripa-shijon.com',
-      'https://api.oripa-shijon.com'
+      'https://api.oripa-shijon.com',
+      // Add wildcard as fallback to ensure CORS works
+      '*'
     ],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+    exposedHeaders: ['Content-Length', 'Content-Type'],
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
   });
 
   app.use(bodyParser.json({

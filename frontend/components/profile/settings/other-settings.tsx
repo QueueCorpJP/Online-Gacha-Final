@@ -84,11 +84,11 @@ export function OtherSettings() {
         >
           {t("settings.other.links.privacy")}
         </Link>
-        <Link 
-          href="/legal" 
+        <Link
+          href="/legal"
           className="block text-gray-600 hover:text-gray-900 transition-colors"
         >
-          {t("settings.other.links.legal")}
+          特定商取引法に基づく表記
         </Link>
         <hr className="border-gray-200" />
         <AlertDialog>

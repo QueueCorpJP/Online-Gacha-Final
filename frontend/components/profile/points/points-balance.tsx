@@ -90,7 +90,7 @@ export function PointsBalance({ points: initialPoints }: PointsBalanceProps) {
             <LoadingSpinner />
           ) : (
             <>
-              {user?.coinBalance.toLocaleString()} <span className="text-2xl">{t("profile.points.balance.unit")}</span>
+              {user?.coinBalance?.toLocaleString()} <span className="text-2xl">{t("profile.points.balance.unit")}</span>
             </>
           )}
         </div>
