@@ -60,7 +60,7 @@ export function ResetPasswordForm() {
         title: "Success",
         description: "Your password has been reset successfully",
       })
-      router.push('/login')
+      router.push('/reset-password/sent')
     } catch (error) {
       toast({
         variant: "destructive",
