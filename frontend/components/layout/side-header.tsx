@@ -110,7 +110,7 @@ export function SiteHeader({ isAdmin = false }: SiteHeaderProps) {
             document.documentElement.lang = "ja";
             window.location.reload();
           }}>
-            <span className="mr-2">🇯🇵</span> 日本語
+            <span className="mr-2">🇯🇵</span> 日本
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => {
             localStorage.setItem("language", "en");
