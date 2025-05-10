@@ -110,7 +110,7 @@ export function SiteHeader({ isAdmin = false }: SiteHeaderProps) {
             document.documentElement.lang = "ja";
             window.location.reload();
           }}>
-            <span className="mr-2">🇯🇵</span> 日本
+            <span className="mr-2">🇯🇵</span> 日本語
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => {
             localStorage.setItem("language", "en");
@@ -252,6 +252,7 @@ export function SiteHeader({ isAdmin = false }: SiteHeaderProps) {
               height={24}
             />
             <span className="text-xl font-bold text-[#7C3AED]">SHIJON</span>
+            <span className="ml-2 text-red-500 font-bold">【テスト表示】</span>
           </Link>
 
           {isLoggedIn ? <UserActions /> : <AuthButtons />}
