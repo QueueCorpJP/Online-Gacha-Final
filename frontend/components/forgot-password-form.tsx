@@ -36,7 +36,12 @@ export function ForgotPasswordForm() {
     try {
       await api.post('/auth/forgot-password', { email: values.email })
       form.reset()
-      router.push("/forgot-password/sent")
+      
+      setTimeout(() => {
+        router.push("/forgot-password/sent")
+        window.location.href = "/forgot-password/sent"
+      }, 100)
+
     } catch (error) {
       console.error(error)
       toast({
@@ -44,6 +49,10 @@ export function ForgotPasswordForm() {
         title: "Error",
         description: "Something went wrong. Please try again later.",
       })
+      
+      setTimeout(() => {
+        router.push("/forgot-password/sent")
+      }, 500)
     } finally {
       setIsLoading(false)
     }
