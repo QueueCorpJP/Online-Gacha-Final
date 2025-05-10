@@ -38,6 +38,7 @@ export function ForgotPasswordForm() {
       form.reset()
       router.push("/forgot-password/sent")
     } catch (error) {
+      console.error(error)
       toast({
         variant: "destructive",
         title: "Error",
