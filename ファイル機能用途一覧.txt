@@ -1,0 +1,17 @@
+【backend/src/modules/gacha/gacha.controller.ts】
+- ガチャ機能の管理用コントローラー。
+- 画像アップロード時のファイル名生成処理と拡張子の小文字統一、fileFilterの正規表現修正。
+
+【backend/src/modules/news-blog/news-blog.controller.ts】
+- ニュース・ブログ機能の管理用コントローラー。
+- 画像アップロード時のファイル名生成処理と拡張子の小文字統一、fileFilterの正規表現修正。
+
+【今回の修正内容】
+- 画像アップロード時、拡張子を小文字に統一するよう修正。
+- fileFilterの正規表現にiフラグを追加し、大文字小文字を区別せずjpg/jpeg/pngを許可。
+- これによりpngファイルが0バイトで保存される問題の解消を狙う。
+
+【frontend/app/forgot-password/sent/page.tsx】
+- パスワードリセットリンク送信完了ページ。
+- フォーム送信後に自動遷移し、ユーザーに「送信しました！」を案内。
+- /login へのリンクあり。 

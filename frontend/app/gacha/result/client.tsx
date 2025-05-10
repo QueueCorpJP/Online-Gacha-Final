@@ -218,7 +218,7 @@ export default function GachaResultClient() {
         <Card className="border-0 bg-zinc-50 overflow-hidden rounded-xl shadow-lg">
           <div className="aspect-square relative">
             <Image 
-              src={`${process.env.NEXT_PUBLIC_API_URL}${currentItem.imageUrl}` || "/placeholder.svg"}
+              src={currentItem.imageUrl ? `${process.env.NEXT_PUBLIC_API_URL}${currentItem.imageUrl}` : "/placeholder.svg"}
               alt={getLocalizedName(currentItem)}
               fill
               className="object-contain p-4"
@@ -275,7 +275,7 @@ export default function GachaResultClient() {
                   <div key={item.id} className="flex items-center gap-2 bg-zinc-50 p-2 rounded">
                     <div className="h-10 w-10 relative flex-shrink-0">
                       <Image 
-                        src={`${process.env.NEXT_PUBLIC_API_URL}${item.imageUrl}` || "/placeholder.svg"}
+                        src={item.imageUrl ? `${process.env.NEXT_PUBLIC_API_URL}${item.imageUrl}` : "/placeholder.svg"}
                         alt={getLocalizedName(item)}
                         fill
                         className="object-contain"

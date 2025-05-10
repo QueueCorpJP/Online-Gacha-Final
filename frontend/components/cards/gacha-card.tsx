@@ -74,7 +74,7 @@ export function GachaCard({
         </div>
       )}
       <div className="relative h-48 md:h-56 overflow-hidden rounded-t-xl">
-        <Image src={`${process.env.NEXT_PUBLIC_API_URL}${imageUrl}` || "/placeholder.svg"} alt={localizedTitle} fill className="object-contain" />
+        <Image src={imageUrl && imageUrl !== "/placeholder.svg" ? `${process.env.NEXT_PUBLIC_API_URL}${imageUrl}` : "/placeholder.svg"} alt={localizedTitle} fill className="object-contain" />
       </div>
       <div className="p-4">
         <h3 className="mb-2 text-lg font-bold tracking-tight">{localizedTitle}</h3>

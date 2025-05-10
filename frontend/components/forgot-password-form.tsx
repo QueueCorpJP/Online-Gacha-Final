@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { api } from "@/lib/axios"
 import { useTranslations } from "@/hooks/use-translations"
+import { useRouter } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
@@ -21,6 +22,7 @@ const formSchema = z.object({
 export function ForgotPasswordForm() {
   const { t } = useTranslations()
   const [isLoading, setIsLoading] = useState(false)
+  const router = useRouter()
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -33,11 +35,8 @@ export function ForgotPasswordForm() {
     setIsLoading(true)
     try {
       await api.post('/auth/forgot-password', { email: values.email })
-      toast({
-        title: "Check your email",
-        description: "If an account exists with this email, we've sent you password reset instructions.",
-      })
       form.reset()
+      router.push("/forgot-password/sent")
     } catch (error) {
       toast({
         variant: "destructive",

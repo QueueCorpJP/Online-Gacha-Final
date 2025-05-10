@@ -30,11 +30,12 @@ export class NewsBlogController {
           .fill(null)
           .map(() => Math.round(Math.random() * 16).toString(16))
           .join('');
-        return cb(null, `${randomName}${extname(file.originalname)}`);
+        const ext = extname(file.originalname).toLowerCase();
+        return cb(null, `${randomName}${ext}`);
       },
     }),
     fileFilter: (req, file, cb) => {
-      if (!file.originalname.match(/\.(jpg|jpeg|png)$/)) {
+      if (!file.originalname.match(/\.(jpg|jpeg|png)$/i)) {
         return cb(new Error('Only image files are allowed!'), false);
       }
       cb(null, true);

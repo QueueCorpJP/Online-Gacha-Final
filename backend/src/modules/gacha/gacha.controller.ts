@@ -91,18 +91,17 @@ export class GachaController {
           .fill(null)
           .map(() => Math.round(Math.random() * 16).toString(16))
           .join('');
-        const filename = `${randomName}${extname(file.originalname)}`;
+        const ext = extname(file.originalname).toLowerCase();
+        const filename = `${randomName}${ext}`;
         return cb(null, filename);
       },
     }),
     fileFilter: (req, file, cb) => {
       if (file.fieldname === 'itemImages' || file.fieldname === 'thumbnail' || file.fieldname === 'lastOnePrizeImage') {
-        // Allow empty.png files (these are our placeholder Blobs)
         if (file.originalname === 'empty.png') {
           return cb(null, true);
         }
-        // Check for regular image files
-        if (!file.originalname.match(/\.(jpg|jpeg|png)$/)) {
+        if (!file.originalname.match(/\.(jpg|jpeg|png)$/i)) {
           return cb(new Error('Only image files are allowed!'), false);
         }
         cb(null, true);
@@ -187,17 +186,17 @@ export class GachaController {
           .fill(null)
           .map(() => Math.round(Math.random() * 16).toString(16))
           .join('');
-        return cb(null, `${randomName}${extname(file.originalname)}`);
+        const ext = extname(file.originalname).toLowerCase();
+        const filename = `${randomName}${ext}`;
+        return cb(null, filename);
       },
     }),
     fileFilter: (req, file, cb) => {
       if (file.fieldname === 'itemImages' || file.fieldname === 'thumbnail' || file.fieldname === 'lastOnePrizeImage') {
-        // Allow empty.png files (these are our placeholder Blobs)
         if (file.originalname === 'empty.png') {
           return cb(null, true);
         }
-        // Check for regular image files
-        if (!file.originalname.match(/\.(jpg|jpeg|png)$/)) {
+        if (!file.originalname.match(/\.(jpg|jpeg|png)$/i)) {
           return cb(new Error('Only image files are allowed!'), false);
         }
         cb(null, true);
