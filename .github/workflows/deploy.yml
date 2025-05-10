@@ -1,10 +1,8 @@
 name: Deploy to AWS EC2
-
 on:
   push:
     branches:
       - master
-
 jobs:
   deploy-frontend:
     name: Deploy Frontend (Next.js)
@@ -12,7 +10,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-
       - name: Deploy Frontend to EC2
         uses: appleboy/ssh-action@v0.1.8
         with:
@@ -24,23 +21,20 @@ jobs:
             source ~/.nvm/nvm.sh
             npm install yarn -g
             cd /var/www/html/Online-Gacha-Final
-
             # 安全な方法：GitHub の master を強制的に上書きで同期
             sudo git fetch origin
             sudo git reset --hard origin/master
-
             cd frontend
             yarn install
             npm run build
-            pm2 restart gacha-frontend
-
+            # プロセスの存在確認と起動/再起動の処理
+            pm2 list | grep "gacha-frontend" && pm2 restart gacha-frontend || pm2 start npm --name "gacha-frontend" -- start
   deploy-backend:
     name: Deploy Backend (NestJS)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-
       - name: Deploy Backend to EC2
         uses: appleboy/ssh-action@v0.1.8
         with:
@@ -51,10 +45,13 @@ jobs:
             export NVM_DIR=~/.nvm
             source ~/.nvm/nvm.sh
             cd /var/www/html/Online-Gacha-Final
-
             # 安全な方法：GitHub の master を強制的に上書きで同期
             sudo git fetch origin
             sudo git reset --hard origin/master
+            cd backend
+            yarn install
+            npm run build
+            pm2 restart gacha-backend
 
             cd backend
             yarn install
