@@ -44,7 +44,7 @@ const menuItems = [
         icon: <TrendingUp className="mr-2 h-4 w-4" />,
       },
       {
-        title: "おすすめ",
+        title: "おすす",
         href: "/recommended",
         icon: <Star className="mr-2 h-4 w-4" />,
       },
