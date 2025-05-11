@@ -37,7 +37,8 @@ async function bootstrap() {
 
   app.use(bodyParser.json({
     verify: (req, res, buf) => {
-      req.rawBody = buf.toString();
+      // req.rawBody = buf.toString();
+      (req as any).rawBody = buf.toString();
     },
     limit: '50mb'
   }));
