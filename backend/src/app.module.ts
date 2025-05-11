@@ -38,7 +38,8 @@ import { FAQModule } from './modules/faqs/faq.module';
       database: databaseConfig.database,
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: false, // Set this to false to prevent automatic schema updates
-      logging: false,
+      logging: true, // 一時的にログを有効化して問題を特定
+      autoLoadEntities: true, // エンティティの自動読み込みを有効化
     }),
     PaymentModule,
     AuthModule,

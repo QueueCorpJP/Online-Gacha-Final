@@ -17,7 +17,7 @@ import { usePathname } from 'next/navigation'
 
 function Header() {
   const pathname = usePathname()
-
+//a
   const isAdminRoute = pathname?.startsWith('/admin')
   const isAdmin = isAdminRoute
   
