@@ -48,12 +48,12 @@ jobs:
             # 安全な方法：GitHub の master を強制的に上書きで同期
             sudo git fetch origin
             sudo git reset --hard origin/master
+            # PM2の更新
+            pm2 update
             cd backend
             yarn install
             npm run build
-            pm2 restart gacha-backend
-
-            cd backend
-            yarn install
-            npm run build
-            pm2 restart gacha-backend
+            # 既存のプロセスがある場合は削除
+            pm2 list | grep "gacha-backend" && pm2 delete gacha-backend || echo "No existing process"
+            # 新規プロセスの作成
+            pm2 start dist/main.js --name "gacha-backend"

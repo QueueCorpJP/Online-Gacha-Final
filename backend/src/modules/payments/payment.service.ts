@@ -31,7 +31,7 @@ export class PaymentService {
   ) {
     this.stripe = new Stripe(this.configService.get('STRIPE_SECRET_KEY'), {
       // apiVersion: '2025-01-27.acacia',
-      apiVersion: '2025-01-27',
+      apiVersion: '2025-01-27.acacia',
     });
     
     this.PAYPAY_API_URL = process.env.PAYPAY_API_URL || 'https://stg-api.paypay.ne.jp';
