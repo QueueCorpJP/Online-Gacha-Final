@@ -11,7 +11,7 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: true,  // TypeScriptエラーを無視する設定
   },
   images: {
     unoptimized: true,
@@ -23,11 +23,12 @@ const nextConfig = {
   },
 }
 
+// ここでmergeConfigを呼び出し、その結果を確実に使用する
 mergeConfig(nextConfig, userConfig)
 
 function mergeConfig(nextConfig, userConfig) {
   if (!userConfig) {
-    return
+    return  // userConfigがなければ何もしない
   }
 
   for (const key in userConfig) {
@@ -45,4 +46,5 @@ function mergeConfig(nextConfig, userConfig) {
   }
 }
 
+// mergeConfigで変更されたnextConfigをエクスポート
 export default nextConfig
