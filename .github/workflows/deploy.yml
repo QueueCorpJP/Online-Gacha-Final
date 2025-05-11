@@ -1,72 +1,53 @@
-name: Deploy to AWS EC2
+name: Deploy to EC2
 on:
   push:
-    branches:
-      - master
+    branches: [ master ]
+
 jobs:
-  deploy-frontend:
-    name: Deploy Frontend (Next.js)
+  deploy:
+    name: Deploy Frontend & Backend
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-      - name: Deploy Frontend to EC2
+
+      - name: Deploy to EC2 via SSH
         uses: appleboy/ssh-action@v0.1.8
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_KEY }}
           script: |
+            set -e
+
+            # 共通：NVM の読み込み
             export NVM_DIR=~/.nvm
             source ~/.nvm/nvm.sh
-            npm install yarn -g
-            cd /var/www/html/Online-Gacha-Final
-            # 安全な方法：GitHub の master を強制的に上書きで同期
+
+            # ディレクトリ移動＆最新化
+            APP_DIR=/var/www/html/Online-Gacha-Final
+            cd $APP_DIR
             sudo git fetch origin
             sudo git reset --hard origin/master
-            cd frontend
-            yarn install
+
+            # ── バックエンド処理 ──
+            cd $APP_DIR/backend
+            yarn install --frozen-lockfile
+            echo "Building backend..."
+            npm run build || echo "ビルドにエラーがありますが継続します"
+            # PM2 プロセス再起動（存在しなければ起動）
+            pm2 describe gacha-backend \
+              && pm2 restart gacha-backend \
+              || pm2 start dist/main.js --name gacha-backend
+
+            # ── フロントエンド処理 ──
+            cd $APP_DIR/frontend
+            yarn install --frozen-lockfile
+            echo "Building frontend..."
             npm run build
-            # プロセスの存在確認と起動/再起動の処理
-            pm2 list | grep "gacha-frontend" && pm2 restart gacha-frontend || pm2 start npm --name "gacha-frontend" -- start
-  deploy-backend:
-    name: Deploy Backend (NestJS)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      - name: Deploy Backend to EC2
-        uses: appleboy/ssh-action@v0.1.8
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_KEY }}
-          script: |
-            export NVM_DIR=~/.nvm
-            source ~/.nvm/nvm.sh
-            cd /var/www/html/Online-Gacha-Final
-            # 安全な方法：GitHub の master を強制的に上書きで同期
-            sudo git fetch origin
-            sudo git reset --hard origin/master
-            # PM2の更新
-            pm2 update
-            cd backend
-            yarn install
-            # エラーチェック
-            echo "TypeScriptエラーを表示しますが、ビルドは続行します"
-            npm run build || echo "ビルドエラーがありますが継続します"
-            
-            # ビルド出力の確認
-            if [ -f "dist/main.js" ]; then
-              echo "ビルド成功: dist/main.js が存在します"
-            else
-              echo "警告: dist/main.js が見つかりません"
-              # dist ディレクトリの内容を確認
-              ls -la dist/ || echo "dist/ ディレクトリが存在しません"
-              mkdir -p dist
-            fi
-            
-            # 既存のプロセスがある場合は削除
-            pm2 list | grep "gacha-backend" && pm2 delete gacha-backend || echo "No existing process"
-            # 新規プロセスの作成（絶対パスで指定）
-            pm2 start /var/www/html/Online-Gacha-Final/backend/dist/main.js --name "gacha-backend" || echo "PM2 起動に失敗しました"
+            pm2 describe gacha-frontend \
+              && pm2 restart gacha-frontend \
+              || pm2 start npm --name gacha-frontend -- start
+
+            # 最後にプロセス一覧を出力
+            pm2 list
