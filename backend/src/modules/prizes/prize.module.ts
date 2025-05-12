@@ -4,12 +4,12 @@ import { Prize } from './prize.entity';
 import { User } from '../user/entities/user.entity';
 import { PrizeService } from './prize.service';
 import { PrizeController } from './prize.controller';
-import { AuthModule } from '../auth/auth.module';
+import { SecurityModule } from '../security/security.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Prize, User]),
-    AuthModule,
+    SecurityModule,
   ],
   providers: [PrizeService],
   controllers: [PrizeController],
