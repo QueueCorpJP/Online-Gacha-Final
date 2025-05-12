@@ -3,47 +3,21 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import * as bodyParser from 'body-parser';
 import { middleware as lineMiddleware } from '@line/bot-sdk';
+import * as cors from 'cors';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.setGlobalPrefix('api');
 
-  // 詳細で柔軟なCORS設定
-  app.enableCors({
-    origin: (origin, callback) => {
-      const whitelist = [
-        process.env.FRONTEND_URL || 'http://localhost:3000',
-        'https://oripa-shijon.com',
-        'https://www.oripa-shijon.com',
-        'https://api.oripa-shijon.com',
-        /^https?:\/\/localhost(:\d+)?$/ // ローカル環境での開発用
-      ];
-
-      // originが未定義（同一オリジン）または許可リストに含まれている場合
-      if (!origin || whitelist.some(
-        domain => 
-          (typeof domain === 'string' && domain === origin) || 
-          (domain instanceof RegExp && domain.test(origin))
-      )) {
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
-      }
-    },
-    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+  // シンプルなCORS設定 - フロントエンドからAPIドメインへのアクセスを許可
+  app.use(cors({
+    origin: ['https://oripa-shijon.com', 'https://www.oripa-shijon.com'],
     credentials: true,
-    allowedHeaders: [
-      'Content-Type', 
-      'Authorization', 
-      'Accept', 
-      'Origin', 
-      'X-Requested-With', 
-      'Content-Length'
-    ],
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With', 'Content-Length'],
     exposedHeaders: ['Content-Length', 'Content-Type'],
-    preflightContinue: false,
-    optionsSuccessStatus: 204,
-  });
+    maxAge: 86400,
+  }));
 
   // より安全なボディパーサー設定
   app.use(bodyParser.json({
