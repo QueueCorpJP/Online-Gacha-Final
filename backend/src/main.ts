@@ -3,38 +3,36 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import * as bodyParser from 'body-parser';
 import { middleware as lineMiddleware } from '@line/bot-sdk';
-import * as cors from 'cors';
 import { Request, Response, NextFunction } from 'express';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.setGlobalPrefix('api');
 
-  // OPTIONSリクエスト用のミドルウェア
-  app.use((req: Request, res: Response, next: NextFunction) => {
-    // OPTIONSリクエストの場合は即座に200を返す
-    if (req.method === 'OPTIONS') {
-      res.header('Access-Control-Allow-Origin', 'https://oripa-shijon.com');
-      res.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
-      res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, Origin, X-Requested-With, Content-Length');
-      res.header('Access-Control-Allow-Credentials', 'true');
-      res.header('Access-Control-Max-Age', '86400');
-      return res.status(200).end();
-    }
-    return next();
+  // 1. Nest.js の組み込み CORS を有効化
+  app.enableCors({
+    origin: ['https://oripa-shijon.com', 'https://www.oripa-shijon.com'],
+    methods: ['GET','HEAD','PUT','PATCH','POST','DELETE','OPTIONS'],
+    allowedHeaders: ['Content-Type','Authorization','Accept','Origin','X-Requested-With','Content-Length'],
+    credentials: true,
+    maxAge: 86400,
   });
 
-  // シンプルなCORS設定 - フロントエンドからAPIドメインへのアクセスを許可
-  app.use(cors({
-    origin: ['https://oripa-shijon.com', 'https://www.oripa-shijon.com'],
-    credentials: true,
-    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With', 'Content-Length'],
-    exposedHeaders: ['Content-Length', 'Content-Type'],
-    maxAge: 86400,
-    preflightContinue: false,
-    optionsSuccessStatus: 200
-  }));
+  // 2. 独自ミドルウェアを「全リクエスト」に適用する
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    // 常に CORS ヘッダーを付与
+    res.header('Access-Control-Allow-Origin', 'https://oripa-shijon.com');
+    res.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, Origin, X-Requested-With, Content-Length');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Max-Age', '86400');
+
+    // プリフライトだけ 204 で返して終了
+    if (req.method === 'OPTIONS') {
+      return res.sendStatus(204);
+    }
+    next();
+  });
 
   // より安全なボディパーサー設定
   app.use(bodyParser.json({
