@@ -43,6 +43,6 @@
 
 【backend/src/modules/prizes/prize.module.ts】
 - 景品機能のモジュール定義。
-- JwtModuleをインポートしてAuthGuardが必要とするJwtServiceを提供。
-- AuthGuardをプロバイダーとして追加し、コントローラーで使用できるようにした。
+- AuthModuleをインポートして、AuthGuardとJwtServiceを利用可能にする。
+- 直接JwtModuleをインポートする代わりにAuthModuleを使用することで、既存の認証設定を再利用。
 - これにより「Nest can't resolve dependencies of the AuthGuard」エラーを解決。 
