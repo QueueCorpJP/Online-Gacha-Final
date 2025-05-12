@@ -38,17 +38,11 @@ export class PrizeService {
 
   async shipPrize(prizeId: string, user: User): Promise<{ message: string }> {
     const prize = await this.prizeRepository.findOne({ where: { id: prizeId, user: { id: user.id } } });
-    if (!prize || prize.status !== 'Awaiting Shipment') {
-      throw new BadRequestException('Prize not available for shipping');
+    if (!prize) {
+      throw new BadRequestException('Prize not found');
     }
-    if (user.coinBalance < 50) {
-      throw new BadRequestException('Insufficient coin balance for shipping');
-    }
-
     prize.status = 'Shipped';
     await this.prizeRepository.save(prize);
-
-    user.coinBalance -= 50; // Example: deduct 50 coins for shipping
-    return { message: 'Prize shipped successfully' };
+    return { message: 'Prize shipping status updated successfully' };
   }
 }

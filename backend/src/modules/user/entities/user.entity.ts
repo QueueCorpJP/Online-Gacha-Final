@@ -74,7 +74,7 @@ export class User {
   @Column({ nullable: true })
   referredBy?: string;
 
-  @OneToMany(() => Prize, (prize) => prize.user)
+  @OneToMany(() => Prize, () => null)
   prizes!: Prize[];
 
   @Column({ default: 0 })

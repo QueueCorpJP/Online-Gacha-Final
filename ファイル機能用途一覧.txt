@@ -19,4 +19,24 @@
 【frontend/app/reset-password/sent/page.tsx】
 - パスワード再設定完了ページ。
 - パスワードリセット完了後に自動遷移し、ユーザーに「パスワードがリセットされました！」を案内。
-- /login へのリンクあり。 
+- /login へのリンクあり。
+
+【backend/src/modules/user/entities/user.entity.ts】
+- ユーザー情報を管理するエンティティ。
+- プロフィール情報、認証情報、コイン残高などを保持。
+- Prize エンティティとのリレーション設定を修正（@OneToMany デコレータをコメントアウト）。
+
+【backend/src/modules/prizes/prize.entity.ts】
+- 景品情報を管理するエンティティ。
+- ユーザーが獲得した景品の名前、画像、配送状況などを保持。
+- User エンティティとの ManyToOne リレーション設定を修正。
+
+【backend/src/app.module.ts】
+- アプリケーションのルートモジュール。
+- 各機能モジュールのインポートと設定を行う。
+- PrizeModule を追加して Prize エンティティを正しく読み込めるようにした。
+
+【backend/src/modules/prizes/prize.service.ts】
+- 景品関連の処理を行うサービス。
+- ユーザーIDに基づく景品の取得、ステータス更新、コインへの変換などの機能を提供。
+- クエリ形式を修正して正しくユーザーの景品を取得できるようにした。 

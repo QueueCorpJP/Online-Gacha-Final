@@ -1,18 +1,18 @@
 ✅ 修正ステップ：
-① prize.entity.ts が存在するか確認
+① prize.entity.ts が存在するか確認 ✅
 bash
 コピーする
 編集する
 ls src/entities/prize.entity.ts
 もしファイルがないなら、作成する必要があります。
 
-② Prize エンティティを User に適切に import しているか確認
+② Prize エンティティを User に適切に import しているか確認 ✅
 ts
 コピーする
 編集する
 // user.entity.ts
 import { Prize } from './prize.entity'; // 相対パス注意
-③ AppDataSource（または TypeOrmModule.forRoot({...})） に Prize が含まれているか
+③ AppDataSource（または TypeOrmModule.forRoot({...})） に Prize が含まれているか ✅
 ts
 コピーする
 編集する
@@ -22,7 +22,7 @@ TypeOrmModule.forRoot({
 })
 または entities: [__dirname + '/**/*.entity{.ts,.js}'] のようにワイルドカードでカバーしているか。
 
-④ Prize エンティティに逆側のリレーションがあるかも確認
+④ Prize エンティティに逆側のリレーションがあるかも確認 ✅
 ts
 コピーする
 編集する

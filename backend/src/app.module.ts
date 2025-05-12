@@ -23,6 +23,7 @@ import { PointsModule } from './modules/points/points.module';
 import { InquiryModule } from './modules/inquiries/inquiry.module';
 import { NewsBlogModule } from './modules/news-blog/news-blog.module';
 import { FAQModule } from './modules/faqs/faq.module';
+import { PrizeModule } from './modules/prizes/prize.module';
 
 @Module({
   imports: [
@@ -61,6 +62,7 @@ import { FAQModule } from './modules/faqs/faq.module';
     InquiryModule,
     NewsBlogModule,
     FAQModule,
+    PrizeModule,
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', 'uploads'),
       serveRoot: '/uploads',
