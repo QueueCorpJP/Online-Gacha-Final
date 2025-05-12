@@ -17,8 +17,7 @@ async function bootstrap() {
       'https://oripa-shijon.com',
       'https://www.oripa-shijon.com',
       'https://api.oripa-shijon.com',
-      // Add wildcard as fallback to ensure CORS works
-      '*'
+     
     ],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
