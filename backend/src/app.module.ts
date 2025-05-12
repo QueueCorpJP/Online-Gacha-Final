@@ -41,7 +41,6 @@ import { FAQModule } from './modules/faqs/faq.module';
       logging: true, // 一時的にログを有効化して問題を特定
       autoLoadEntities: true, // エンティティの自動読み込みを有効化
       entitySkipConstructor: true, // エンティティコンストラクタをスキップ
-      findRelationIds: true, // リレーションIDを自動的に見つける
     }),
     PaymentModule,
     AuthModule,

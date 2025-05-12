@@ -5,9 +5,10 @@ import { User } from '../user/entities/user.entity';
 export class Prize {
   @PrimaryGeneratedColumn('uuid')
   id?: string;
-  @ManyToOne(() => User)
+  
+  @ManyToOne(() => User, (user: User) => user.prizes, { eager: true })
   user!: User;
-
+  
   @Column()
   name!: string;
 
