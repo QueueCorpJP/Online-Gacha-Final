@@ -6,7 +6,7 @@ export class Prize {
   @PrimaryGeneratedColumn('uuid')
   id?: string;
   
-  @ManyToOne(() => User, (user: User) => user.prizes, { eager: true })
+  @ManyToOne(() => User)
   user!: User;
   
   @Column()
