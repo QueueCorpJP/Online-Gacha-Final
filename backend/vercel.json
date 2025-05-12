@@ -25,6 +25,20 @@
           "Access-Control-Allow-Credentials": "true",
           "Access-Control-Max-Age": "86400"
         }
+      },
+      {
+        "src": "/api/(.*)",
+        "methods": ["OPTIONS"],
+        "headers": {
+          "Access-Control-Allow-Origin": "https://oripa-shijon.com",
+          "Access-Control-Allow-Methods": "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
+          "Access-Control-Allow-Headers": "Origin, X-Requested-With, Content-Type, Accept, Authorization, Content-Length",
+          "Access-Control-Allow-Credentials": "true",
+          "Access-Control-Max-Age": "86400",
+          "Content-Type": "text/plain",
+          "Content-Length": "0"
+        },
+        "status": 200
       }
     ]
   }
