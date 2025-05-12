@@ -6,8 +6,8 @@ export class Prize {
   @PrimaryGeneratedColumn('uuid')
   id?: string;
 
-  @ManyToOne(() => User, (user: User) => user.prizes)
-  user!: User;
+  // @ManyToOne(() => User, (user: User) => user.prizes)
+  // user!: User;
 
   @Column()
   name!: string;
