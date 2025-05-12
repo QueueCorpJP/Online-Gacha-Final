@@ -12,7 +12,7 @@ export class PrizeService {
   ) {}
 
   async getUserPrizes(userId: string): Promise<Prize[]> {
-    return this.prizeRepository.find({ where: { user: { id: userId } } });
+    return this.prizeRepository.find({ where: { user: userId } });
   }
 
   async updatePrizeStatus(prizeId: string, status: string): Promise<Prize> {
@@ -25,7 +25,7 @@ export class PrizeService {
   }
 
   async convertPrizeToCoins(prizeId: string, user: User): Promise<{ message: string }> {
-    const prize = await this.prizeRepository.findOne({ where: { id: prizeId, user: { id: user.id } } });
+    const prize = await this.prizeRepository.findOne({ where: { id: prizeId, user: user.id } });
     if (!prize || prize.isConvertedToCoins) {
       throw new BadRequestException('Invalid prize or already converted');
     }
@@ -37,7 +37,7 @@ export class PrizeService {
   }
 
   async shipPrize(prizeId: string, user: User): Promise<{ message: string }> {
-    const prize = await this.prizeRepository.findOne({ where: { id: prizeId, user: { id: user.id } } });
+    const prize = await this.prizeRepository.findOne({ where: { id: prizeId, user: user.id } });
     if (!prize || prize.status !== 'Awaiting Shipment') {
       throw new BadRequestException('Prize not available for shipping');
     }
