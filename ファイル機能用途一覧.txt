@@ -24,7 +24,7 @@
 【backend/src/modules/user/entities/user.entity.ts】
 - ユーザー情報を管理するエンティティ。
 - プロフィール情報、認証情報、コイン残高などを保持。
-- Prize エンティティとのリレーション設定を修正（@OneToMany デコレータをコメントアウト）。
+- Prize エンティティとのリレーション設定を修正（@OneToMany デコレータを追加し、逆参照を削除）。
 
 【backend/src/modules/prizes/prize.entity.ts】
 - 景品情報を管理するエンティティ。
@@ -39,4 +39,10 @@
 【backend/src/modules/prizes/prize.service.ts】
 - 景品関連の処理を行うサービス。
 - ユーザーIDに基づく景品の取得、ステータス更新、コインへの変換などの機能を提供。
-- クエリ形式を修正して正しくユーザーの景品を取得できるようにした。 
+- クエリ形式を修正して正しくユーザーの景品を取得できるようにした。
+
+【backend/src/modules/prizes/prize.module.ts】
+- 景品機能のモジュール定義。
+- JwtModuleをインポートしてAuthGuardが必要とするJwtServiceを提供。
+- AuthGuardをプロバイダーとして追加し、コントローラーで使用できるようにした。
+- これにより「Nest can't resolve dependencies of the AuthGuard」エラーを解決。 
