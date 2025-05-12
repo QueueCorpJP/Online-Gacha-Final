@@ -35,6 +35,8 @@
 - アプリケーションのルートモジュール。
 - 各機能モジュールのインポートと設定を行う。
 - PrizeModule を追加して Prize エンティティを正しく読み込めるようにした。
+- JwtModuleをグローバルモジュールとして登録し、アプリケーション全体で利用可能にした。
+- これにより「Nest can't resolve dependencies of the AuthGuard」エラーを根本的に解決。
 
 【backend/src/modules/prizes/prize.service.ts】
 - 景品関連の処理を行うサービス。

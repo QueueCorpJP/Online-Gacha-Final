@@ -24,11 +24,17 @@ import { InquiryModule } from './modules/inquiries/inquiry.module';
 import { NewsBlogModule } from './modules/news-blog/news-blog.module';
 import { FAQModule } from './modules/faqs/faq.module';
 import { PrizeModule } from './modules/prizes/prize.module';
+import { JwtModule } from '@nestjs/jwt';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true, // Makes ConfigModule available globally
+    }),
+    JwtModule.register({
+      global: true, // グローバルモジュールとして登録
+      secret: process.env.JWT_SECRET || 'your-secret-key',
+      signOptions: { expiresIn: '1d' },
     }),
     TypeOrmModule.forRoot({
       type: 'postgres',
