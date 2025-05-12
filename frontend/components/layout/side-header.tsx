@@ -252,7 +252,7 @@ export function SiteHeader({ isAdmin = false }: SiteHeaderProps) {
               height={24}
             />
             <span className="text-xl font-bold text-[#7C3AED]">SHIJON</span>
-            {/* <span className="ml-2 text-red-500 font-bold">【テスト表示</span> */}
+            <span className="ml-2 text-red-500 font-bold">【テスト表示</span>
           </Link>
 
           {isLoggedIn ? <UserActions /> : <AuthButtons />}
