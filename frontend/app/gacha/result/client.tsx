@@ -156,6 +156,7 @@ export default function GachaResultClient() {
   const [errorMessage, setErrorMessage] = useState("ガチャ結果の表示に失敗しました")
   const [hasStock, setHasStock] = useState(true) // 在庫状態を管理
   const isRedirecting = useRef(false) // リダイレクト状態を管理する参照
+  const [skipVideo, setSkipVideo] = useState(false) // 動画をスキップするかどうか
 
   // 言語に応じたアイテム名を取得する関数
   const getLocalizedName = (item: GachaResult): string => {
@@ -242,6 +243,13 @@ export default function GachaResultClient() {
           gachaId: gacha.id,
           pullTime: new Date().toISOString()
         };
+        
+        // 新しいガチャ結果のため、sessionStorageをクリア
+        if (typeof window !== 'undefined') {
+          // 現在のガチャ結果に関連するキーを削除（リロード判定用）
+          const currentResultKey = `gacha_result_${gacha.id}_${resultData.pullTime}`;
+          sessionStorage.removeItem(currentResultKey);
+        }
         
         const resultUrl = `/gacha/result?data=${encodeURIComponent(JSON.stringify(resultData))}`;
         safeRedirect(resultUrl);
@@ -338,6 +346,26 @@ export default function GachaResultClient() {
         
         // Then use the parsed data to fetch gacha details
         dispatch(fetchGachaById(parsedData.gachaId))
+        
+        // リロードかどうかを判定するためのキーを生成
+        const resultKey = `gacha_result_${parsedData.gachaId}_${parsedData.pullTime}`;
+        
+        // sessionStorageをチェックして、既に表示済みかどうかを判定
+        const isAlreadyViewed = typeof window !== 'undefined' && sessionStorage.getItem(resultKey);
+        
+        if (isAlreadyViewed) {
+          // 既に表示済みの場合は動画をスキップ
+          console.log("This result has already been viewed, skipping video");
+          setSkipVideo(true);
+          setIsLoading(false);
+          setShowResults(true);
+          return;
+        }
+        
+        // 表示済みとしてマーク
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem(resultKey, 'viewed');
+        }
         
         // 動画再生処理
         if (videoRef.current) {
@@ -468,6 +496,13 @@ export default function GachaResultClient() {
           gachaId: gacha?.id,
           pullTime: new Date().toISOString()
         };
+
+        // 新しいガチャ結果のため、sessionStorageをクリア
+        if (typeof window !== 'undefined') {
+          // 現在のガチャ結果に関連するキーを削除（リロード判定用）
+          const currentResultKey = `gacha_result_${gacha?.id}_${resultData.pullTime}`;
+          sessionStorage.removeItem(currentResultKey);
+        }
 
         // Using safe redirect function
         const resultUrl = `/gacha/result?data=${encodeURIComponent(JSON.stringify(resultData))}`;
