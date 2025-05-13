@@ -93,6 +93,27 @@ export default function GachaResultClient() {
     setIsLoading(!isAlreadyViewed)
     setShowResults(isAlreadyViewed)
 
+    // 既に表示済みの場合は保存されたデータを使用
+    if (isAlreadyViewed) {
+      const savedResultsJson = sessionStorage.getItem(`${resultId}_data`)
+      if (savedResultsJson) {
+        try {
+          const savedResults = JSON.parse(savedResultsJson)
+          setUniqueResults(savedResults.uniqueItems)
+          setGroupedResults(savedResults.grouped)
+          setIsLoading(false)
+          setShowResults(true)
+          
+          // ガチャ情報も取得しておく（ボタンの表示などに必要）
+          dispatch(fetchGachaById(parsedData.gachaId))
+          return
+        } catch (e) {
+          console.error('Failed to parse saved results:', e)
+          // 保存データの解析に失敗した場合は通常の処理を続行
+        }
+      }
+    }
+
     // Then use the parsed data to fetch gacha details
     dispatch(fetchGachaById(parsedData.gachaId)).unwrap()
       .then(() => {
@@ -128,6 +149,13 @@ export default function GachaResultClient() {
 
         setUniqueResults(uniqueItems);
         setGroupedResults(grouped);
+
+        // 結果データをセッションストレージに保存
+        const resultsToSave = {
+          uniqueItems,
+          grouped
+        }
+        sessionStorage.setItem(`${resultId}_data`, JSON.stringify(resultsToSave))
 
         // 既に表示済みの場合は動画をスキップ
         if (isAlreadyViewed) {
