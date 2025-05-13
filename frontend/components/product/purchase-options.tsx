@@ -4,7 +4,7 @@ import { useToast } from "@/components/ui/use-toast"
 import { useDispatch, useSelector } from "react-redux"
 import { AppDispatch, RootState } from "@/redux/store"
 import { api } from "@/lib/axios"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { toast } from "sonner"
 import { fetchProfile } from "@/redux/features/profileSlice"
 
@@ -21,11 +21,29 @@ interface GachaPurchaseOptionsProps {
   gachaId: string
 }
 
+// 安全なリダイレクト関数
+function safeRedirect(url: string): void {
+  try {
+    // 現在のURLと同じでないことを確認（無限リダイレクト防止）
+    if (window.location.href !== url) {
+      console.log(`Redirecting to: ${url}`);
+      window.location.href = url;
+    } else {
+      console.warn('Prevented redirect to the same URL');
+    }
+  } catch (error) {
+    console.error('Redirect failed:', error);
+    // エラーが発生した場合はトップページへ
+    window.location.href = '/';
+  }
+}
+
 export function GachaPurchaseOptions({ options, gachaId }: GachaPurchaseOptionsProps) {
   const dispatch = useDispatch<AppDispatch>()
   const { t } = useTranslations()
   const [isProcessing, setIsProcessing] = useState(false)
   const userBalance = useSelector((state: RootState) => state.profile.data?.coinBalance || 0);
+  const isRedirecting = useRef(false); // リダイレクト状態を管理する参照
 
   useEffect(() => {
     dispatch(fetchProfile())
@@ -33,7 +51,6 @@ export function GachaPurchaseOptions({ options, gachaId }: GachaPurchaseOptionsP
 
   useEffect(() => {
     console.log(userBalance);
-
   }, [userBalance])
 
   const handlePurchase = async (option: PurchaseOption) => {
@@ -78,7 +95,12 @@ export function GachaPurchaseOptions({ options, gachaId }: GachaPurchaseOptionsP
           // リダイレクト
           const resultUrl = `/gacha/result?data=${encodedData}`;
           console.log("Redirecting to:", resultUrl);
-          window.location.href = resultUrl;
+          
+          // 安全なリダイレクト処理
+          if (!isRedirecting.current) {
+            isRedirecting.current = true;
+            safeRedirect(resultUrl);
+          }
         } catch (err) {
           console.error("Error during redirect:", err);
           toast.error("ガチャ結果の表示に失敗しました");

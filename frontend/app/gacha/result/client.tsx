@@ -104,8 +104,39 @@ function getVideoByRarity(items: GachaResult[]): string {
   if (!items || items.length === 0) {
     return 'D';
   }
+  
+  // 最高レアリティを取得
   const highestRarity = getHighestRarity(items);
-  return highestRarity.toUpperCase();
+  
+  // レア度を大文字に統一して返す
+  // 動画ファイル名は A.webm, B.webm, C.webm, D.webm, S.webm の形式
+  const normalizedRarity = highestRarity.toUpperCase();
+  
+  // 有効なレア度のみを許可（A, B, C, D, S）
+  if (['A', 'B', 'C', 'D', 'S'].includes(normalizedRarity)) {
+    return normalizedRarity;
+  }
+  
+  // 不明なレア度の場合はデフォルトとしてDを返す
+  console.warn(`Unknown rarity: ${highestRarity}, using default 'D'`);
+  return 'D';
+}
+
+// 安全なリダイレクト関数
+function safeRedirect(url: string): void {
+  try {
+    // 現在のURLと同じでないことを確認（無限リダイレクト防止）
+    if (window.location.href !== url) {
+      console.log(`Redirecting to: ${url}`);
+      window.location.href = url;
+    } else {
+      console.warn('Prevented redirect to the same URL');
+    }
+  } catch (error) {
+    console.error('Redirect failed:', error);
+    // エラーが発生した場合はトップページへ
+    window.location.href = '/';
+  }
 }
 
 export default function GachaResultClient() {
@@ -124,6 +155,7 @@ export default function GachaResultClient() {
   const [hasError, setHasError] = useState(false)
   const [errorMessage, setErrorMessage] = useState("ガチャ結果の表示に失敗しました")
   const [hasStock, setHasStock] = useState(true) // 在庫状態を管理
+  const isRedirecting = useRef(false) // リダイレクト状態を管理する参照
 
   // 言語に応じたアイテム名を取得する関数
   const getLocalizedName = (item: GachaResult): string => {
@@ -194,7 +226,8 @@ export default function GachaResultClient() {
           pullTime: new Date().toISOString()
         };
         
-        window.location.href = `/gacha/result?data=${encodeURIComponent(JSON.stringify(resultData))}`;
+        const resultUrl = `/gacha/result?data=${encodeURIComponent(JSON.stringify(resultData))}`;
+        safeRedirect(resultUrl);
       } else {
         toast.error("ガチャの結果が空です。もう一度お試しください。");
       }
@@ -238,8 +271,11 @@ export default function GachaResultClient() {
   useEffect(() => {
     const data = searchParams.get('data')
     if (!data) {
-      window.location.href = '/gacha'
-      return
+      if (!isRedirecting.current) {
+        isRedirecting.current = true;
+        safeRedirect('/gacha');
+      }
+      return;
     }
 
     // Start loading animation
@@ -251,12 +287,15 @@ export default function GachaResultClient() {
       // データをデコードしてパース
       const parsedData: PullResult = JSON.parse(decodeURIComponent(data))
       
-      // アイテムが空の場合はエラー
+      // アイテムが空の場合はエラー表示せず、トーストだけ表示してガチャ一覧に戻る
       if (!parsedData.items || !Array.isArray(parsedData.items) || parsedData.items.length === 0) {
         console.error("No items found in parsed data:", parsedData);
-        setErrorMessage("ガチャアイテムが見つかりません。もう一度お試しください。");
-        setHasError(true);
-        toast.error("ガチャアイテムが見つかりません");
+        toast.error("ガチャアイテムが見つかりません。在庫がない可能性があります。");
+        // エラー画面を表示せずにガチャ一覧に戻る
+        if (!isRedirecting.current) {
+          isRedirecting.current = true;
+          safeRedirect('/gacha');
+        }
         return;
       }
 
@@ -275,34 +314,54 @@ export default function GachaResultClient() {
         // 動画再生処理
         if (videoRef.current) {
           try {
-            const playPromise = videoRef.current.play();
+            // 動画ソースを事前に設定
+            const videoRarity = getVideoByRarity(parsedData.items);
+            const webmSource = document.createElement('source');
+            webmSource.src = `/movies/${videoRarity}.webm`;
+            webmSource.type = 'video/webm';
             
-            if (playPromise !== undefined) {
-              playPromise
-                .then(() => {
-                  console.log("Video started playing");
-                  
-                  // 動画再生完了時の処理
-                  videoRef.current!.onended = () => {
-                    console.log("Video playback ended");
-                    // 即座に結果を表示
-                    setIsLoading(false);
-                    setShowResults(true);
-                  };
-                })
-                .catch(err => {
-                  console.error("Error playing video:", err);
-                  // 動画再生に失敗した場合は結果を直接表示
-                  setIsLoading(false);
-                  setShowResults(true);
-                });
+            const mp4Source = document.createElement('source');
+            mp4Source.src = `/movies/${videoRarity}.mp4`;
+            mp4Source.type = 'video/mp4';
+            
+            // 既存のソースをクリアして新しいソースを追加
+            while (videoRef.current.firstChild) {
+              videoRef.current.removeChild(videoRef.current.firstChild);
             }
+            
+            videoRef.current.appendChild(webmSource);
+            videoRef.current.appendChild(mp4Source);
+            
+            // 動画のロードを確実に行う
+            videoRef.current.load();
+            
+            // 動画再生完了時の処理
+            videoRef.current.onended = () => {
+              console.log("Video playback ended");
+              // 即座に結果を表示
+              setIsLoading(false);
+              setShowResults(true);
+            };
             
             // 動画再生エラー時のフォールバック
             videoRef.current.onerror = () => {
               console.error("Video playback error");
               setIsLoading(false);
               setShowResults(true);
+            };
+            
+            // 動画が準備できたら再生
+            videoRef.current.oncanplay = () => {
+              const playPromise = videoRef.current!.play();
+              
+              if (playPromise !== undefined) {
+                playPromise.catch(err => {
+                  console.error("Error playing video:", err);
+                  // 動画再生に失敗した場合は結果を直接表示
+                  setIsLoading(false);
+                  setShowResults(true);
+                });
+              }
             };
           } catch (playError) {
             console.error("Error during video playback setup:", playError);
@@ -317,15 +376,21 @@ export default function GachaResultClient() {
         }
       } catch (processError) {
         console.error("Error processing gacha items:", processError);
-        setErrorMessage("ガチャアイテムの処理に失敗しました。もう一度お試しください。");
-        setHasError(true);
         toast.error("ガチャアイテムの処理に失敗しました");
+        // エラー画面を表示せずにガチャ一覧に戻る
+        if (!isRedirecting.current) {
+          isRedirecting.current = true;
+          safeRedirect('/gacha');
+        }
       }
     } catch (error) {
       console.error("Error processing gacha results:", error);
-      setErrorMessage("ガチャ結果の処理に失敗しました。もう一度お試しください。");
-      setHasError(true);
       toast.error("ガチャ結果の処理に失敗しました");
+      // エラー画面を表示せずにガチャ一覧に戻る
+      if (!isRedirecting.current) {
+        isRedirecting.current = true;
+        safeRedirect('/gacha');
+      }
     }
   }, [searchParams, dispatch])
 
@@ -374,12 +439,17 @@ export default function GachaResultClient() {
           pullTime: new Date().toISOString()
         };
 
-        // Using window.location for client-side navigation with state
-        window.location.href = `/gacha/result?data=${encodeURIComponent(JSON.stringify(resultData))}`;
+        // Using safe redirect function
+        const resultUrl = `/gacha/result?data=${encodeURIComponent(JSON.stringify(resultData))}`;
+        if (!isRedirecting.current) {
+          isRedirecting.current = true;
+          safeRedirect(resultUrl);
+        }
       } else {
-        // アイテムが空の場合
-        toast.error("ガチャの結果が空です。在庫がない可能性があります。");
+        // アイテムが空の場合はトーストだけ表示
+        toast.error("ガチャアイテムの在庫がありません");
         setHasStock(false);
+        // 現在のページにとどまる（エラー画面に遷移しない）
       }
     } catch (error: any) {
       // エラーメッセージの詳細化
@@ -403,46 +473,42 @@ export default function GachaResultClient() {
     setCurrentIndex((prev) => Math.max(prev - 1, 0))
   }
 
-  // エラーが発生した場合
+  // エラーが発生した場合でもエラー画面は表示せず、ガチャ一覧に戻るようにする
+  // エラー画面は削除し、すべてトーストメッセージで対応
   if (hasError) {
+    // エラー画面を表示せずにガチャ一覧に戻る
+    useEffect(() => {
+      toast.error(errorMessage);
+      if (!isRedirecting.current) {
+        isRedirecting.current = true;
+        safeRedirect('/gacha');
+      }
+    }, []);
+    // ローディング表示を返す（すぐにリダイレクトするため）
     return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center py-8 px-4">
-        <h1 className="text-2xl font-bold mb-4">エラーが発生しました</h1>
-        <p className="text-gray-600 mb-8">{errorMessage}</p>
-        <div className="flex flex-col sm:flex-row gap-4">
-          <Link href="/gacha">
-            <Button variant="outline">
-              <ChevronLeft className="mr-2 h-4 w-4" />
-              ガチャ一覧に戻る
-            </Button>
-          </Link>
-          <Button 
-            onClick={handleRetryGacha} 
-            disabled={isDrawing}
-            className="bg-[#7C3AED] hover:bg-[#6D28D9]"
-          >
-            <RotateCcw className="mr-2 h-4 w-4" />
-            もう一度引く
-          </Button>
-        </div>
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <p>リダイレクト中...</p>
       </div>
-    )
+    );
   }
 
   // 読み込み中の場合
   if (isLoading) {
+    // 最高レアリティを取得
+    const videoRarity = getVideoByRarity(uniqueResults);
+    console.log(`Playing video for rarity: ${videoRarity}`);
+    
     return (
       <div className="fixed inset-0 bg-black flex items-center justify-center">
         <video 
           ref={videoRef}
           className="w-full h-full object-cover"
           playsInline
-          autoPlay={true}
+          autoPlay={false} // 明示的にfalseに設定し、oncanplayイベントで再生
           muted={true}
           preload="auto"
         >
-          <source src={`/movies/${getVideoByRarity(uniqueResults)}.webm`} type="video/webm" />
-          <source src={`/movies/${getVideoByRarity(uniqueResults)}.mp4`} type="video/mp4" />
+          {/* ソースはJavaScriptで動的に追加 */}
           Your browser does not support the video tag.
         </video>
       </div>
