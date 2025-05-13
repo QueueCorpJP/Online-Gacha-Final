@@ -14,6 +14,16 @@ import { useSearchParams } from 'next/navigation'
 import { fetchGachaById } from "@/redux/features/gachaSlice"
 import { toast } from 'sonner'
 import { api } from '@/lib/axios'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 type RarityKey = 'D' | 'C' | 'B' | 'A' | 'S';
 type Language = 'ja' | 'en' | 'zh';
@@ -157,6 +167,8 @@ export default function GachaResultClient() {
   const [hasStock, setHasStock] = useState(true) // 在庫状態を管理
   const isRedirecting = useRef(false) // リダイレクト状態を管理する参照
   const [skipVideo, setSkipVideo] = useState(false) // 動画をスキップするかどうか
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false)
+  const [purchaseInfo, setPurchaseInfo] = useState<{ times: number; price: number | string }>({ times: 1, price: 0 })
 
   // 言語に応じたアイテム名を取得する関数
   const getLocalizedName = (item: GachaResult): string => {
@@ -454,15 +466,36 @@ export default function GachaResultClient() {
     setCurrentIndex((prev) => Math.min(prev + 1, uniqueResults.length - 1))
   }
 
-  const handleDraw = async (e: React.MouseEvent, times: number) => {
+  // 購入確認ダイアログを表示する関数
+  const showPurchaseConfirmation = (times: number) => {
+    // 価格を計算
+    let price: number | string = 0;
+    try {
+      if (gacha?.price) {
+        price = times === 1 
+          ? Number(gacha.price) 
+          : Number(gacha.price) * times;
+      }
+    } catch (e) {
+      price = "不明";
+    }
+
+    // 購入情報を設定
+    setPurchaseInfo({ times, price });
+    
+    // ダイアログを表示
+    setConfirmDialogOpen(true);
+  };
+
+  // 確認後に実際に購入を実行する関数
+  const executePurchase = async () => {
     if (!hasStock) {
-      e.preventDefault();
       toast.error("ガチャアイテムの在庫がありません");
       return;
     }
     
     try {
-      setIsDrawing(true)
+      setIsDrawing(true);
       
       // ガチャアイテムの在庫確認（APIがサポートしている場合）
       try {
@@ -471,7 +504,6 @@ export default function GachaResultClient() {
         
         // 在庫情報がある場合は確認
         if (stockCheck?.data?.availableItems === 0 || stockCheck?.data?.isEmpty) {
-          e.preventDefault();
           toast.error("ガチャアイテムの在庫がありません");
           setHasStock(false);
           setIsDrawing(false);
@@ -484,7 +516,7 @@ export default function GachaResultClient() {
       
       // Make API call to purchase and pull gacha
       const response = await api.post(`/admin/gacha/${gacha?.id}/pull`, {
-        times: times,
+        times: purchaseInfo.times,
         isFree: false,
       })
 
@@ -512,7 +544,6 @@ export default function GachaResultClient() {
         }
       } else {
         // アイテムが空の場合はトーストだけ表示
-        e.preventDefault();
         toast.error("ガチャアイテムの在庫がありません");
         setHasStock(false);
         // 現在のページにとどまる（エラー画面に遷移しない）
@@ -523,7 +554,6 @@ export default function GachaResultClient() {
           error.response?.status === 409 || 
           error.response?.data?.message?.includes('stock') || 
           error.response?.data?.message?.includes('在庫')) {
-        e.preventDefault();
         toast.error("ガチャアイテムの在庫がありません");
         setHasStock(false);
       } else {
@@ -534,7 +564,19 @@ export default function GachaResultClient() {
     } finally {
       setIsDrawing(false)
     }
-  }
+  };
+
+  // 元のhandleDraw関数を置き換え
+  const handleDraw = (e: React.MouseEvent, times: number) => {
+    e.preventDefault();
+    if (!hasStock) {
+      toast.error("ガチャアイテムの在庫がありません");
+      return;
+    }
+    
+    // 購入確認ダイアログを表示
+    showPurchaseConfirmation(times);
+  };
 
   const handlePrevious = () => {
     setCurrentIndex((prev) => Math.max(prev - 1, 0))
@@ -658,98 +700,122 @@ export default function GachaResultClient() {
   );
 
   return (
-    <div className={`min-h-screen bg-white flex flex-col items-center py-8 px-4 
-      ${showResults ? 'animate-fadeIn' : 'opacity-0'}`}>
-      <div className="w-full max-w-3xl text-center mb-8">
-        <h1 className="text-2xl font-bold mb-2">{t("gacha.result.title")}</h1>
-        <p className="text-gray-600">
-          {t("gacha.result.congratulations")} ({currentIndex + 1}/{uniqueResults.length})
-        </p>
-      </div>
-
-      {/* Main item card display */}
-      <div className="w-full max-w-md relative">
-        <Card className="border-0 bg-zinc-50 overflow-hidden rounded-xl shadow-lg">
-          <div className="aspect-square relative">
-            <Image 
-              src={currentItem.imageUrl ? `${process.env.NEXT_PUBLIC_API_URL}${currentItem.imageUrl}` : "/placeholder.svg"}
-              alt={getLocalizedName(currentItem)}
-              fill
-              className="object-contain p-4"
-            />
-          </div>
-          <div className="p-6 text-center">
-            <Badge className={`mb-3 ${getRarityColor(currentItem.rarity)}`}>
-              {formatRarity(currentItem.rarity)}
-            </Badge>
-            <h2 className="text-2xl font-bold mb-2">{getLocalizedName(currentItem)}</h2>
-            <p className="text-gray-500 mb-4">×{currentItem.count}</p>
-          </div>
-        </Card>
-
-        {/* Navigation buttons */}
-        <div className="absolute inset-y-0 left-0 flex items-center">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="h-10 w-10 rounded-full bg-white shadow-md"
-            onClick={handlePrevious}
-            disabled={currentIndex === 0}
-          >
-            <ChevronLeft className="h-6 w-6" />
-          </Button>
+    <>
+      <div className={`min-h-screen bg-white flex flex-col items-center py-8 px-4 
+        ${showResults ? 'animate-fadeIn' : 'opacity-0'}`}>
+        <div className="w-full max-w-3xl text-center mb-8">
+          <h1 className="text-2xl font-bold mb-2">{t("gacha.result.title")}</h1>
+          <p className="text-gray-600">
+            {t("gacha.result.congratulations")} ({currentIndex + 1}/{uniqueResults.length})
+          </p>
         </div>
-        <div className="absolute inset-y-0 right-0 flex items-center">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="h-10 w-10 rounded-full bg-white shadow-md"
-            onClick={handleNext}
-            disabled={currentIndex === uniqueResults.length - 1}
-          >
-            <ChevronRight className="h-6 w-6" />
-          </Button>
-        </div>
-      </div>
 
-      {/* Results summary */}
-      <div className="w-full max-w-3xl mt-8 space-y-4">
-        <h3 className="text-xl font-semibold">{t("gacha.result.summary")}</h3>
-        <div className="bg-white p-4 rounded-xl shadow">
-          {Object.entries(groupedResults).sort(([rarityA], [rarityB]) => {
-            return (RARITY_ORDER[(rarityB.toUpperCase() as RarityKey)] || 0) - 
-                  (RARITY_ORDER[(rarityA.toUpperCase() as RarityKey)] || 0);
-          }).map(([rarity, items]) => (
-            <div key={rarity} className="mb-4 last:mb-0">
-              <h4 className={`${getRarityColor(rarity)} inline-block px-2 py-1 rounded text-sm font-medium mb-2`}>
-                {formatRarity(rarity)}
-              </h4>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {items.map((item) => (
-                  <div key={item.id} className="flex items-center gap-2 bg-zinc-50 p-2 rounded">
-                    <div className="h-10 w-10 relative flex-shrink-0">
-                      <Image 
-                        src={item.imageUrl ? `${process.env.NEXT_PUBLIC_API_URL}${item.imageUrl}` : "/placeholder.svg"}
-                        alt={getLocalizedName(item)}
-                        fill
-                        className="object-contain"
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{getLocalizedName(item)}</p>
-                      <p className="text-xs text-gray-500">×{(item as UniqueGachaResult).count}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+        {/* Main item card display */}
+        <div className="w-full max-w-md relative">
+          <Card className="border-0 bg-zinc-50 overflow-hidden rounded-xl shadow-lg">
+            <div className="aspect-square relative">
+              <Image 
+                src={currentItem?.imageUrl ? `${process.env.NEXT_PUBLIC_API_URL}${currentItem.imageUrl}` : "/placeholder.svg"}
+                alt={currentItem ? getLocalizedName(currentItem) : ""}
+                fill
+                className="object-contain p-4"
+              />
             </div>
-          ))}
+            <div className="p-6 text-center">
+              <Badge className={`mb-3 ${getRarityColor(currentItem?.rarity || "")}`}>
+                {formatRarity(currentItem?.rarity || "")}
+              </Badge>
+              <h2 className="text-2xl font-bold mb-2">{currentItem ? getLocalizedName(currentItem) : ""}</h2>
+              <p className="text-gray-500 mb-4">×{currentItem?.count || 0}</p>
+            </div>
+          </Card>
+
+          {/* Navigation buttons */}
+          <div className="absolute inset-y-0 left-0 flex items-center">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-10 w-10 rounded-full bg-white shadow-md"
+              onClick={handlePrevious}
+              disabled={currentIndex === 0}
+            >
+              <ChevronLeft className="h-6 w-6" />
+            </Button>
+          </div>
+          <div className="absolute inset-y-0 right-0 flex items-center">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-10 w-10 rounded-full bg-white shadow-md"
+              onClick={handleNext}
+              disabled={currentIndex === uniqueResults.length - 1}
+            >
+              <ChevronRight className="h-6 w-6" />
+            </Button>
+          </div>
         </div>
+
+        {/* Results summary */}
+        <div className="w-full max-w-3xl mt-8 space-y-4">
+          <h3 className="text-xl font-semibold">{t("gacha.result.summary")}</h3>
+          <div className="bg-white p-4 rounded-xl shadow">
+            {Object.entries(groupedResults).sort(([rarityA], [rarityB]) => {
+              return (RARITY_ORDER[(rarityB.toUpperCase() as RarityKey)] || 0) - 
+                    (RARITY_ORDER[(rarityA.toUpperCase() as RarityKey)] || 0);
+            }).map(([rarity, items]) => (
+              <div key={rarity} className="mb-4 last:mb-0">
+                <h4 className={`${getRarityColor(rarity)} inline-block px-2 py-1 rounded text-sm font-medium mb-2`}>
+                  {formatRarity(rarity)}
+                </h4>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {items.map((item) => (
+                    <div key={item.id} className="flex items-center gap-2 bg-zinc-50 p-2 rounded">
+                      <div className="h-10 w-10 relative flex-shrink-0">
+                        <Image 
+                          src={item.imageUrl ? `${process.env.NEXT_PUBLIC_API_URL}${item.imageUrl}` : "/placeholder.svg"}
+                          alt={getLocalizedName(item)}
+                          fill
+                          className="object-contain"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{getLocalizedName(item)}</p>
+                        <p className="text-xs text-gray-500">×{(item as UniqueGachaResult).count}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Action buttons */}
+        {renderActionButtons()}
       </div>
 
-      {/* Action buttons */}
-      {renderActionButtons()}
-    </div>
+      {/* 購入確認ダイアログ */}
+      <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>購入の確認</AlertDialogTitle>
+            <AlertDialogDescription>
+              {purchaseInfo.times === 1 ? "単発" : "10連"}ガチャを引きます。
+              <br />
+              価格: ¥{typeof purchaseInfo.price === 'number' ? purchaseInfo.price.toLocaleString() : purchaseInfo.price}
+              <br />
+              よろしいですか？
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>キャンセル</AlertDialogCancel>
+            <AlertDialogAction onClick={executePurchase} disabled={isDrawing}>
+              {isDrawing ? "処理中..." : "購入する"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   )
 }
 
