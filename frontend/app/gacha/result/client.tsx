@@ -424,4 +424,4 @@ const styles = {
   '.animate-fadeIn': {
     animation: 'fadeIn 0.5s ease-in forwards',
   },
-}s
+}
