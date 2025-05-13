@@ -762,11 +762,12 @@ export const translations = {
             result: {
                 title: "ガチャ結果",
                 congratulations: "おめでとうございます！",
-                drawAgain: "もう一度引きますか？",
-                oneDraw: "1回引く",
-                tenDraws: "10回引く",
-                discount: "10%お得！",
+                drawAgain: "もう一度引く？",
+                oneDraw: "単発",
+                tenDraws: "10連",
+                discount: "10%オフ！",
                 returnToList: "ガチャ一覧に戻る",
+                summary: "獲得アイテム一覧",
                 cardInfo: {
                     ultraRare: "ウルトラレア",
                     id: "ID",
@@ -2121,6 +2122,7 @@ export const translations = {
                 tenDraws: "10 Draws",
                 discount: "10% OFF!",
                 returnToList: "Return to Gacha List",
+                summary: "Items Obtained",
                 cardInfo: {
                     ultraRare: "Ultra Rare",
                     id: "ID",
@@ -3490,10 +3492,11 @@ export const translations = {
                 tenDraws: "10 Draws",
                 discount: "10% OFF!",
                 returnToList: "返回扭蛋列表",
+                summary: "获得物品列表",
                 cardInfo: {
                     ultraRare: "超稀有",
                     id: "ID",
-                    grade: "Grade"
+                    grade: "等级"
                 }
             }
         },

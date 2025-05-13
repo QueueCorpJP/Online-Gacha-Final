@@ -64,14 +64,6 @@ export default function GachaResultClient() {
   const [showResults, setShowResults] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
   const [isDrawing, setIsDrawing] = useState(false)
-  
-  // ガチャを新たに引いたかどうかのフラグ
-  const newPull = searchParams.get('newPull') === 'true'
-  
-  // 動画をスキップするかの判定
-  // - ページのリロード時や「戻る」から再訪時はスキップ
-  // - 新規ガチャ引き（newPull=true）の場合は表示
-  const skipVideo = !newPull
 
   // 言語に応じたアイテム名を取得する関数
   const getLocalizedName = (item: GachaResult): string => {
@@ -150,17 +142,7 @@ export default function GachaResultClient() {
           setUniqueResults(uniqueItems);
           setGroupedResults(grouped);
 
-          // 新規ガチャ引き（newPull=true）の場合は動画を表示、それ以外はスキップ
-          if (skipVideo) {
-            console.log("Skipping video playback");
-            setIsLoading(false);
-            setTimeout(() => {
-              setShowResults(true);
-            }, 100);
-            return;
-          }
-
-          // 通常の動画再生処理
+          // Play video and handle its completion
           if (videoRef.current) {
             videoRef.current.play()
               .then(() => {
@@ -202,7 +184,7 @@ export default function GachaResultClient() {
       window.location.href = '/gacha';
     }
 
-  }, [searchParams, dispatch, skipVideo, newPull])
+  }, [searchParams, dispatch])
 
   const handleNext = () => {
     setCurrentIndex((prev) => Math.min(prev + 1, uniqueResults.length - 1))
@@ -226,8 +208,8 @@ export default function GachaResultClient() {
           pullTime: new Date().toISOString()
         };
 
-        // 新規ガチャの場合は newPull=true パラメータを付与
-        window.location.href = `/gacha/result?data=${encodeURIComponent(JSON.stringify(resultData))}&newPull=true`;
+        // Using window.location for client-side navigation with state
+        window.location.href = `/gacha/result?data=${encodeURIComponent(JSON.stringify(resultData))}`;
       }
     } catch (error: any) {
       toast.error(t("gacha.error.pull.title"), {
@@ -360,8 +342,7 @@ export default function GachaResultClient() {
 
       {/* Action buttons */}
       <div className="w-full max-w-3xl mt-8 flex flex-col sm:flex-row gap-4 justify-center">
-        {/* ガチャに戻るリンクもskipVideoパラメータを付与 */}
-        <Link href={`/gacha/${gacha?.id}?fromResult=true`} className="w-full sm:w-auto">
+        <Link href={`/gacha/${gacha?.id}`} className="w-full sm:w-auto">
           <Button variant="outline" className="w-full">
             <ChevronLeft className="mr-2 h-4 w-4" />
             {t("gacha.result.backToGacha")}
@@ -374,7 +355,10 @@ export default function GachaResultClient() {
             className="bg-[#7C3AED] hover:bg-[#6D28D9]"
           >
             <Coins className="mr-2 h-4 w-4" />
-            <p className="text-lg font-bold">¥{gacha?.price?.toLocaleString()}</p>
+            <div className="flex flex-col items-center">
+              <p className="text-lg font-bold">¥{gacha?.price?.toLocaleString()}</p>
+              <p className="text-xs">{t("gacha.result.oneDraw")}</p>
+            </div>
           </Button>
           <Button 
             onClick={() => handleDraw(10)}
@@ -382,7 +366,10 @@ export default function GachaResultClient() {
             className="bg-[#7C3AED] hover:bg-[#6D28D9]"
           >
             <RotateCcw className="mr-2 h-4 w-4" />
-            <p className="text-lg font-bold">¥{(gacha?.price * 10)?.toLocaleString()}</p>
+            <div className="flex flex-col items-center">
+              <p className="text-lg font-bold">¥{(gacha?.price * 10)?.toLocaleString()}</p>
+              <p className="text-xs">{t("gacha.result.tenDraws")}</p>
+            </div>
           </Button>
         </div>
       </div>
@@ -418,18 +405,14 @@ function formatRarity(rarity: string): string {
 }
 
 function getHighestRarity(items: GachaResult[]): string {
-  if (!items || items.length === 0) {
-    return 'D'; // デフォルト値を返す
-  }
-  
   const rarityOrder = ['D', 'C', 'B', 'A', 'S'];
   
   return items.reduce((highest, item) => {
     const currentIndex = rarityOrder.indexOf(item.rarity.toUpperCase());
     const highestIndex = rarityOrder.indexOf(highest.toUpperCase());
     
-    // 高いインデックスほど高レアリティ (S は 4, D は 0)
-    return currentIndex > highestIndex ? item.rarity : highest;
+    // Lower index means higher rarity (A is 0, S is 4)
+    return currentIndex < highestIndex ? item.rarity : highest;
   }, 'D');
 }
 
