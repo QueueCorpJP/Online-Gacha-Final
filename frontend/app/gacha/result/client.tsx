@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Image from "next/image"
 import Link from "next/link"
-import { Coins, RotateCcw, ChevronLeft, ChevronRight } from "lucide-react"
+import { Coins, RotateCcw, ChevronLeft, ChevronRight, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
@@ -123,6 +123,7 @@ export default function GachaResultClient() {
   const [isDrawing, setIsDrawing] = useState(false)
   const [hasError, setHasError] = useState(false)
   const [errorMessage, setErrorMessage] = useState("ガチャ結果の表示に失敗しました")
+  const [hasStock, setHasStock] = useState(true) // 在庫状態を管理
 
   // 言語に応じたアイテム名を取得する関数
   const getLocalizedName = (item: GachaResult): string => {
@@ -205,6 +206,35 @@ export default function GachaResultClient() {
     }
   };
 
+  // 在庫確認関数
+  const checkStock = async () => {
+    if (!gacha?.id) return;
+    
+    try {
+      const response = await api.get(`/admin/gacha/${gacha.id}/stock-check`).catch(() => null);
+      
+      if (response?.data) {
+        const hasAvailableItems = !(response.data.availableItems === 0 || response.data.isEmpty);
+        setHasStock(hasAvailableItems);
+        
+        if (!hasAvailableItems) {
+          console.log("ガチャアイテムの在庫がありません");
+        }
+      }
+    } catch (error) {
+      // APIがサポートされていない場合は在庫ありと仮定
+      console.log("在庫確認APIがサポートされていません");
+      setHasStock(true);
+    }
+  };
+
+  useEffect(() => {
+    // ガチャ情報が取得できたら在庫確認を実行
+    if (gacha?.id) {
+      checkStock();
+    }
+  }, [gacha]);
+
   useEffect(() => {
     const data = searchParams.get('data')
     if (!data) {
@@ -255,10 +285,9 @@ export default function GachaResultClient() {
                   // 動画再生完了時の処理
                   videoRef.current!.onended = () => {
                     console.log("Video playback ended");
+                    // 即座に結果を表示
                     setIsLoading(false);
-                    setTimeout(() => {
-                      setShowResults(true);
-                    }, 500);
+                    setShowResults(true);
                   };
                 })
                 .catch(err => {
@@ -305,8 +334,31 @@ export default function GachaResultClient() {
   }
 
   const handleDraw = async (times: number) => {
+    if (!hasStock) {
+      toast.error("ガチャアイテムの在庫がありません");
+      return;
+    }
+    
     try {
       setIsDrawing(true)
+      
+      // ガチャアイテムの在庫確認（APIがサポートしている場合）
+      try {
+        // ガチャの在庫情報を取得（オプション）
+        const stockCheck = await api.get(`/admin/gacha/${gacha?.id}/stock-check`).catch(() => null);
+        
+        // 在庫情報がある場合は確認
+        if (stockCheck?.data?.availableItems === 0 || stockCheck?.data?.isEmpty) {
+          toast.error("ガチャアイテムの在庫がありません");
+          setHasStock(false);
+          setIsDrawing(false);
+          return;
+        }
+      } catch (stockError) {
+        // 在庫確認APIがない場合は無視して続行
+        console.log("Stock check API not available, continuing...");
+      }
+      
       // Make API call to purchase and pull gacha
       const response = await api.post(`/admin/gacha/${gacha?.id}/pull`, {
         times: times,
@@ -325,12 +377,23 @@ export default function GachaResultClient() {
         // Using window.location for client-side navigation with state
         window.location.href = `/gacha/result?data=${encodeURIComponent(JSON.stringify(resultData))}`;
       } else {
-        toast.error("ガチャの結果が空です。もう一度お試しください。");
+        // アイテムが空の場合
+        toast.error("ガチャの結果が空です。在庫がない可能性があります。");
+        setHasStock(false);
       }
     } catch (error: any) {
-      toast.error(t("gacha.error.pull.title"), {
-        description: error.response?.data?.message || t("gacha.error.pull.description")
-      })
+      // エラーメッセージの詳細化
+      if (error.response?.data?.code === 'OUT_OF_STOCK' || 
+          error.response?.status === 409 || 
+          error.response?.data?.message?.includes('stock') || 
+          error.response?.data?.message?.includes('在庫')) {
+        toast.error("ガチャアイテムの在庫がありません");
+        setHasStock(false);
+      } else {
+        toast.error(t("gacha.error.pull.title"), {
+          description: error.response?.data?.message || t("gacha.error.pull.description")
+        });
+      }
     } finally {
       setIsDrawing(false)
     }
@@ -391,7 +454,7 @@ export default function GachaResultClient() {
     return (
       <div className="fixed inset-0 bg-black flex items-center justify-center">
         <div className="text-white text-center">
-          <p className="text-xl mb-4">結果を読み込んでいます...</p>
+          <p className="text-xl mb-4">結果を準備しています...</p>
           <Button 
             variant="outline" 
             onClick={() => setShowResults(true)}
@@ -406,6 +469,46 @@ export default function GachaResultClient() {
 
   // 現在表示するアイテム
   const currentItem = uniqueResults[currentIndex]
+
+  // Action buttons
+  const renderActionButtons = () => (
+    <div className="w-full max-w-3xl mt-8 flex flex-col sm:flex-row gap-4 justify-center">
+      <Link href={`/gacha/${gacha?.id}`} className="w-full sm:w-auto">
+        <Button variant="outline" className="w-full">
+          <ChevronLeft className="mr-2 h-4 w-4" />
+          ガチャに戻る
+        </Button>
+      </Link>
+      <div className="grid grid-cols-2 gap-4 w-full">
+        <Button 
+          onClick={() => handleDraw(1)}
+          disabled={isDrawing || !hasStock}
+          className="bg-[#7C3AED] hover:bg-[#6D28D9]"
+        >
+          <Coins className="mr-2 h-4 w-4" />
+          <p className="text-lg font-bold">¥{gacha?.price?.toLocaleString()}</p>
+          {!hasStock && (
+            <span className="absolute top-0 right-0 -mt-1 -mr-1">
+              <AlertCircle className="h-4 w-4 text-red-500" />
+            </span>
+          )}
+        </Button>
+        <Button 
+          onClick={() => handleDraw(10)}
+          disabled={isDrawing || !hasStock}
+          className="bg-[#7C3AED] hover:bg-[#6D28D9]"
+        >
+          <RotateCcw className="mr-2 h-4 w-4" />
+          <p className="text-lg font-bold">¥{gacha?.price && typeof gacha.price === 'number' ? (gacha.price * 10).toLocaleString() : '0'}</p>
+          {!hasStock && (
+            <span className="absolute top-0 right-0 -mt-1 -mr-1">
+              <AlertCircle className="h-4 w-4 text-red-500" />
+            </span>
+          )}
+        </Button>
+      </div>
+    </div>
+  );
 
   return (
     <div className={`min-h-screen bg-white flex flex-col items-center py-8 px-4 
@@ -498,32 +601,7 @@ export default function GachaResultClient() {
       </div>
 
       {/* Action buttons */}
-      <div className="w-full max-w-3xl mt-8 flex flex-col sm:flex-row gap-4 justify-center">
-        <Link href={`/gacha/${gacha?.id}`} className="w-full sm:w-auto">
-          <Button variant="outline" className="w-full">
-            <ChevronLeft className="mr-2 h-4 w-4" />
-            ガチャに戻る
-          </Button>
-        </Link>
-        <div className="grid grid-cols-2 gap-4 w-full">
-          <Button 
-            onClick={() => handleDraw(1)}
-            disabled={isDrawing}
-            className="bg-[#7C3AED] hover:bg-[#6D28D9]"
-          >
-            <Coins className="mr-2 h-4 w-4" />
-            <p className="text-lg font-bold">¥{gacha?.price?.toLocaleString()}</p>
-          </Button>
-          <Button 
-            onClick={() => handleDraw(10)}
-            disabled={isDrawing}
-            className="bg-[#7C3AED] hover:bg-[#6D28D9]"
-          >
-            <RotateCcw className="mr-2 h-4 w-4" />
-            <p className="text-lg font-bold">¥{gacha?.price && typeof gacha.price === 'number' ? (gacha.price * 10).toLocaleString() : '0'}</p>
-          </Button>
-        </div>
-      </div>
+      {renderActionButtons()}
     </div>
   )
 }
