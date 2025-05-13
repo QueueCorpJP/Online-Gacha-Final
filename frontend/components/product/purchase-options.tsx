@@ -8,6 +8,16 @@ import { useState, useEffect, useRef } from "react"
 import { toast } from "sonner"
 import { fetchProfile } from "@/redux/features/profileSlice"
 import { AlertCircle } from "lucide-react"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 interface PurchaseOption {
   type: string
@@ -46,6 +56,8 @@ export function GachaPurchaseOptions({ options, gachaId }: GachaPurchaseOptionsP
   const userBalance = useSelector((state: RootState) => state.profile.data?.coinBalance || 0);
   const isRedirecting = useRef(false); // リダイレクト状態を管理する参照
   const [hasStock, setHasStock] = useState(true); // 在庫状態を管理
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false); // 確認ダイアログの表示状態
+  const [selectedOption, setSelectedOption] = useState<PurchaseOption | null>(null); // 選択されたオプション
 
   useEffect(() => {
     dispatch(fetchProfile())
@@ -79,29 +91,37 @@ export function GachaPurchaseOptions({ options, gachaId }: GachaPurchaseOptionsP
     }
   };
 
-  const handlePurchase = async (e: React.MouseEvent, option: PurchaseOption) => {
+  // 購入確認ダイアログを表示する関数
+  const showConfirmDialog = (option: PurchaseOption) => {
     // 在庫がない場合は処理を中断
     if (!hasStock) {
-      e.preventDefault();
       toast.error("ガチャアイテムの在庫がありません");
       return;
     }
+
+    // 残高チェック
+    if (!option.isFree && option.price) {
+      const price = typeof option.price === 'number' ? option.price : 0;
+      if (userBalance < price) {
+        toast.error(t("gacha.error.insufficient.balance.title"), {
+          description: t("gacha.error.insufficient.balance.description"),
+        });
+        return;
+      }
+    }
+
+    // 選択されたオプションを保存
+    setSelectedOption(option);
+    // 確認ダイアログを表示
+    setConfirmDialogOpen(true);
+  };
+
+  const handlePurchase = async () => {
+    // 選択されたオプションがない場合は処理を中断
+    if (!selectedOption) return;
     
     try {
-      setIsProcessing(true)
-
-      // If it's not free, check if user has enough balance
-      if (!option.isFree && option.price) {
-        const price = typeof option.price === 'number' ? option.price : 0;
-
-        console.log(price);
-        if (userBalance < price) {
-          toast.error(t("gacha.error.insufficient.balance.title"), {
-            description: t("gacha.error.insufficient.balance.description"),
-          })
-          return
-        }
-      }
+      setIsProcessing(true);
 
       // ガチャアイテムの在庫確認（APIがサポートしている場合）
       try {
@@ -110,7 +130,6 @@ export function GachaPurchaseOptions({ options, gachaId }: GachaPurchaseOptionsP
         
         // 在庫情報がある場合は確認
         if (stockCheck?.data?.availableItems === 0 || stockCheck?.data?.isEmpty) {
-          e.preventDefault();
           toast.error("ガチャアイテムの在庫がありません");
           setHasStock(false);
           setIsProcessing(false);
@@ -123,15 +142,14 @@ export function GachaPurchaseOptions({ options, gachaId }: GachaPurchaseOptionsP
 
       // Make API call to purchase and pull gacha
       const response = await api.post(`/admin/gacha/${gachaId}/pull`, {
-        times: option.times || 1,
-        isFree: option.isFree,
+        times: selectedOption.times || 1,
+        isFree: selectedOption.isFree,
       })
 
       // Show results
       if (response.data.items) {
         // アイテムが空の場合は在庫切れと判断
         if (!Array.isArray(response.data.items) || response.data.items.length === 0) {
-          e.preventDefault();
           toast.error("ガチャアイテムの在庫がありません");
           setHasStock(false);
           return;
@@ -171,7 +189,6 @@ export function GachaPurchaseOptions({ options, gachaId }: GachaPurchaseOptionsP
           error.response?.status === 409 || 
           error.response?.data?.message?.includes('stock') || 
           error.response?.data?.message?.includes('在庫')) {
-        e.preventDefault();
         toast.error("ガチャアイテムの在庫がありません");
         setHasStock(false);
       } else {
@@ -180,43 +197,71 @@ export function GachaPurchaseOptions({ options, gachaId }: GachaPurchaseOptionsP
         });
       }
     } finally {
-      setIsProcessing(false)
+      setIsProcessing(false);
     }
   }
 
   return (
-    <div className="space-y-4">
-      {options.map((option, index) => (
-        <div key={index} className="flex items-center justify-between rounded-lg border p-4">
-          <div>
-            <div className="font-medium">{option.type}</div>
-            <div className={option.isFree ? "text-[#7C3AED]" : "text-xl font-bold"}>
-              {typeof option.price === "number" ? `${t("gacha.card.pricePerTry", { price: option.price.toLocaleString() })}` : option.price}
+    <>
+      <div className="space-y-4">
+        {options.map((option, index) => (
+          <div key={index} className="flex items-center justify-between rounded-lg border p-4">
+            <div>
+              <div className="font-medium">{option.type}</div>
+              <div className={option.isFree ? "text-[#7C3AED]" : "text-xl font-bold"}>
+                {typeof option.price === "number" ? `${t("gacha.card.pricePerTry", { price: option.price.toLocaleString() })}` : option.price}
+              </div>
+              {option.discount && <div className="text-sm text-[#7C3AED]">{option.discount}</div>}
             </div>
-            {option.discount && <div className="text-sm text-[#7C3AED]">{option.discount}</div>}
+            <Button
+              variant={option.isFree ? "default" : "outline"}
+              className={
+                option.isFree ? "bg-[#7C3AED] hover:bg-[#6D28D9]" : "text-[#7C3AED] hover:bg-[#7C3AED] hover:text-white"
+              }
+              onClick={() => showConfirmDialog(option)}
+              disabled={isProcessing || !hasStock}
+            >
+              {isProcessing 
+                ? t("payment.details.processing")
+                : option.isFree 
+                  ? t("gacha.purchase.button.pull") 
+                  : t("gacha.purchase.button.buy")
+              }
+              {!hasStock && (
+                <span className="absolute top-0 right-0 -mt-1 -mr-1">
+                  <AlertCircle className="h-4 w-4 text-red-500" />
+                </span>
+              )}
+            </Button>
           </div>
-          <Button
-            variant={option.isFree ? "default" : "outline"}
-            className={
-              option.isFree ? "bg-[#7C3AED] hover:bg-[#6D28D9]" : "text-[#7C3AED] hover:bg-[#7C3AED] hover:text-white"
-            }
-            onClick={(e) => handlePurchase(e, option)}
-            disabled={isProcessing || !hasStock}
-          >
-            {isProcessing 
-              ? t("payment.details.processing")
-              : option.isFree 
-                ? t("gacha.purchase.button.pull") 
-                : t("gacha.purchase.button.buy")
-            }
-            {!hasStock && (
-              <span className="absolute top-0 right-0 -mt-1 -mr-1">
-                <AlertCircle className="h-4 w-4 text-red-500" />
-              </span>
-            )}
-          </Button>
-        </div>
-      ))}
-    </div>
+        ))}
+      </div>
+
+      {/* 購入確認ダイアログ */}
+      <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>購入の確認</AlertDialogTitle>
+            <AlertDialogDescription>
+              {selectedOption?.type}を引きます。
+              <br />
+              {selectedOption?.isFree 
+                ? "無料ガチャです。" 
+                : `価格: ${typeof selectedOption?.price === 'number' 
+                    ? `¥${selectedOption.price.toLocaleString()}` 
+                    : selectedOption?.price}`}
+              <br />
+              よろしいですか？
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>キャンセル</AlertDialogCancel>
+            <AlertDialogAction onClick={handlePurchase} disabled={isProcessing}>
+              {isProcessing ? "処理中..." : "購入する"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   )
 }
