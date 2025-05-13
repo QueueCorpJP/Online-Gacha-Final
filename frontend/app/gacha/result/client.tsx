@@ -18,11 +18,11 @@ import { api } from '@/lib/axios'
 type RarityKey = 'D' | 'C' | 'B' | 'A' | 'S';
 
 const RARITY_ORDER: Record<RarityKey, number> = {
-  'D': 0,
-  'C': 1,  
+  'S': 0,
+  'A': 1,  
   'B': 2,
-  'A': 3,
-  'S': 4,
+  'C': 3,
+  'D': 4,
 };
 
 interface GachaResult {
@@ -64,6 +64,7 @@ export default function GachaResultClient() {
   const [showResults, setShowResults] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
   const [isDrawing, setIsDrawing] = useState(false)
+  const [videoSrc, setVideoSrc] = useState("")
 
   // 言語に応じたアイテム名を取得する関数
   const getLocalizedName = (item: GachaResult): string => {
@@ -73,6 +74,24 @@ export default function GachaResultClient() {
     return item.name;
   }
 
+  // Clear session storage when leaving the page
+  useEffect(() => {
+    // This will only run client-side
+    const handleBeforeUnload = () => {
+      // Only clear specific keys related to viewing status, not the actual result data
+      Object.keys(sessionStorage).forEach(key => {
+        if (key.startsWith('gacha_result_') && key.endsWith('_viewed')) {
+          sessionStorage.removeItem(key);
+        }
+      });
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
+
   useEffect(() => {
     const data = searchParams.get('data')
     if (!data) {
@@ -80,25 +99,33 @@ export default function GachaResultClient() {
       return
     }
 
-    console.log(data);
-
     try {
       // Parse the data first
       const parsedData: PullResult = JSON.parse(decodeURIComponent(data))
       
-      // 既に表示済みかどうかをチェック
+      // Check if already viewed - use a specific key for viewing status
       const resultId = `gacha_result_${parsedData.pullTime}`
-      const isAlreadyViewed = sessionStorage.getItem(resultId) === 'viewed'
+      const viewStatusKey = `${resultId}_viewed`
+      const isAlreadyViewed = sessionStorage.getItem(viewStatusKey) === 'true'
       
-      // Start loading animation (動画再生済みの場合はスキップ)
+      // Start loading animation (skip if video already played)
       setIsLoading(!isAlreadyViewed)
       setShowResults(isAlreadyViewed)
 
-      // 常にガチャ情報を取得（ボタンの表示などに必要）
+      // Always fetch gacha info (needed for buttons)
       dispatch(fetchGachaById(parsedData.gachaId))
 
-      // アイテムデータの処理
+      // Process item data
       const processItems = () => {
+        // Make sure we actually have items
+        if (!parsedData.items || !Array.isArray(parsedData.items) || parsedData.items.length === 0) {
+          console.error('No valid items in pull results');
+          toast.error(t("gacha.error.result.title"), {
+            description: t("gacha.error.result.description")
+          });
+          return { uniqueItems: [], grouped: {} };
+        }
+
         // Process pull results
         const itemCounts = parsedData.items.reduce((acc: { [key: string]: UniqueGachaResult }, item: GachaResult) => {
           if (!acc[item.id]) {
@@ -110,9 +137,9 @@ export default function GachaResultClient() {
         }, {});
 
         const uniqueItems = Object.values(itemCounts).sort((a, b) => {
-          const rarityA = a.rarity.toLowerCase();
-          const rarityB = b.rarity.toLowerCase();
-          return (RARITY_ORDER[rarityA as RarityKey] || 999) - (RARITY_ORDER[rarityB as RarityKey] || 999);
+          const rarityA = a.rarity.toUpperCase() as RarityKey;
+          const rarityB = b.rarity.toUpperCase() as RarityKey;
+          return (RARITY_ORDER[rarityA] || 999) - (RARITY_ORDER[rarityB] || 999);
         });
 
         const grouped = uniqueItems.reduce((acc: GroupedResults, item: UniqueGachaResult) => {
@@ -126,67 +153,65 @@ export default function GachaResultClient() {
 
         console.log('Processed items:', uniqueItems);
 
-        setUniqueResults(uniqueItems);
-        setGroupedResults(grouped);
-
-        // 結果データをセッションストレージに保存
+        // Save result data to session storage (separate from view status)
         const resultsToSave = {
           uniqueItems,
           grouped
         }
         sessionStorage.setItem(`${resultId}_data`, JSON.stringify(resultsToSave))
 
+        // Determine highest rarity for video
+        const highestRarity = getHighestRarity(parsedData.items);
+        setVideoSrc(`/movies/${highestRarity}.webm`);
+
         return { uniqueItems, grouped };
       }
 
-      // 既に表示済みの場合はセッションストレージのデータを使用
+      // Process items and use the result
+      const { uniqueItems, grouped } = processItems();
+      setUniqueResults(uniqueItems);
+      setGroupedResults(grouped);
+
+      // If already viewed, show results immediately
       if (isAlreadyViewed) {
-        const savedResultsJson = sessionStorage.getItem(`${resultId}_data`)
-        if (savedResultsJson) {
-          try {
-            const savedResults = JSON.parse(savedResultsJson)
-            if (savedResults.uniqueItems && savedResults.uniqueItems.length > 0) {
-              console.log('Using saved results:', savedResults);
-              setUniqueResults(savedResults.uniqueItems)
-              setGroupedResults(savedResults.grouped)
-              setIsLoading(false)
-              setShowResults(true)
-              return
-            }
-          } catch (e) {
-            console.error('Failed to parse saved results:', e)
-            // 保存データの解析に失敗した場合は通常の処理を続行
-          }
-        }
-        
-        // セッションストレージにデータがない場合は再処理
-        const processedData = processItems();
-        setIsLoading(false)
-        setShowResults(true)
-        return
+        setIsLoading(false);
+        setShowResults(true);
+        return;
       }
 
-      // 初回表示の場合
-      const processedData = processItems();
-
-      // Play video and handle its completion
+      // First time viewing, play video
       if (videoRef.current) {
-        videoRef.current.play()
+        videoRef.current.oncanplay = () => {
+          videoRef.current?.play().catch(err => {
+            console.error('Failed to play video:', err);
+            // Fallback in case video can't play
+            setIsLoading(false);
+            setShowResults(true);
+            sessionStorage.setItem(viewStatusKey, 'true');
+          });
+        };
+        
         videoRef.current.onended = () => {
-          // 表示済みとしてマーク
-          sessionStorage.setItem(resultId, 'viewed')
-          setIsLoading(false)
+          // Mark as viewed
+          sessionStorage.setItem(viewStatusKey, 'true');
+          setIsLoading(false);
           setTimeout(() => {
-            setShowResults(true)
-          }, 500)
-        }
+            setShowResults(true);
+          }, 500);
+        };
       }
+      
     } catch (error) {
-      console.error('Failed to process gacha results:', error)
-      window.location.href = '/gacha'
+      console.error('Failed to process gacha results:', error);
+      toast.error(t("gacha.error.result.title"), {
+        description: t("gacha.error.result.description")
+      });
+      setTimeout(() => {
+        window.location.href = '/gacha';
+      }, 2000);
     }
 
-  }, [searchParams, dispatch])
+  }, [searchParams, dispatch, t]);
 
   const handleNext = () => {
     setCurrentIndex((prev) => Math.min(prev + 1, uniqueResults.length - 1))
@@ -233,18 +258,25 @@ export default function GachaResultClient() {
           ref={videoRef}
           className="w-full h-full object-cover"
           playsInline
-          autoPlay={true}
+          autoPlay={false} // Changed to false to avoid race conditions
           muted={true}
           preload="auto"
         >
-          <source src={`/movies/${getVideoByRarity(uniqueResults)}.webm`} type="video/webm" />
+          <source src={videoSrc} type="video/webm" />
           Your browser does not support the video tag.
         </video>
       </div>
     )
   }
 
-  if (!showResults || !uniqueResults.length) return null
+  if (!showResults || !uniqueResults.length) {
+    return (
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center py-8 px-4">
+        <h1 className="text-2xl font-bold mb-4">{t("gacha.loading")}</h1>
+        <p className="text-gray-600">{t("gacha.please_wait")}</p>
+      </div>
+    );
+  }
 
   const currentItem = uniqueResults[currentIndex]
 
@@ -372,15 +404,15 @@ export default function GachaResultClient() {
 function getRarityColor(rarity: string): string {
   switch (rarity.toLowerCase()) {
     case 's':
-      return 'from-purple-600 to-pink-500'
+      return 'bg-gradient-to-r from-purple-600 to-pink-500 text-white'
     case 'a':
-      return 'from-yellow-400 to-orange-500'
+      return 'bg-gradient-to-r from-yellow-400 to-orange-500 text-white'
     case 'b':
-      return 'from-blue-400 to-blue-600'
+      return 'bg-gradient-to-r from-blue-400 to-blue-600 text-white'
     case 'c':
-      return 'from-blue-400 to-blue-600'
+      return 'bg-gradient-to-r from-teal-400 to-teal-600 text-white'
     default:
-      return 'from-gray-400 to-gray-600'
+      return 'bg-gradient-to-r from-gray-400 to-gray-600 text-white'
   }
 }
 
@@ -397,20 +429,23 @@ function formatRarity(rarity: string): string {
 }
 
 function getHighestRarity(items: GachaResult[]): string {
-  const rarityOrder = ['D', 'C', 'B', 'A', 'S'];
+  if (!items || items.length === 0) return 'D';
   
-  return items.reduce((highest, item) => {
-    const currentIndex = rarityOrder.indexOf(item.rarity.toUpperCase());
-    const highestIndex = rarityOrder.indexOf(highest.toUpperCase());
+  const rarityOrder = ['S', 'A', 'B', 'C', 'D'];
+  let highestRarityFound = 'D';
+  let highestIndex = 999;
+  
+  for (const item of items) {
+    const currentRarity = item.rarity.toUpperCase();
+    const currentIndex = rarityOrder.indexOf(currentRarity);
     
-    // Lower index means higher rarity (A is 0, S is 4)
-    return currentIndex < highestIndex ? item.rarity : highest;
-  }, 'D');
-}
-
-function getVideoByRarity(items: GachaResult[]): string {
-  const highestRarity = getHighestRarity(items);
-  return highestRarity.toUpperCase();
+    if (currentIndex !== -1 && currentIndex < highestIndex) {
+      highestIndex = currentIndex;
+      highestRarityFound = currentRarity;
+    }
+  }
+  
+  return highestRarityFound;
 }
 
 // Add this to your global CSS or tailwind config
