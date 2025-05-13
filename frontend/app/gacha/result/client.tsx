@@ -16,6 +16,7 @@ import { toast } from 'sonner'
 import { api } from '@/lib/axios'
 
 type RarityKey = 'D' | 'C' | 'B' | 'A' | 'S';
+type Language = 'ja' | 'en' | 'zh';
 
 const RARITY_ORDER: Record<RarityKey, number> = {
   'D': 0,
@@ -32,9 +33,7 @@ interface GachaResult {
   rarity: string;
   probability: number;
   translations?: {
-    ja: { name: string; description: string };
-    en: { name: string; description: string };
-    zh: { name: string; description: string };
+    [key in Language]: { name: string; description: string };
   };
 }
 
@@ -99,7 +98,7 @@ export default function GachaResultClient() {
       }
 
       // Then use the parsed data to fetch gacha details
-      dispatch(fetchGachaById(parsedData.gachaId)).unwrap()
+      dispatch(fetchGachaById(parsedData.gachaId))
         .then(() => {
           // Process pull results
           const itemCounts = parsedData.items.reduce((acc: { [key: string]: UniqueGachaResult }, item: GachaResult) => {
@@ -234,6 +233,13 @@ export default function GachaResultClient() {
           autoPlay={true}
           muted={true}
           preload="auto"
+          onError={(e) => {
+            console.error("Video loading error:", e);
+            setIsLoading(false);
+            setTimeout(() => {
+              setShowResults(true);
+            }, 500);
+          }}
         >
           <source src={`/movies/${getVideoByRarity(uniqueResults)}.webm`} type="video/webm" />
           Your browser does not support the video tag.
@@ -345,7 +351,7 @@ export default function GachaResultClient() {
         <Link href={`/gacha/${gacha?.id}`} className="w-full sm:w-auto">
           <Button variant="outline" className="w-full">
             <ChevronLeft className="mr-2 h-4 w-4" />
-            {t("gacha.result.backToGacha")}
+            {t("gacha.back")}
           </Button>
         </Link>
         <div className="grid grid-cols-2 gap-4 w-full">
@@ -363,7 +369,7 @@ export default function GachaResultClient() {
             className="bg-[#7C3AED] hover:bg-[#6D28D9]"
           >
             <RotateCcw className="mr-2 h-4 w-4" />
-            <p className="text-lg font-bold">¥{(gacha?.price * 10)?.toLocaleString()}</p>
+            <p className="text-lg font-bold">¥{gacha?.price !== undefined ? (Number(gacha.price) * 10).toLocaleString() : '0'}</p>
           </Button>
         </div>
       </div>
@@ -387,7 +393,7 @@ function getRarityColor(rarity: string): string {
 }
 
 function formatRarity(rarity: string): string {
-  const rarityMap = {
+  const rarityMap: Record<string, string> = {
     'A': 'A',
     'B': 'B',
     'C': 'C',
@@ -399,14 +405,18 @@ function formatRarity(rarity: string): string {
 }
 
 function getHighestRarity(items: GachaResult[]): string {
+  if (!items || items.length === 0) {
+    return 'D'; // デフォルト値として最低レアリティを返す
+  }
+  
   const rarityOrder = ['D', 'C', 'B', 'A', 'S'];
   
   return items.reduce((highest, item) => {
     const currentIndex = rarityOrder.indexOf(item.rarity.toUpperCase());
     const highestIndex = rarityOrder.indexOf(highest.toUpperCase());
     
-    // Lower index means higher rarity (A is 0, S is 4)
-    return currentIndex < highestIndex ? item.rarity : highest;
+    // 高いインデックスが高いレアリティ（Sが4、Dが0）
+    return currentIndex > highestIndex ? item.rarity : highest;
   }, 'D');
 }
 
