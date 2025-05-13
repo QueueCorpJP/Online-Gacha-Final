@@ -575,10 +575,20 @@ export default function GachaResultClient() {
         <Button 
           onClick={(e) => handleDraw(e, 1)}
           disabled={isDrawing || !hasStock}
-          className="bg-[#7C3AED] hover:bg-[#6D28D9]"
+          className="bg-[#7C3AED] hover:bg-[#6D28D9] flex items-center justify-center"
         >
           <Coins className="mr-2 h-4 w-4" />
-          <p className="text-lg font-bold">¥{gacha?.price?.toLocaleString()}</p>
+          <p className="text-lg font-bold">
+            ¥{(() => {
+              try {
+                return gacha?.price !== undefined && gacha?.price !== null 
+                  ? Number(gacha.price).toLocaleString() 
+                  : '0';
+              } catch (e) {
+                return '0';
+              }
+            })()}
+          </p>
           {!hasStock && (
             <span className="absolute top-0 right-0 -mt-1 -mr-1">
               <AlertCircle className="h-4 w-4 text-red-500" />
@@ -588,10 +598,20 @@ export default function GachaResultClient() {
         <Button 
           onClick={(e) => handleDraw(e, 10)}
           disabled={isDrawing || !hasStock}
-          className="bg-[#7C3AED] hover:bg-[#6D28D9]"
+          className="bg-[#7C3AED] hover:bg-[#6D28D9] flex items-center justify-center"
         >
           <RotateCcw className="mr-2 h-4 w-4" />
-          <p className="text-lg font-bold">¥{gacha?.price && typeof gacha.price === 'number' ? (gacha.price * 10).toLocaleString() : '0'}</p>
+          <p className="text-lg font-bold">
+            ¥{(() => {
+              try {
+                return gacha?.price !== undefined && gacha?.price !== null
+                  ? (Number(gacha.price) * 10).toLocaleString()
+                  : '0';
+              } catch (e) {
+                return '0';
+              }
+            })()}
+          </p>
           {!hasStock && (
             <span className="absolute top-0 right-0 -mt-1 -mr-1">
               <AlertCircle className="h-4 w-4 text-red-500" />
