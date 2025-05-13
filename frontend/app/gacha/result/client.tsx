@@ -82,41 +82,23 @@ export default function GachaResultClient() {
 
     console.log(data);
 
-    // Parse the data first
-    const parsedData: PullResult = JSON.parse(decodeURIComponent(data))
-    
-    // 既に表示済みかどうかをチェック
-    const resultId = `gacha_result_${parsedData.pullTime}`
-    const isAlreadyViewed = sessionStorage.getItem(resultId) === 'viewed'
-    
-    // Start loading animation (動画再生済みの場合はスキップ)
-    setIsLoading(!isAlreadyViewed)
-    setShowResults(isAlreadyViewed)
+    try {
+      // Parse the data first
+      const parsedData: PullResult = JSON.parse(decodeURIComponent(data))
+      
+      // 既に表示済みかどうかをチェック
+      const resultId = `gacha_result_${parsedData.pullTime}`
+      const isAlreadyViewed = sessionStorage.getItem(resultId) === 'viewed'
+      
+      // Start loading animation (動画再生済みの場合はスキップ)
+      setIsLoading(!isAlreadyViewed)
+      setShowResults(isAlreadyViewed)
 
-    // 既に表示済みの場合は保存されたデータを使用
-    if (isAlreadyViewed) {
-      const savedResultsJson = sessionStorage.getItem(`${resultId}_data`)
-      if (savedResultsJson) {
-        try {
-          const savedResults = JSON.parse(savedResultsJson)
-          setUniqueResults(savedResults.uniqueItems)
-          setGroupedResults(savedResults.grouped)
-          setIsLoading(false)
-          setShowResults(true)
-          
-          // ガチャ情報も取得しておく（ボタンの表示などに必要）
-          dispatch(fetchGachaById(parsedData.gachaId))
-          return
-        } catch (e) {
-          console.error('Failed to parse saved results:', e)
-          // 保存データの解析に失敗した場合は通常の処理を続行
-        }
-      }
-    }
+      // 常にガチャ情報を取得（ボタンの表示などに必要）
+      dispatch(fetchGachaById(parsedData.gachaId))
 
-    // Then use the parsed data to fetch gacha details
-    dispatch(fetchGachaById(parsedData.gachaId)).unwrap()
-      .then(() => {
+      // アイテムデータの処理
+      const processItems = () => {
         // Process pull results
         const itemCounts = parsedData.items.reduce((acc: { [key: string]: UniqueGachaResult }, item: GachaResult) => {
           if (!acc[item.id]) {
@@ -124,9 +106,6 @@ export default function GachaResultClient() {
           } else {
             acc[item.id].count++;
           }
-
-          console.log(acc);
-
           return acc;
         }, {});
 
@@ -145,7 +124,7 @@ export default function GachaResultClient() {
           return acc;
         }, {});
 
-        console.log(uniqueItems);
+        console.log('Processed items:', uniqueItems);
 
         setUniqueResults(uniqueItems);
         setGroupedResults(grouped);
@@ -157,30 +136,55 @@ export default function GachaResultClient() {
         }
         sessionStorage.setItem(`${resultId}_data`, JSON.stringify(resultsToSave))
 
-        // 既に表示済みの場合は動画をスキップ
-        if (isAlreadyViewed) {
-          setIsLoading(false)
-          setShowResults(true)
-          return
-        }
+        return { uniqueItems, grouped };
+      }
 
-        // Play video and handle its completion
-        if (videoRef.current) {
-          videoRef.current.play()
-          videoRef.current.onended = () => {
-            // 表示済みとしてマーク
-            sessionStorage.setItem(resultId, 'viewed')
-            setIsLoading(false)
-            setTimeout(() => {
+      // 既に表示済みの場合はセッションストレージのデータを使用
+      if (isAlreadyViewed) {
+        const savedResultsJson = sessionStorage.getItem(`${resultId}_data`)
+        if (savedResultsJson) {
+          try {
+            const savedResults = JSON.parse(savedResultsJson)
+            if (savedResults.uniqueItems && savedResults.uniqueItems.length > 0) {
+              console.log('Using saved results:', savedResults);
+              setUniqueResults(savedResults.uniqueItems)
+              setGroupedResults(savedResults.grouped)
+              setIsLoading(false)
               setShowResults(true)
-            }, 500)
+              return
+            }
+          } catch (e) {
+            console.error('Failed to parse saved results:', e)
+            // 保存データの解析に失敗した場合は通常の処理を続行
           }
         }
-      })
-      .catch((error) => {
-        console.error('Failed to fetch gacha details:', error)
-        window.location.href = '/gacha'
-      });
+        
+        // セッションストレージにデータがない場合は再処理
+        const processedData = processItems();
+        setIsLoading(false)
+        setShowResults(true)
+        return
+      }
+
+      // 初回表示の場合
+      const processedData = processItems();
+
+      // Play video and handle its completion
+      if (videoRef.current) {
+        videoRef.current.play()
+        videoRef.current.onended = () => {
+          // 表示済みとしてマーク
+          sessionStorage.setItem(resultId, 'viewed')
+          setIsLoading(false)
+          setTimeout(() => {
+            setShowResults(true)
+          }, 500)
+        }
+      }
+    } catch (error) {
+      console.error('Failed to process gacha results:', error)
+      window.location.href = '/gacha'
+    }
 
   }, [searchParams, dispatch])
 
