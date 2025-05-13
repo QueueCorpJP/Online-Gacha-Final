@@ -68,9 +68,21 @@ export function GachaPurchaseOptions({ options, gachaId }: GachaPurchaseOptionsP
           pullTime: new Date().toISOString()
         };
 
-        // console.log(resultData);
-        // Using window.location for client-side navigation with state
-        window.location.href = `/gacha/result?data=${encodeURIComponent(JSON.stringify(resultData))}`;
+        console.log("Gacha pull successful. Result data:", resultData);
+        
+        try {
+          // URLパラメータを安全にエンコード
+          const encodedData = encodeURIComponent(JSON.stringify(resultData));
+          console.log("Encoded data length:", encodedData.length);
+          
+          // リダイレクト
+          const resultUrl = `/gacha/result?data=${encodedData}`;
+          console.log("Redirecting to:", resultUrl);
+          window.location.href = resultUrl;
+        } catch (err) {
+          console.error("Error during redirect:", err);
+          toast.error("ガチャ結果の表示に失敗しました");
+        }
       }
     } catch (error: any) {
       toast.error(t("gacha.error.pull.title"), {

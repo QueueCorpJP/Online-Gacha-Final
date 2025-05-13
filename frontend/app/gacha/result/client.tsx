@@ -75,30 +75,63 @@ export default function GachaResultClient() {
   useEffect(() => {
     const data = searchParams.get('data')
     if (!data) {
-      window.location.href = '/gacha'
+      console.error("No data parameter found in URL");
+      toast.error("ガチャ結果のデータが見つかりません");
+      // リダイレクトを遅延させて、エラーメッセージを表示する時間を確保
+      setTimeout(() => {
+        window.location.href = '/gacha';
+      }, 2000);
       return
     }
 
     console.log("Raw data from URL:", data);
+    console.log("Data length:", data.length);
 
     // Start loading animation
     setIsLoading(true)
     setShowResults(false)
 
     try {
-      // Parse the data first
-      const parsedData: PullResult = JSON.parse(decodeURIComponent(data))
-      console.log("Parsed data:", parsedData);
+      // データをデコードしてパース
+      let decodedData;
+      try {
+        decodedData = decodeURIComponent(data);
+        console.log("Decoded data length:", decodedData.length);
+      } catch (decodeError) {
+        console.error("Error decoding data:", decodeError);
+        toast.error("データのデコードに失敗しました");
+        setTimeout(() => {
+          window.location.href = '/gacha';
+        }, 2000);
+        return;
+      }
+
+      // Parse the data
+      let parsedData: PullResult;
+      try {
+        parsedData = JSON.parse(decodedData);
+        console.log("Parsed data:", parsedData);
+      } catch (parseError) {
+        console.error("Error parsing data:", parseError);
+        toast.error("データの解析に失敗しました");
+        setTimeout(() => {
+          window.location.href = '/gacha';
+        }, 2000);
+        return;
+      }
       
       if (!parsedData.items || !Array.isArray(parsedData.items) || parsedData.items.length === 0) {
         console.error("No items found in parsed data");
         toast.error("データの読み込みに失敗しました");
-        window.location.href = '/gacha';
+        setTimeout(() => {
+          window.location.href = '/gacha';
+        }, 2000);
         return;
       }
 
       // Then use the parsed data to fetch gacha details
-      dispatch(fetchGachaById(parsedData.gachaId))
+      console.log("Fetching gacha details for ID:", parsedData.gachaId);
+      (dispatch(fetchGachaById(parsedData.gachaId)) as any)
         .then(() => {
           // Process pull results
           const itemCounts = parsedData.items.reduce((acc: { [key: string]: UniqueGachaResult }, item: GachaResult) => {
@@ -175,12 +208,16 @@ export default function GachaResultClient() {
         .catch((error) => {
           console.error('Failed to fetch gacha details:', error)
           toast.error("ガチャ情報の取得に失敗しました");
-          window.location.href = '/gacha'
+          setTimeout(() => {
+            window.location.href = '/gacha';
+          }, 2000);
         });
     } catch (error) {
       console.error("Error parsing data:", error);
       toast.error("データの解析に失敗しました");
-      window.location.href = '/gacha';
+      setTimeout(() => {
+        window.location.href = '/gacha';
+      }, 2000);
     }
 
   }, [searchParams, dispatch])
