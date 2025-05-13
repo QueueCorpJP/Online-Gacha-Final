@@ -171,6 +171,7 @@ export default function GachaResultClient() {
 
           console.log("Grouped items by rarity:", grouped);
 
+          // 先にステート更新してから動画再生
           setUniqueResults(uniqueItems);
           setGroupedResults(grouped);
 
@@ -182,7 +183,7 @@ export default function GachaResultClient() {
               })
               .catch(err => {
                 console.error("Error playing video:", err);
-                // If video fails to play, still show results
+                // 動画のロードに失敗しても結果表示に進む
                 setIsLoading(false);
                 setTimeout(() => {
                   setShowResults(true);
@@ -208,6 +209,46 @@ export default function GachaResultClient() {
         .catch((error) => {
           console.error('Failed to fetch gacha details:', error)
           toast.error("ガチャ情報の取得に失敗しました");
+          
+          // ガチャ情報の取得に失敗しても、結果表示を試みる
+          if (parsedData && parsedData.items && parsedData.items.length > 0) {
+            try {
+              // Process pull results without gacha details
+              const itemCounts = parsedData.items.reduce((acc: { [key: string]: UniqueGachaResult }, item: GachaResult) => {
+                if (!acc[item.id]) {
+                  acc[item.id] = { ...item, count: 1 };
+                } else {
+                  acc[item.id].count++;
+                }
+                return acc;
+              }, {});
+
+              const uniqueItems = Object.values(itemCounts);
+              if (uniqueItems.length > 0) {
+                setUniqueResults(uniqueItems);
+                
+                const grouped = uniqueItems.reduce((acc: GroupedResults, item: UniqueGachaResult) => {
+                  const rarity = item.rarity.toLowerCase();
+                  if (!acc[rarity]) {
+                    acc[rarity] = [];
+                  }
+                  acc[rarity].push(item);
+                  return acc;
+                }, {});
+                
+                setGroupedResults(grouped);
+                setIsLoading(false);
+                setTimeout(() => {
+                  setShowResults(true);
+                }, 500);
+                return;
+              }
+            } catch (processError) {
+              console.error('Error processing items without gacha details:', processError);
+            }
+          }
+          
+          // 処理に失敗した場合のみリダイレクト
           setTimeout(() => {
             window.location.href = '/gacha';
           }, 2000);
@@ -272,6 +313,7 @@ export default function GachaResultClient() {
           preload="auto"
           onError={(e) => {
             console.error("Video loading error:", e);
+            // 動画のロードに失敗しても結果表示に進む
             setIsLoading(false);
             setTimeout(() => {
               setShowResults(true);
@@ -388,7 +430,7 @@ export default function GachaResultClient() {
         <Link href={`/gacha/${gacha?.id}`} className="w-full sm:w-auto">
           <Button variant="outline" className="w-full">
             <ChevronLeft className="mr-2 h-4 w-4" />
-            {t("gacha.back")}
+            ガチャに戻る
           </Button>
         </Link>
         <div className="grid grid-cols-2 gap-4 w-full">
@@ -458,6 +500,9 @@ function getHighestRarity(items: GachaResult[]): string {
 }
 
 function getVideoByRarity(items: GachaResult[]): string {
+  if (!items || items.length === 0) {
+    return 'D'; // デフォルト値として最低レアリティを返す
+  }
   const highestRarity = getHighestRarity(items);
   return highestRarity.toUpperCase();
 }
