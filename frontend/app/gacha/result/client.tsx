@@ -355,10 +355,7 @@ export default function GachaResultClient() {
             className="bg-[#7C3AED] hover:bg-[#6D28D9]"
           >
             <Coins className="mr-2 h-4 w-4" />
-            <div className="flex flex-col items-center">
-              <p className="text-lg font-bold">¥{gacha?.price?.toLocaleString()}</p>
-              <p className="text-xs">{t("gacha.result.oneDraw")}</p>
-            </div>
+            <p className="text-lg font-bold">¥{gacha?.price?.toLocaleString()}</p>
           </Button>
           <Button 
             onClick={() => handleDraw(10)}
@@ -366,10 +363,7 @@ export default function GachaResultClient() {
             className="bg-[#7C3AED] hover:bg-[#6D28D9]"
           >
             <RotateCcw className="mr-2 h-4 w-4" />
-            <div className="flex flex-col items-center">
-              <p className="text-lg font-bold">¥{(gacha?.price * 10)?.toLocaleString()}</p>
-              <p className="text-xs">{t("gacha.result.tenDraws")}</p>
-            </div>
+            <p className="text-lg font-bold">¥{(gacha?.price * 10)?.toLocaleString()}</p>
           </Button>
         </div>
       </div>
@@ -430,4 +424,4 @@ const styles = {
   '.animate-fadeIn': {
     animation: 'fadeIn 0.5s ease-in forwards',
   },
-}
+}s
