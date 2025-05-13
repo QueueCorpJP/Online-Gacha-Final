@@ -570,12 +570,12 @@ export default function GachaResultClient() {
 
   // Action buttons
   const renderActionButtons = () => (
-    <div className="w-full max-w-3xl mt-8 flex flex-col sm:flex-row gap-4 justify-center">
-      <div className="grid grid-cols-2 gap-4 w-full">
+    <div className="w-full max-w-3xl mt-8 flex justify-center">
+      <div className="flex gap-4 w-full max-w-md">
         <Button 
           onClick={(e) => handleDraw(e, 1)}
           disabled={isDrawing || !hasStock}
-          className="bg-[#7C3AED] hover:bg-[#6D28D9] flex items-center justify-center"
+          className="bg-[#7C3AED] hover:bg-[#6D28D9] flex items-center justify-center flex-1"
         >
           <Coins className="mr-2 h-4 w-4" />
           <p className="text-lg font-bold">
@@ -598,7 +598,7 @@ export default function GachaResultClient() {
         <Button 
           onClick={(e) => handleDraw(e, 10)}
           disabled={isDrawing || !hasStock}
-          className="bg-[#7C3AED] hover:bg-[#6D28D9] flex items-center justify-center"
+          className="bg-[#7C3AED] hover:bg-[#6D28D9] flex items-center justify-center flex-1"
         >
           <RotateCcw className="mr-2 h-4 w-4" />
           <p className="text-lg font-bold">
