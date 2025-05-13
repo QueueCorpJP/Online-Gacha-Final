@@ -63,24 +63,45 @@ export default function GachaResultClient() {
   const [showResults, setShowResults] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
   const [isDrawing, setIsDrawing] = useState(false)
+  const redirectingRef = useRef(false)
 
   // 言語に応じたアイテム名を取得する関数
   const getLocalizedName = (item: GachaResult): string => {
-    if (item.translations && item.translations[language]?.name) {
-      return item.translations[language].name;
+    if (item.translations && item.translations[language as keyof typeof item.translations]?.name) {
+      return item.translations[language as keyof typeof item.translations].name;
     }
     return item.name;
   }
+
+  // 安全にリダイレクトする関数
+  const safeRedirect = (url: string, delay: number = 2000) => {
+    if (redirectingRef.current) {
+      console.log("リダイレクトはすでに進行中です");
+      return;
+    }
+    
+    redirectingRef.current = true;
+    console.log(`${delay}ms後に${url}へリダイレクトします`);
+    
+    setTimeout(() => {
+      window.location.href = url;
+    }, delay);
+  }
+
+  useEffect(() => {
+    // コンポーネントがアンマウントされる時にリダイレクトフラグをリセット
+    return () => {
+      redirectingRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     const data = searchParams.get('data')
     if (!data) {
       console.error("No data parameter found in URL");
       toast.error("ガチャ結果のデータが見つかりません");
-      // リダイレクトを遅延させて、エラーメッセージを表示する時間を確保
-      setTimeout(() => {
-        window.location.href = '/gacha';
-      }, 2000);
+      // 安全なリダイレクト関数を使用
+      safeRedirect('/gacha');
       return
     }
 
@@ -100,9 +121,7 @@ export default function GachaResultClient() {
       } catch (decodeError) {
         console.error("Error decoding data:", decodeError);
         toast.error("データのデコードに失敗しました");
-        setTimeout(() => {
-          window.location.href = '/gacha';
-        }, 2000);
+        safeRedirect('/gacha');
         return;
       }
 
@@ -114,18 +133,14 @@ export default function GachaResultClient() {
       } catch (parseError) {
         console.error("Error parsing data:", parseError);
         toast.error("データの解析に失敗しました");
-        setTimeout(() => {
-          window.location.href = '/gacha';
-        }, 2000);
+        safeRedirect('/gacha');
         return;
       }
       
       if (!parsedData.items || !Array.isArray(parsedData.items) || parsedData.items.length === 0) {
         console.error("No items found in parsed data");
         toast.error("データの読み込みに失敗しました");
-        setTimeout(() => {
-          window.location.href = '/gacha';
-        }, 2000);
+        safeRedirect('/gacha');
         return;
       }
 
@@ -177,25 +192,33 @@ export default function GachaResultClient() {
 
           // Play video and handle its completion
           if (videoRef.current) {
-            videoRef.current.play()
-              .then(() => {
-                console.log("Video started playing");
-              })
-              .catch(err => {
-                console.error("Error playing video:", err);
-                // 動画のロードに失敗しても結果表示に進む
+            // 動画の読み込み状態をチェック
+            if (videoRef.current.readyState >= 2) { // HAVE_CURRENT_DATA以上
+              // 動画がすでに十分に読み込まれている場合は再生開始
+              playVideo();
+            } else {
+              // 動画がまだ十分に読み込まれていない場合はイベントリスナーを設定
+              videoRef.current.addEventListener('loadeddata', playVideo);
+              
+              // 一定時間後に動画が読み込まれなかった場合のフォールバック
+              const timeoutId = setTimeout(() => {
+                console.log("Video loading timeout - showing results without video");
+                if (videoRef.current) {
+                  videoRef.current.removeEventListener('loadeddata', playVideo);
+                }
                 setIsLoading(false);
                 setTimeout(() => {
                   setShowResults(true);
                 }, 500);
-              });
-            
-            videoRef.current.onended = () => {
-              console.log("Video playback ended");
-              setIsLoading(false)
-              setTimeout(() => {
-                setShowResults(true)
-              }, 500)
+              }, 5000); // 5秒後にタイムアウト
+              
+              // クリーンアップ関数
+              return () => {
+                clearTimeout(timeoutId);
+                if (videoRef.current) {
+                  videoRef.current.removeEventListener('loadeddata', playVideo);
+                }
+              };
             }
           } else {
             console.error("Video reference is null");
@@ -205,8 +228,34 @@ export default function GachaResultClient() {
               setShowResults(true);
             }, 500);
           }
+          
+          // 動画再生関数
+          function playVideo() {
+            if (!videoRef.current) return;
+            
+            videoRef.current.play()
+              .then(() => {
+                console.log("Video started playing");
+              })
+              .catch(err => {
+                console.error("Error playing video:", err);
+                // 動画の再生に失敗しても結果表示に進む
+                setIsLoading(false);
+                setTimeout(() => {
+                  setShowResults(true);
+                }, 500);
+              });
+            
+            videoRef.current.onended = () => {
+              console.log("Video playback ended");
+              setIsLoading(false);
+              setTimeout(() => {
+                setShowResults(true);
+              }, 500);
+            };
+          }
         })
-        .catch((error) => {
+        .catch((error: any) => {
           console.error('Failed to fetch gacha details:', error)
           toast.error("ガチャ情報の取得に失敗しました");
           
@@ -249,16 +298,12 @@ export default function GachaResultClient() {
           }
           
           // 処理に失敗した場合のみリダイレクト
-          setTimeout(() => {
-            window.location.href = '/gacha';
-          }, 2000);
+          safeRedirect('/gacha');
         });
     } catch (error) {
       console.error("Error parsing data:", error);
       toast.error("データの解析に失敗しました");
-      setTimeout(() => {
-        window.location.href = '/gacha';
-      }, 2000);
+      safeRedirect('/gacha');
     }
 
   }, [searchParams, dispatch])
@@ -308,11 +353,22 @@ export default function GachaResultClient() {
           ref={videoRef}
           className="w-full h-full object-cover"
           playsInline
-          autoPlay={true}
+          autoPlay={false}
           muted={true}
           preload="auto"
+          onLoadedData={() => {
+            console.log("Video loaded data event fired");
+          }}
+          onCanPlay={() => {
+            console.log("Video can play event fired");
+          }}
           onError={(e) => {
             console.error("Video loading error:", e);
+            // エラーの詳細をログに出力
+            if (e.currentTarget && e.currentTarget.error) {
+              console.error("Error code:", e.currentTarget.error.code);
+              console.error("Error message:", e.currentTarget.error.message);
+            }
             // 動画のロードに失敗しても結果表示に進む
             setIsLoading(false);
             setTimeout(() => {
@@ -321,8 +377,12 @@ export default function GachaResultClient() {
           }}
         >
           <source src={`/movies/${getVideoByRarity(uniqueResults)}.webm`} type="video/webm" />
+          <source src={`/movies/${getVideoByRarity(uniqueResults)}.mp4`} type="video/mp4" />
           Your browser does not support the video tag.
         </video>
+        <div className="absolute bottom-4 text-white text-sm">
+          <p>動画読み込み中...</p>
+        </div>
       </div>
     )
   }
