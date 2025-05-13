@@ -74,13 +74,13 @@ export default function GachaResultClient() {
     return item.name;
   }
 
-  // Clear session storage when leaving the page
+  // Clear session storage only for view status when leaving the page
   useEffect(() => {
     // This will only run client-side
     const handleBeforeUnload = () => {
       // Only clear specific keys related to viewing status, not the actual result data
       Object.keys(sessionStorage).forEach(key => {
-        if (key.startsWith('gacha_result_') && key.endsWith('_viewed')) {
+        if (key.endsWith('_viewed')) {
           sessionStorage.removeItem(key);
         }
       });
@@ -93,37 +93,39 @@ export default function GachaResultClient() {
   }, []);
 
   useEffect(() => {
-    const data = searchParams.get('data')
-    if (!data) {
-      window.location.href = '/gacha'
-      return
-    }
+    // ページ表示処理は一度だけ行うフラグ
+    let isProcessed = false;
 
-    try {
-      // Parse the data first
-      const parsedData: PullResult = JSON.parse(decodeURIComponent(data))
+    const processPageData = () => {
+      if (isProcessed) return; // 既に処理済みなら実行しない
       
-      // Check if already viewed - use a specific key for viewing status
-      const resultId = `gacha_result_${parsedData.pullTime}`
-      const viewStatusKey = `${resultId}_viewed`
-      const isAlreadyViewed = sessionStorage.getItem(viewStatusKey) === 'true'
-      
-      // Start loading animation (skip if video already played)
-      setIsLoading(!isAlreadyViewed)
-      setShowResults(isAlreadyViewed)
+      const data = searchParams.get('data')
+      if (!data) {
+        window.location.href = '/gacha'
+        return
+      }
 
-      // Always fetch gacha info (needed for buttons)
-      dispatch(fetchGachaById(parsedData.gachaId))
+      try {
+        // Parse the data first
+        const parsedData: PullResult = JSON.parse(decodeURIComponent(data))
+        
+        // Check if already viewed - use a specific key for viewing status
+        const resultId = `gacha_result_${parsedData.pullTime}`
+        const viewStatusKey = `${resultId}_viewed`
+        const isAlreadyViewed = sessionStorage.getItem(viewStatusKey) === 'true'
+        
+        // Always fetch gacha info (needed for buttons)
+        dispatch(fetchGachaById(parsedData.gachaId))
 
-      // Process item data
-      const processItems = () => {
         // Make sure we actually have items
         if (!parsedData.items || !Array.isArray(parsedData.items) || parsedData.items.length === 0) {
           console.error('No valid items in pull results');
           toast.error(t("gacha.error.result.title"), {
             description: t("gacha.error.result.description")
           });
-          return { uniqueItems: [], grouped: {} };
+          setIsLoading(false);
+          setShowResults(true);
+          return;
         }
 
         // Process pull results
@@ -153,65 +155,74 @@ export default function GachaResultClient() {
 
         console.log('Processed items:', uniqueItems);
 
-        // Save result data to session storage (separate from view status)
-        const resultsToSave = {
-          uniqueItems,
-          grouped
-        }
-        sessionStorage.setItem(`${resultId}_data`, JSON.stringify(resultsToSave))
+        // アイテムの状態を設定
+        setUniqueResults(uniqueItems);
+        setGroupedResults(grouped);
 
-        // Determine highest rarity for video
+        // 最高レアリティを判断しビデオソースを設定
         const highestRarity = getHighestRarity(parsedData.items);
         setVideoSrc(`/movies/${highestRarity}.webm`);
 
-        return { uniqueItems, grouped };
-      }
-
-      // Process items and use the result
-      const { uniqueItems, grouped } = processItems();
-      setUniqueResults(uniqueItems);
-      setGroupedResults(grouped);
-
-      // If already viewed, show results immediately
-      if (isAlreadyViewed) {
-        setIsLoading(false);
-        setShowResults(true);
-        return;
-      }
-
-      // First time viewing, play video
-      if (videoRef.current) {
-        videoRef.current.oncanplay = () => {
-          videoRef.current?.play().catch(err => {
-            console.error('Failed to play video:', err);
-            // Fallback in case video can't play
-            setIsLoading(false);
-            setShowResults(true);
-            sessionStorage.setItem(viewStatusKey, 'true');
-          });
-        };
-        
-        videoRef.current.onended = () => {
-          // Mark as viewed
-          sessionStorage.setItem(viewStatusKey, 'true');
+        // 既に閲覧済みの場合は結果をすぐに表示
+        if (isAlreadyViewed) {
           setIsLoading(false);
+          setShowResults(true);
+        } else {
+          // 初回閲覧時はビデオを表示
+          setIsLoading(true);
+          setShowResults(false);
+          
+          // ビデオ要素が準備できたらビデオ再生処理を行う
           setTimeout(() => {
-            setShowResults(true);
-          }, 500);
-        };
+            if (videoRef.current) {
+              videoRef.current.oncanplay = () => {
+                videoRef.current?.play().catch(err => {
+                  console.error('Failed to play video:', err);
+                  // ビデオ再生失敗時のフォールバック
+                  setIsLoading(false);
+                  setShowResults(true);
+                  sessionStorage.setItem(viewStatusKey, 'true');
+                });
+              };
+              
+              videoRef.current.onended = () => {
+                // 視聴済みとしてマークする
+                sessionStorage.setItem(viewStatusKey, 'true');
+                setIsLoading(false);
+                setTimeout(() => {
+                  setShowResults(true);
+                }, 500);
+              };
+            } else {
+              // ビデオ要素がない場合はフォールバック
+              setIsLoading(false);
+              setShowResults(true);
+            }
+          }, 100);
+        }
+        
+        // 処理済みフラグを立てる
+        isProcessed = true;
+        
+      } catch (error) {
+        console.error('Failed to process gacha results:', error);
+        toast.error(t("gacha.error.result.title"), {
+          description: t("gacha.error.result.description")
+        });
+        setTimeout(() => {
+          window.location.href = '/gacha';
+        }, 2000);
       }
-      
-    } catch (error) {
-      console.error('Failed to process gacha results:', error);
-      toast.error(t("gacha.error.result.title"), {
-        description: t("gacha.error.result.description")
-      });
-      setTimeout(() => {
-        window.location.href = '/gacha';
-      }, 2000);
-    }
+    };
 
-  }, [searchParams, dispatch, t]);
+    // 処理を実行
+    processPageData();
+
+    // クリーンアップ関数
+    return () => {
+      isProcessed = true; // コンポーネントがアンマウントされた場合、処理済みとする
+    };
+  }, []);
 
   const handleNext = () => {
     setCurrentIndex((prev) => Math.min(prev + 1, uniqueResults.length - 1))
@@ -254,17 +265,18 @@ export default function GachaResultClient() {
   if (isLoading) {
     return (
       <div className="fixed inset-0 bg-black flex items-center justify-center">
-        <video 
-          ref={videoRef}
-          className="w-full h-full object-cover"
-          playsInline
-          autoPlay={false} // Changed to false to avoid race conditions
-          muted={true}
-          preload="auto"
-        >
-          <source src={videoSrc} type="video/webm" />
-          Your browser does not support the video tag.
-        </video>
+        {videoSrc && (
+          <video 
+            ref={videoRef}
+            className="w-full h-full object-cover"
+            playsInline
+            muted={true}
+            preload="auto"
+          >
+            <source src={videoSrc} type="video/webm" />
+            Your browser does not support the video tag.
+          </video>
+        )}
       </div>
     )
   }
