@@ -203,14 +203,31 @@ export default function GachaResultClient() {
   };
 
   // ガチャを再度引く処理
-  const handleRetryGacha = async () => {
+  const handleRetryGacha = async (e: React.MouseEvent) => {
     try {
       setIsDrawing(true);
       
       // ガチャIDが存在する場合のみ実行
       if (!gacha?.id) {
+        e.preventDefault();
         toast.error("ガチャ情報が見つかりません");
         return;
+      }
+      
+      // 在庫確認
+      try {
+        const stockCheck = await api.get(`/admin/gacha/${gacha.id}/stock-check`).catch(() => null);
+        
+        if (stockCheck?.data?.availableItems === 0 || stockCheck?.data?.isEmpty) {
+          e.preventDefault();
+          toast.error("ガチャアイテムの在庫がありません");
+          setHasStock(false);
+          setIsDrawing(false);
+          return;
+        }
+      } catch (stockError) {
+        // 在庫確認APIがない場合は無視して続行
+        console.log("Stock check API not available, continuing...");
       }
       
       const response = await api.post(`/admin/gacha/${gacha.id}/pull`, {
@@ -229,11 +246,22 @@ export default function GachaResultClient() {
         const resultUrl = `/gacha/result?data=${encodeURIComponent(JSON.stringify(resultData))}`;
         safeRedirect(resultUrl);
       } else {
-        toast.error("ガチャの結果が空です。もう一度お試しください。");
+        e.preventDefault();
+        toast.error("ガチャの結果が空です。在庫がない可能性があります。");
+        setHasStock(false);
       }
     } catch (error: any) {
       console.error("Error retrying gacha:", error);
-      toast.error("ガチャの実行に失敗しました");
+      if (error.response?.data?.code === 'OUT_OF_STOCK' || 
+          error.response?.status === 409 || 
+          error.response?.data?.message?.includes('stock') || 
+          error.response?.data?.message?.includes('在庫')) {
+        e.preventDefault();
+        toast.error("ガチャアイテムの在庫がありません");
+        setHasStock(false);
+      } else {
+        toast.error("ガチャの実行に失敗しました");
+      }
     } finally {
       setIsDrawing(false);
     }
@@ -398,8 +426,9 @@ export default function GachaResultClient() {
     setCurrentIndex((prev) => Math.min(prev + 1, uniqueResults.length - 1))
   }
 
-  const handleDraw = async (times: number) => {
+  const handleDraw = async (e: React.MouseEvent, times: number) => {
     if (!hasStock) {
+      e.preventDefault();
       toast.error("ガチャアイテムの在庫がありません");
       return;
     }
@@ -414,6 +443,7 @@ export default function GachaResultClient() {
         
         // 在庫情報がある場合は確認
         if (stockCheck?.data?.availableItems === 0 || stockCheck?.data?.isEmpty) {
+          e.preventDefault();
           toast.error("ガチャアイテムの在庫がありません");
           setHasStock(false);
           setIsDrawing(false);
@@ -447,6 +477,7 @@ export default function GachaResultClient() {
         }
       } else {
         // アイテムが空の場合はトーストだけ表示
+        e.preventDefault();
         toast.error("ガチャアイテムの在庫がありません");
         setHasStock(false);
         // 現在のページにとどまる（エラー画面に遷移しない）
@@ -457,6 +488,7 @@ export default function GachaResultClient() {
           error.response?.status === 409 || 
           error.response?.data?.message?.includes('stock') || 
           error.response?.data?.message?.includes('在庫')) {
+        e.preventDefault();
         toast.error("ガチャアイテムの在庫がありません");
         setHasStock(false);
       } else {
@@ -539,15 +571,9 @@ export default function GachaResultClient() {
   // Action buttons
   const renderActionButtons = () => (
     <div className="w-full max-w-3xl mt-8 flex flex-col sm:flex-row gap-4 justify-center">
-      <Link href={`/gacha/${gacha?.id}`} className="w-full sm:w-auto">
-        <Button variant="outline" className="w-full">
-          <ChevronLeft className="mr-2 h-4 w-4" />
-          ガチャに戻る
-        </Button>
-      </Link>
       <div className="grid grid-cols-2 gap-4 w-full">
         <Button 
-          onClick={() => handleDraw(1)}
+          onClick={(e) => handleDraw(e, 1)}
           disabled={isDrawing || !hasStock}
           className="bg-[#7C3AED] hover:bg-[#6D28D9]"
         >
@@ -560,7 +586,7 @@ export default function GachaResultClient() {
           )}
         </Button>
         <Button 
-          onClick={() => handleDraw(10)}
+          onClick={(e) => handleDraw(e, 10)}
           disabled={isDrawing || !hasStock}
           className="bg-[#7C3AED] hover:bg-[#6D28D9]"
         >

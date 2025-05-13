@@ -7,6 +7,7 @@ import { api } from "@/lib/axios"
 import { useState, useEffect, useRef } from "react"
 import { toast } from "sonner"
 import { fetchProfile } from "@/redux/features/profileSlice"
+import { AlertCircle } from "lucide-react"
 
 interface PurchaseOption {
   type: string
@@ -44,16 +45,48 @@ export function GachaPurchaseOptions({ options, gachaId }: GachaPurchaseOptionsP
   const [isProcessing, setIsProcessing] = useState(false)
   const userBalance = useSelector((state: RootState) => state.profile.data?.coinBalance || 0);
   const isRedirecting = useRef(false); // リダイレクト状態を管理する参照
+  const [hasStock, setHasStock] = useState(true); // 在庫状態を管理
 
   useEffect(() => {
     dispatch(fetchProfile())
+    // コンポーネントマウント時に在庫確認
+    checkStock();
   }, [dispatch])
 
   useEffect(() => {
     console.log(userBalance);
   }, [userBalance])
 
-  const handlePurchase = async (option: PurchaseOption) => {
+  // 在庫確認関数
+  const checkStock = async () => {
+    if (!gachaId) return;
+    
+    try {
+      const response = await api.get(`/admin/gacha/${gachaId}/stock-check`).catch(() => null);
+      
+      if (response?.data) {
+        const hasAvailableItems = !(response.data.availableItems === 0 || response.data.isEmpty);
+        setHasStock(hasAvailableItems);
+        
+        if (!hasAvailableItems) {
+          console.log("ガチャアイテムの在庫がありません");
+        }
+      }
+    } catch (error) {
+      // APIがサポートされていない場合は在庫ありと仮定
+      console.log("在庫確認APIがサポートされていません");
+      setHasStock(true);
+    }
+  };
+
+  const handlePurchase = async (e: React.MouseEvent, option: PurchaseOption) => {
+    // 在庫がない場合は処理を中断
+    if (!hasStock) {
+      e.preventDefault();
+      toast.error("ガチャアイテムの在庫がありません");
+      return;
+    }
+    
     try {
       setIsProcessing(true)
 
@@ -70,6 +103,24 @@ export function GachaPurchaseOptions({ options, gachaId }: GachaPurchaseOptionsP
         }
       }
 
+      // ガチャアイテムの在庫確認（APIがサポートしている場合）
+      try {
+        // ガチャの在庫情報を取得（オプション）
+        const stockCheck = await api.get(`/admin/gacha/${gachaId}/stock-check`).catch(() => null);
+        
+        // 在庫情報がある場合は確認
+        if (stockCheck?.data?.availableItems === 0 || stockCheck?.data?.isEmpty) {
+          e.preventDefault();
+          toast.error("ガチャアイテムの在庫がありません");
+          setHasStock(false);
+          setIsProcessing(false);
+          return;
+        }
+      } catch (stockError) {
+        // 在庫確認APIがない場合は無視して続行
+        console.log("Stock check API not available, continuing...");
+      }
+
       // Make API call to purchase and pull gacha
       const response = await api.post(`/admin/gacha/${gachaId}/pull`, {
         times: option.times || 1,
@@ -78,6 +129,14 @@ export function GachaPurchaseOptions({ options, gachaId }: GachaPurchaseOptionsP
 
       // Show results
       if (response.data.items) {
+        // アイテムが空の場合は在庫切れと判断
+        if (!Array.isArray(response.data.items) || response.data.items.length === 0) {
+          e.preventDefault();
+          toast.error("ガチャアイテムの在庫がありません");
+          setHasStock(false);
+          return;
+        }
+        
         // Store the result data and redirect
         const resultData = {
           items: response.data.items,
@@ -107,9 +166,19 @@ export function GachaPurchaseOptions({ options, gachaId }: GachaPurchaseOptionsP
         }
       }
     } catch (error: any) {
-      toast.error(t("gacha.error.pull.title"), {
-        description: error.response?.data?.message || t("gacha.error.pull.description")
-      })
+      // エラーメッセージの詳細化
+      if (error.response?.data?.code === 'OUT_OF_STOCK' || 
+          error.response?.status === 409 || 
+          error.response?.data?.message?.includes('stock') || 
+          error.response?.data?.message?.includes('在庫')) {
+        e.preventDefault();
+        toast.error("ガチャアイテムの在庫がありません");
+        setHasStock(false);
+      } else {
+        toast.error(t("gacha.error.pull.title"), {
+          description: error.response?.data?.message || t("gacha.error.pull.description")
+        });
+      }
     } finally {
       setIsProcessing(false)
     }
@@ -131,8 +200,8 @@ export function GachaPurchaseOptions({ options, gachaId }: GachaPurchaseOptionsP
             className={
               option.isFree ? "bg-[#7C3AED] hover:bg-[#6D28D9]" : "text-[#7C3AED] hover:bg-[#7C3AED] hover:text-white"
             }
-            onClick={() => handlePurchase(option)}
-            disabled={isProcessing}
+            onClick={(e) => handlePurchase(e, option)}
+            disabled={isProcessing || !hasStock}
           >
             {isProcessing 
               ? t("payment.details.processing")
@@ -140,6 +209,11 @@ export function GachaPurchaseOptions({ options, gachaId }: GachaPurchaseOptionsP
                 ? t("gacha.purchase.button.pull") 
                 : t("gacha.purchase.button.buy")
             }
+            {!hasStock && (
+              <span className="absolute top-0 right-0 -mt-1 -mr-1">
+                <AlertCircle className="h-4 w-4 text-red-500" />
+              </span>
+            )}
           </Button>
         </div>
       ))}
