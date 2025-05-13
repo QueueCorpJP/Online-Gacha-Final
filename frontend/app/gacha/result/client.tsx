@@ -16,6 +16,7 @@ import { toast } from 'sonner'
 import { api } from '@/lib/axios'
 
 type RarityKey = 'D' | 'C' | 'B' | 'A' | 'S';
+type Language = 'ja' | 'en' | 'zh';
 
 const RARITY_ORDER: Record<RarityKey, number> = {
   'D': 0,
@@ -67,8 +68,8 @@ export default function GachaResultClient() {
 
   // 言語に応じたアイテム名を取得する関数
   const getLocalizedName = (item: GachaResult): string => {
-    if (item.translations && item.translations[language]?.name) {
-      return item.translations[language].name;
+    if (item.translations && item.translations[language as keyof typeof item.translations]?.name) {
+      return item.translations[language as keyof typeof item.translations].name;
     }
     return item.name;
   }
@@ -89,7 +90,7 @@ export default function GachaResultClient() {
     // Parse the data first
     const parsedData: PullResult = JSON.parse(decodeURIComponent(data))
  // Then use the parsed data to fetch gacha details
- dispatch(fetchGachaById(parsedData.gachaId)).unwrap()
+ dispatch(fetchGachaById(parsedData.gachaId))
  .then(() => {
    // Process pull results
    const itemCounts = parsedData.items.reduce((acc: { [key: string]: UniqueGachaResult }, item: GachaResult) => {
@@ -105,9 +106,11 @@ export default function GachaResultClient() {
    }, {});
 
    const uniqueItems = Object.values(itemCounts).sort((a, b) => {
-     const rarityA = a.rarity.toLowerCase();
-     const rarityB = b.rarity.toLowerCase();
-     return (RARITY_ORDER[rarityA as RarityKey] || 999) - (RARITY_ORDER[rarityB as RarityKey] || 999);
+     // レアリティの順序を修正（Sが最も高く、Dが最も低い）
+     const rarityA = a.rarity.toUpperCase();
+     const rarityB = b.rarity.toUpperCase();
+     // RARITY_ORDERは値が大きいほど高レアリティなので、降順でソート
+     return (RARITY_ORDER[rarityB as RarityKey] || 0) - (RARITY_ORDER[rarityA as RarityKey] || 0);
    });
 
    const grouped = uniqueItems.reduce((acc: GroupedResults, item: UniqueGachaResult) => {
@@ -119,25 +122,90 @@ export default function GachaResultClient() {
      return acc;
    }, {});
 
-   console.log(uniqueItems);
+   console.log("Processed items:", uniqueItems);
 
+   // 確実にステートを更新
    setUniqueResults(uniqueItems);
    setGroupedResults(grouped);
-// Play video and handle its completion
-if (videoRef.current) {
-  videoRef.current.play()
-  videoRef.current.onended = () => {
-    setIsLoading(false)
-            setTimeout(() => {
-              setShowResults(true)
-            }, 500)
-          }
-        }
-      })
-      .catch((error) => {
-        console.error('Failed to fetch gacha details:', error)
-        window.location.href = '/gacha'
-      });
+
+   // Play video and handle its completion
+   if (videoRef.current) {
+     try {
+       videoRef.current.play()
+       videoRef.current.onended = () => {
+         setIsLoading(false)
+         setTimeout(() => {
+           setShowResults(true)
+         }, 500)
+       }
+       
+       // 動画再生エラー時のフォールバック
+       videoRef.current.onerror = () => {
+         console.error("Video playback error");
+         setIsLoading(false);
+         setTimeout(() => {
+           setShowResults(true)
+         }, 500);
+       }
+     } catch (playError) {
+       console.error("Error playing video:", playError);
+       setIsLoading(false);
+       setShowResults(true);
+     }
+   } else {
+     // ビデオ要素がない場合は直接結果を表示
+     console.warn("Video element not found, showing results directly");
+     setIsLoading(false);
+     setShowResults(true);
+   }
+ })
+ .catch((error) => {
+   console.error('Failed to fetch gacha details:', error);
+   
+   // ガチャ情報の取得に失敗しても、結果表示を試みる
+   try {
+     if (parsedData && parsedData.items && parsedData.items.length > 0) {
+       const itemCounts = parsedData.items.reduce((acc: { [key: string]: UniqueGachaResult }, item: GachaResult) => {
+         if (!acc[item.id]) {
+           acc[item.id] = { ...item, count: 1 };
+         } else {
+           acc[item.id].count++;
+         }
+         return acc;
+       }, {});
+
+       const uniqueItems = Object.values(itemCounts).sort((a, b) => {
+         const rarityA = a.rarity.toUpperCase();
+         const rarityB = b.rarity.toUpperCase();
+         return (RARITY_ORDER[rarityB as RarityKey] || 0) - (RARITY_ORDER[rarityA as RarityKey] || 0);
+       });
+
+       if (uniqueItems.length > 0) {
+         console.log("Showing results without gacha details:", uniqueItems);
+         
+         const grouped = uniqueItems.reduce((acc: GroupedResults, item: UniqueGachaResult) => {
+           const rarity = item.rarity.toLowerCase();
+           if (!acc[rarity]) {
+             acc[rarity] = [];
+           }
+           acc[rarity].push(item);
+           return acc;
+         }, {});
+         
+         setUniqueResults(uniqueItems);
+         setGroupedResults(grouped);
+         setIsLoading(false);
+         setShowResults(true);
+         return;
+       }
+     }
+   } catch (processError) {
+     console.error('Error processing items without gacha details:', processError);
+   }
+   
+   toast.error("ガチャ結果の表示に失敗しました");
+   window.location.href = '/gacha';
+ });
 
   }, [searchParams, dispatch])
 
