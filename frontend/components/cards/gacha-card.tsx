@@ -34,19 +34,12 @@ export function GachaCard({
   variant = "square",
   translations
 }: GachaCardProps) {
-  const { language } = useTranslations()
+  const { t, language } = useTranslations()
   
   // 言語設定に応じたタイトルを取得
   const localizedTitle = translations && language && translations[language as Language]?.name
     ? translations[language as Language].name
     : title;
-  
-  // 残り在庫の表示テキスト
-  const remainingText = (() => {
-    if (remaining === 0) return "在庫なし";
-    if (remaining === undefined) return "";
-    return `残り: ${remaining}個`;
-  })();
   
   // 価格の表示フォーマットを処理する関数
   const formatPrice = (value: number | string | undefined): string => {
@@ -93,7 +86,9 @@ export function GachaCard({
             </div>
           ) : (
             <span className="text-sm text-gray-500">
-              {remaining === 0 ? "在庫なし" : remaining ? `残り: ${remaining}個` : ""}
+              {remaining === 0 
+                ? t("gacha.card.out_of_stock") 
+                : remaining !== undefined ? t("gacha.card.remaining", { count: remaining }) : ""}
             </span>
           )}
           <span className="text-lg font-bold text-[#7C3AED]">

@@ -693,7 +693,8 @@ export const translations = {
                 remaining: "残り{stock}個"
             },
             card: {
-                remaining: "残り{count}個",
+                remaining: "残り: {count}個",
+                out_of_stock: "在庫なし",
                 pricePerTry: "1回 ¥{price}",
             },
             purchase: {
@@ -2048,7 +2049,8 @@ export const translations = {
                 remaining: "{stock} remaining"
             },
             card: {
-                remaining: "{count} remaining",
+                remaining: "Remaining: {count}",
+                out_of_stock: "Out of stock",
                 pricePerTry: "¥{price}/try",
             },
             purchase: {
@@ -3415,6 +3417,7 @@ export const translations = {
             },
             card: {
                 remaining: "剩余{count}个",
+                out_of_stock: "缺货",
                 pricePerTry: "¥{price}/次",
             },
             cards: {
