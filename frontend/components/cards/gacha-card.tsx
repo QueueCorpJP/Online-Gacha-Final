@@ -69,7 +69,7 @@ export function GachaCard({
       )}
     >
       {isNew && (
-        <div className="absolute right-2 top-2 rounded-full bg-[#7C3AED] px-3 py-1 text-xs font-medium text-white">
+        <div className="absolute right-2 top-2 rounded-full bg-[#7C3AED] px-3 py-1 text-xs font-medium text-white z-10">
           NEW
         </div>
       )}

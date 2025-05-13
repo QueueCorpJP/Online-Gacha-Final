@@ -82,13 +82,17 @@ export default function GachaResultClient() {
 
     console.log(data);
 
-    // Start loading animation
-    setIsLoading(true)
-    setShowResults(false)
-
     // Parse the data first
     const parsedData: PullResult = JSON.parse(decodeURIComponent(data))
     
+    // 既に表示済みかどうかをチェック
+    const resultId = `gacha_result_${parsedData.pullTime}`
+    const isAlreadyViewed = sessionStorage.getItem(resultId) === 'viewed'
+    
+    // Start loading animation (動画再生済みの場合はスキップ)
+    setIsLoading(!isAlreadyViewed)
+    setShowResults(isAlreadyViewed)
+
     // Then use the parsed data to fetch gacha details
     dispatch(fetchGachaById(parsedData.gachaId)).unwrap()
       .then(() => {
@@ -125,10 +129,19 @@ export default function GachaResultClient() {
         setUniqueResults(uniqueItems);
         setGroupedResults(grouped);
 
+        // 既に表示済みの場合は動画をスキップ
+        if (isAlreadyViewed) {
+          setIsLoading(false)
+          setShowResults(true)
+          return
+        }
+
         // Play video and handle its completion
         if (videoRef.current) {
           videoRef.current.play()
           videoRef.current.onended = () => {
+            // 表示済みとしてマーク
+            sessionStorage.setItem(resultId, 'viewed')
             setIsLoading(false)
             setTimeout(() => {
               setShowResults(true)
