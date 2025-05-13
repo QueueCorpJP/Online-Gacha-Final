@@ -16,7 +16,6 @@ import { toast } from 'sonner'
 import { api } from '@/lib/axios'
 
 type RarityKey = 'D' | 'C' | 'B' | 'A' | 'S';
-type Language = 'ja' | 'en' | 'zh';
 
 const RARITY_ORDER: Record<RarityKey, number> = {
   'D': 0,
@@ -33,7 +32,9 @@ interface GachaResult {
   rarity: string;
   probability: number;
   translations?: {
-    [key in Language]: { name: string; description: string };
+    ja: { name: string; description: string };
+    en: { name: string; description: string };
+    zh: { name: string; description: string };
   };
 }
 
@@ -63,248 +64,80 @@ export default function GachaResultClient() {
   const [showResults, setShowResults] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
   const [isDrawing, setIsDrawing] = useState(false)
-  const redirectingRef = useRef(false)
 
   // 言語に応じたアイテム名を取得する関数
   const getLocalizedName = (item: GachaResult): string => {
-    if (item.translations && item.translations[language as keyof typeof item.translations]?.name) {
-      return item.translations[language as keyof typeof item.translations].name;
+    if (item.translations && item.translations[language]?.name) {
+      return item.translations[language].name;
     }
     return item.name;
   }
 
-  // 安全にリダイレクトする関数
-  const safeRedirect = (url: string, delay: number = 2000) => {
-    if (redirectingRef.current) {
-      console.log("リダイレクトはすでに進行中です");
-      return;
-    }
-    
-    redirectingRef.current = true;
-    console.log(`${delay}ms後に${url}へリダイレクトします`);
-    
-    setTimeout(() => {
-      window.location.href = url;
-    }, delay);
-  }
-
-  useEffect(() => {
-    // コンポーネントがアンマウントされる時にリダイレクトフラグをリセット
-    return () => {
-      redirectingRef.current = false;
-    };
-  }, []);
-
   useEffect(() => {
     const data = searchParams.get('data')
     if (!data) {
-      console.error("No data parameter found in URL");
-      toast.error("ガチャ結果のデータが見つかりません");
-      // 安全なリダイレクト関数を使用
-      safeRedirect('/gacha');
+      window.location.href = '/gacha'
       return
     }
 
-    console.log("Raw data from URL:", data);
-    console.log("Data length:", data.length);
+    console.log(data);
 
     // Start loading animation
     setIsLoading(true)
     setShowResults(false)
 
-    try {
-      // データをデコードしてパース
-      let decodedData;
-      try {
-        decodedData = decodeURIComponent(data);
-        console.log("Decoded data length:", decodedData.length);
-      } catch (decodeError) {
-        console.error("Error decoding data:", decodeError);
-        toast.error("データのデコードに失敗しました");
-        safeRedirect('/gacha');
-        return;
-      }
+    // Parse the data first
+    const parsedData: PullResult = JSON.parse(decodeURIComponent(data))
+ // Then use the parsed data to fetch gacha details
+ dispatch(fetchGachaById(parsedData.gachaId)).unwrap()
+ .then(() => {
+   // Process pull results
+   const itemCounts = parsedData.items.reduce((acc: { [key: string]: UniqueGachaResult }, item: GachaResult) => {
+     if (!acc[item.id]) {
+       acc[item.id] = { ...item, count: 1 };
+     } else {
+       acc[item.id].count++;
+     }
 
-      // Parse the data
-      let parsedData: PullResult;
-      try {
-        parsedData = JSON.parse(decodedData);
-        console.log("Parsed data:", parsedData);
-      } catch (parseError) {
-        console.error("Error parsing data:", parseError);
-        toast.error("データの解析に失敗しました");
-        safeRedirect('/gacha');
-        return;
-      }
-      
-      if (!parsedData.items || !Array.isArray(parsedData.items) || parsedData.items.length === 0) {
-        console.error("No items found in parsed data");
-        toast.error("データの読み込みに失敗しました");
-        safeRedirect('/gacha');
-        return;
-      }
+     console.log(acc);
 
-      // Then use the parsed data to fetch gacha details
-      console.log("Fetching gacha details for ID:", parsedData.gachaId);
-      (dispatch(fetchGachaById(parsedData.gachaId)) as any)
-        .then(() => {
-          // Process pull results
-          const itemCounts = parsedData.items.reduce((acc: { [key: string]: UniqueGachaResult }, item: GachaResult) => {
-            if (!acc[item.id]) {
-              acc[item.id] = { ...item, count: 1 };
-            } else {
-              acc[item.id].count++;
-            }
+     return acc;
+   }, {});
 
-            console.log("Current accumulated items:", acc);
+   const uniqueItems = Object.values(itemCounts).sort((a, b) => {
+     const rarityA = a.rarity.toLowerCase();
+     const rarityB = b.rarity.toLowerCase();
+     return (RARITY_ORDER[rarityA as RarityKey] || 999) - (RARITY_ORDER[rarityB as RarityKey] || 999);
+   });
 
-            return acc;
-          }, {});
+   const grouped = uniqueItems.reduce((acc: GroupedResults, item: UniqueGachaResult) => {
+     const rarity = item.rarity.toLowerCase();
+     if (!acc[rarity]) {
+       acc[rarity] = [];
+     }
+     acc[rarity].push(item);
+     return acc;
+   }, {});
 
-          const uniqueItems = Object.values(itemCounts).sort((a, b) => {
-            const rarityA = a.rarity.toUpperCase();
-            const rarityB = b.rarity.toUpperCase();
-            return (RARITY_ORDER[rarityB as RarityKey] || 0) - (RARITY_ORDER[rarityA as RarityKey] || 0);
-          });
+   console.log(uniqueItems);
 
-          console.log("Unique items after sorting:", uniqueItems);
-
-          if (uniqueItems.length === 0) {
-            console.error("No unique items after processing");
-            toast.error("アイテムの処理に失敗しました");
-            return;
-          }
-
-          const grouped = uniqueItems.reduce((acc: GroupedResults, item: UniqueGachaResult) => {
-            const rarity = item.rarity.toLowerCase();
-            if (!acc[rarity]) {
-              acc[rarity] = [];
-            }
-            acc[rarity].push(item);
-            return acc;
-          }, {});
-
-          console.log("Grouped items by rarity:", grouped);
-
-          // 先にステート更新してから動画再生
-          setUniqueResults(uniqueItems);
-          setGroupedResults(grouped);
-
-          // Play video and handle its completion
-          if (videoRef.current) {
-            // 動画の読み込み状態をチェック
-            if (videoRef.current.readyState >= 2) { // HAVE_CURRENT_DATA以上
-              // 動画がすでに十分に読み込まれている場合は再生開始
-              playVideo();
-            } else {
-              // 動画がまだ十分に読み込まれていない場合はイベントリスナーを設定
-              videoRef.current.addEventListener('loadeddata', playVideo);
-              
-              // 一定時間後に動画が読み込まれなかった場合のフォールバック
-              const timeoutId = setTimeout(() => {
-                console.log("Video loading timeout - showing results without video");
-                if (videoRef.current) {
-                  videoRef.current.removeEventListener('loadeddata', playVideo);
-                }
-                setIsLoading(false);
-                setTimeout(() => {
-                  setShowResults(true);
-                }, 500);
-              }, 5000); // 5秒後にタイムアウト
-              
-              // クリーンアップ関数
-              return () => {
-                clearTimeout(timeoutId);
-                if (videoRef.current) {
-                  videoRef.current.removeEventListener('loadeddata', playVideo);
-                }
-              };
-            }
-          } else {
-            console.error("Video reference is null");
-            // If no video element, still show results
-            setIsLoading(false);
+   setUniqueResults(uniqueItems);
+   setGroupedResults(grouped);
+// Play video and handle its completion
+if (videoRef.current) {
+  videoRef.current.play()
+  videoRef.current.onended = () => {
+    setIsLoading(false)
             setTimeout(() => {
-              setShowResults(true);
-            }, 500);
+              setShowResults(true)
+            }, 500)
           }
-          
-          // 動画再生関数
-          function playVideo() {
-            if (!videoRef.current) return;
-            
-            videoRef.current.play()
-              .then(() => {
-                console.log("Video started playing");
-              })
-              .catch(err => {
-                console.error("Error playing video:", err);
-                // 動画の再生に失敗しても結果表示に進む
-                setIsLoading(false);
-                setTimeout(() => {
-                  setShowResults(true);
-                }, 500);
-              });
-            
-            videoRef.current.onended = () => {
-              console.log("Video playback ended");
-              setIsLoading(false);
-              setTimeout(() => {
-                setShowResults(true);
-              }, 500);
-            };
-          }
-        })
-        .catch((error: any) => {
-          console.error('Failed to fetch gacha details:', error)
-          toast.error("ガチャ情報の取得に失敗しました");
-          
-          // ガチャ情報の取得に失敗しても、結果表示を試みる
-          if (parsedData && parsedData.items && parsedData.items.length > 0) {
-            try {
-              // Process pull results without gacha details
-              const itemCounts = parsedData.items.reduce((acc: { [key: string]: UniqueGachaResult }, item: GachaResult) => {
-                if (!acc[item.id]) {
-                  acc[item.id] = { ...item, count: 1 };
-                } else {
-                  acc[item.id].count++;
-                }
-                return acc;
-              }, {});
-
-              const uniqueItems = Object.values(itemCounts);
-              if (uniqueItems.length > 0) {
-                setUniqueResults(uniqueItems);
-                
-                const grouped = uniqueItems.reduce((acc: GroupedResults, item: UniqueGachaResult) => {
-                  const rarity = item.rarity.toLowerCase();
-                  if (!acc[rarity]) {
-                    acc[rarity] = [];
-                  }
-                  acc[rarity].push(item);
-                  return acc;
-                }, {});
-                
-                setGroupedResults(grouped);
-                setIsLoading(false);
-                setTimeout(() => {
-                  setShowResults(true);
-                }, 500);
-                return;
-              }
-            } catch (processError) {
-              console.error('Error processing items without gacha details:', processError);
-            }
-          }
-          
-          // 処理に失敗した場合のみリダイレクト
-          safeRedirect('/gacha');
-        });
-    } catch (error) {
-      console.error("Error parsing data:", error);
-      toast.error("データの解析に失敗しました");
-      safeRedirect('/gacha');
-    }
+        }
+      })
+      .catch((error) => {
+        console.error('Failed to fetch gacha details:', error)
+        window.location.href = '/gacha'
+      });
 
   }, [searchParams, dispatch])
 
@@ -353,47 +186,20 @@ export default function GachaResultClient() {
           ref={videoRef}
           className="w-full h-full object-cover"
           playsInline
-          autoPlay={false}
+          autoPlay={true}
           muted={true}
           preload="auto"
-          onLoadedData={() => {
-            console.log("Video loaded data event fired");
-          }}
-          onCanPlay={() => {
-            console.log("Video can play event fired");
-          }}
-          onError={(e) => {
-            console.error("Video loading error:", e);
-            // エラーの詳細をログに出力
-            if (e.currentTarget && e.currentTarget.error) {
-              console.error("Error code:", e.currentTarget.error.code);
-              console.error("Error message:", e.currentTarget.error.message);
-            }
-            // 動画のロードに失敗しても結果表示に進む
-            setIsLoading(false);
-            setTimeout(() => {
-              setShowResults(true);
-            }, 500);
-          }}
         >
           <source src={`/movies/${getVideoByRarity(uniqueResults)}.webm`} type="video/webm" />
-          <source src={`/movies/${getVideoByRarity(uniqueResults)}.mp4`} type="video/mp4" />
           Your browser does not support the video tag.
         </video>
-        <div className="absolute bottom-4 text-white text-sm">
-          <p>動画読み込み中...</p>
-        </div>
       </div>
     )
   }
 
-  if (!showResults || !uniqueResults.length) {
-    console.log("Not showing results. showResults:", showResults, "uniqueResults length:", uniqueResults.length);
-    return null;
-  }
+  if (!showResults || !uniqueResults.length) return null
 
-  const currentItem = uniqueResults[currentIndex];
-  console.log("Current item to display:", currentItem);
+  const currentItem = uniqueResults[currentIndex]
 
   return (
     <div className={`min-h-screen bg-white flex flex-col items-center py-8 px-4 
@@ -490,7 +296,7 @@ export default function GachaResultClient() {
         <Link href={`/gacha/${gacha?.id}`} className="w-full sm:w-auto">
           <Button variant="outline" className="w-full">
             <ChevronLeft className="mr-2 h-4 w-4" />
-            ガチャに戻る
+            {t("gacha.result.backToGacha")}
           </Button>
         </Link>
         <div className="grid grid-cols-2 gap-4 w-full">
@@ -508,7 +314,7 @@ export default function GachaResultClient() {
             className="bg-[#7C3AED] hover:bg-[#6D28D9]"
           >
             <RotateCcw className="mr-2 h-4 w-4" />
-            <p className="text-lg font-bold">¥{gacha?.price !== undefined ? (Number(gacha.price) * 10).toLocaleString() : '0'}</p>
+            <p className="text-lg font-bold">¥{(gacha?.price * 10)?.toLocaleString()}</p>
           </Button>
         </div>
       </div>
@@ -532,37 +338,30 @@ function getRarityColor(rarity: string): string {
 }
 
 function formatRarity(rarity: string): string {
-  const rarityMap: Record<string, string> = {
+  const rarityMap = {
     'A': 'A',
     'B': 'B',
     'C': 'C',
     'D': 'D',
     'S': 'S'
   };
-  
+
   return rarityMap[rarity.toUpperCase()] || rarity;
 }
 
 function getHighestRarity(items: GachaResult[]): string {
-  if (!items || items.length === 0) {
-    return 'D'; // デフォルト値として最低レアリティを返す
-  }
-  
   const rarityOrder = ['D', 'C', 'B', 'A', 'S'];
-  
+
   return items.reduce((highest, item) => {
     const currentIndex = rarityOrder.indexOf(item.rarity.toUpperCase());
     const highestIndex = rarityOrder.indexOf(highest.toUpperCase());
-    
-    // 高いインデックスが高いレアリティ（Sが4、Dが0）
-    return currentIndex > highestIndex ? item.rarity : highest;
+
+    // Lower index means higher rarity (A is 0, S is 4)
+    return currentIndex < highestIndex ? item.rarity : highest;
   }, 'D');
 }
 
 function getVideoByRarity(items: GachaResult[]): string {
-  if (!items || items.length === 0) {
-    return 'D'; // デフォルト値として最低レアリティを返す
-  }
   const highestRarity = getHighestRarity(items);
   return highestRarity.toUpperCase();
 }
