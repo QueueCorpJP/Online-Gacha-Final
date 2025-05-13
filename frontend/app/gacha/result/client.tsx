@@ -19,11 +19,11 @@ type RarityKey = 'D' | 'C' | 'B' | 'A' | 'S';
 type Language = 'ja' | 'en' | 'zh';
 
 const RARITY_ORDER: Record<RarityKey, number> = {
-  'D': 0,
-  'C': 1,  
-  'B': 2,
-  'A': 3,
   'S': 4,
+  'A': 3,
+  'B': 2,
+  'C': 1,
+  'D': 0,
 };
 
 interface GachaResult {
@@ -53,7 +53,63 @@ interface PullResult {
   pullTime: string;
 }
 
+// レアリティに応じた色を取得する関数
+function getRarityColor(rarity: string): string {
+  switch (rarity.toLowerCase()) {
+    case 's':
+      return 'from-purple-600 to-pink-500'
+    case 'a':
+      return 'from-yellow-400 to-orange-500'
+    case 'b':
+      return 'from-blue-400 to-blue-600'
+    case 'c':
+      return 'from-blue-400 to-blue-600'
+    default:
+      return 'from-gray-400 to-gray-600'
+  }
+}
+
+// レアリティの表示形式を整える関数
+function formatRarity(rarity: string): string {
+  const rarityMap: Record<string, string> = {
+    'A': 'A',
+    'B': 'B',
+    'C': 'C',
+    'D': 'D',
+    'S': 'S'
+  };
+
+  return rarityMap[rarity.toUpperCase()] || rarity;
+}
+
+// 最高レアリティを取得する関数
+function getHighestRarity(items: GachaResult[]): string {
+  if (!items || items.length === 0) {
+    return 'D'; // デフォルト値
+  }
+  
+  const rarityOrder = ['D', 'C', 'B', 'A', 'S'];
+
+  return items.reduce((highest, item) => {
+    const currentIndex = rarityOrder.indexOf(item.rarity.toUpperCase());
+    const highestIndex = rarityOrder.indexOf(highest.toUpperCase());
+
+    // 高いインデックスが高レアリティ
+    return currentIndex > highestIndex ? item.rarity : highest;
+  }, 'D');
+}
+
+// 動画ファイル名を取得する関数
+function getVideoByRarity(items: GachaResult[]): string {
+  if (!items || items.length === 0) {
+    return 'D';
+  }
+  const highestRarity = getHighestRarity(items);
+  return highestRarity.toUpperCase();
+}
+
 export default function GachaResultClient() {
+  // 翻訳関数を最初に初期化
   const { t, language } = useTranslations()
   const dispatch = useDispatch()
   const searchParams = useSearchParams()
@@ -65,14 +121,89 @@ export default function GachaResultClient() {
   const [showResults, setShowResults] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
   const [isDrawing, setIsDrawing] = useState(false)
+  const [hasError, setHasError] = useState(false)
+  const [errorMessage, setErrorMessage] = useState("ガチャ結果の表示に失敗しました")
 
   // 言語に応じたアイテム名を取得する関数
   const getLocalizedName = (item: GachaResult): string => {
-    if (item.translations && item.translations[language as keyof typeof item.translations]?.name) {
+    if (item.translations && language && item.translations[language as keyof typeof item.translations]?.name) {
       return item.translations[language as keyof typeof item.translations].name;
     }
     return item.name;
   }
+
+  // ガチャ結果を処理する関数
+  const processGachaResults = (items: GachaResult[]): { uniqueItems: UniqueGachaResult[], grouped: GroupedResults } => {
+    // アイテムが空の場合はエラーをスロー
+    if (!items || items.length === 0) {
+      throw new Error("ガチャアイテムがありません");
+    }
+    
+    // アイテムをカウントして重複を除去
+    const itemCounts = items.reduce((acc: { [key: string]: UniqueGachaResult }, item: GachaResult) => {
+      if (!acc[item.id]) {
+        acc[item.id] = { ...item, count: 1 };
+      } else {
+        acc[item.id].count++;
+      }
+      return acc;
+    }, {});
+
+    // レアリティでソート（Sが最も高く、Dが最も低い）
+    const uniqueItems = Object.values(itemCounts).sort((a, b) => {
+      const rarityA = a.rarity.toUpperCase() as RarityKey;
+      const rarityB = b.rarity.toUpperCase() as RarityKey;
+      return (RARITY_ORDER[rarityB] || 0) - (RARITY_ORDER[rarityA] || 0);
+    });
+
+    // レアリティごとにグループ化
+    const grouped = uniqueItems.reduce((acc: GroupedResults, item: UniqueGachaResult) => {
+      const rarity = item.rarity.toLowerCase();
+      if (!acc[rarity]) {
+        acc[rarity] = [];
+      }
+      acc[rarity].push(item);
+      return acc;
+    }, {});
+
+    return { uniqueItems, grouped };
+  };
+
+  // ガチャを再度引く処理
+  const handleRetryGacha = async () => {
+    try {
+      setIsDrawing(true);
+      
+      // ガチャIDが存在する場合のみ実行
+      if (!gacha?.id) {
+        toast.error("ガチャ情報が見つかりません");
+        return;
+      }
+      
+      const response = await api.post(`/admin/gacha/${gacha.id}/pull`, {
+        times: 1,
+        isFree: false,
+      });
+      
+      if (response.data.items && Array.isArray(response.data.items) && response.data.items.length > 0) {
+        // 成功した場合は結果ページにリダイレクト
+        const resultData = {
+          items: response.data.items,
+          gachaId: gacha.id,
+          pullTime: new Date().toISOString()
+        };
+        
+        window.location.href = `/gacha/result?data=${encodeURIComponent(JSON.stringify(resultData))}`;
+      } else {
+        toast.error("ガチャの結果が空です。もう一度お試しください。");
+      }
+    } catch (error: any) {
+      console.error("Error retrying gacha:", error);
+      toast.error("ガチャの実行に失敗しました");
+    } finally {
+      setIsDrawing(false);
+    }
+  };
 
   useEffect(() => {
     const data = searchParams.get('data')
@@ -81,132 +212,92 @@ export default function GachaResultClient() {
       return
     }
 
-    console.log(data);
-
     // Start loading animation
     setIsLoading(true)
     setShowResults(false)
+    setHasError(false)
 
-    // Parse the data first
-    const parsedData: PullResult = JSON.parse(decodeURIComponent(data))
-    // Then use the parsed data to fetch gacha details
-    (dispatch(fetchGachaById(parsedData.gachaId)) as any)
-    .then(() => {
-      // Process pull results
-      const itemCounts = parsedData.items.reduce((acc: { [key: string]: UniqueGachaResult }, item: GachaResult) => {
-        if (!acc[item.id]) {
-          acc[item.id] = { ...item, count: 1 };
-        } else {
-          acc[item.id].count++;
-        }
+    try {
+      // データをデコードしてパース
+      const parsedData: PullResult = JSON.parse(decodeURIComponent(data))
+      
+      // アイテムが空の場合はエラー
+      if (!parsedData.items || !Array.isArray(parsedData.items) || parsedData.items.length === 0) {
+        console.error("No items found in parsed data:", parsedData);
+        setErrorMessage("ガチャアイテムが見つかりません。もう一度お試しください。");
+        setHasError(true);
+        toast.error("ガチャアイテムが見つかりません");
+        return;
+      }
 
-        console.log(acc);
-
-        return acc;
-      }, {});
-
-      const uniqueItems = Object.values(itemCounts).sort((a, b) => {
-        // レアリティの順序を修正（Sが最も高く、Dが最も低い）
-        const rarityA = a.rarity.toUpperCase();
-        const rarityB = b.rarity.toUpperCase();
-        // RARITY_ORDERは値が大きいほど高レアリティなので、降順でソート
-        return (RARITY_ORDER[rarityB as RarityKey] || 0) - (RARITY_ORDER[rarityA as RarityKey] || 0);
-      });
-
-      const grouped = uniqueItems.reduce((acc: GroupedResults, item: UniqueGachaResult) => {
-        const rarity = item.rarity.toLowerCase();
-        if (!acc[rarity]) {
-          acc[rarity] = [];
-        }
-        acc[rarity].push(item);
-        return acc;
-      }, {});
-
-      console.log("Processed items:", uniqueItems);
-
-      // 確実にステートを更新
-      setUniqueResults(uniqueItems);
-      setGroupedResults(grouped);
-
-      // Play video and handle its completion
-      if (videoRef.current) {
-        try {
-          videoRef.current.play()
-          videoRef.current.onended = () => {
-            setIsLoading(false)
-            setTimeout(() => {
-              setShowResults(true)
-            }, 500)
-          }
-          
-          // 動画再生エラー時のフォールバック
-          videoRef.current.onerror = () => {
-            console.error("Video playback error");
+      // 先にアイテムを処理して表示できるようにする
+      try {
+        const { uniqueItems, grouped } = processGachaResults(parsedData.items);
+        console.log("Processed items:", uniqueItems);
+        
+        // ステートを更新
+        setUniqueResults(uniqueItems);
+        setGroupedResults(grouped);
+        
+        // Then use the parsed data to fetch gacha details
+        dispatch(fetchGachaById(parsedData.gachaId))
+        
+        // 動画再生処理
+        if (videoRef.current) {
+          try {
+            const playPromise = videoRef.current.play();
+            
+            if (playPromise !== undefined) {
+              playPromise
+                .then(() => {
+                  console.log("Video started playing");
+                  
+                  // 動画再生完了時の処理
+                  videoRef.current!.onended = () => {
+                    console.log("Video playback ended");
+                    setIsLoading(false);
+                    setTimeout(() => {
+                      setShowResults(true);
+                    }, 500);
+                  };
+                })
+                .catch(err => {
+                  console.error("Error playing video:", err);
+                  // 動画再生に失敗した場合は結果を直接表示
+                  setIsLoading(false);
+                  setShowResults(true);
+                });
+            }
+            
+            // 動画再生エラー時のフォールバック
+            videoRef.current.onerror = () => {
+              console.error("Video playback error");
+              setIsLoading(false);
+              setShowResults(true);
+            };
+          } catch (playError) {
+            console.error("Error during video playback setup:", playError);
             setIsLoading(false);
-            setTimeout(() => {
-              setShowResults(true)
-            }, 500);
+            setShowResults(true);
           }
-        } catch (playError) {
-          console.error("Error playing video:", playError);
+        } else {
+          // ビデオ要素がない場合は直接結果を表示
+          console.warn("Video element not found, showing results directly");
           setIsLoading(false);
           setShowResults(true);
         }
-      } else {
-        // ビデオ要素がない場合は直接結果を表示
-        console.warn("Video element not found, showing results directly");
-        setIsLoading(false);
-        setShowResults(true);
-      }
-    })
-    .catch((error: unknown) => {
-      console.error('Failed to fetch gacha details:', error);
-      
-      // ガチャ情報の取得に失敗しても、結果表示を試みる
-      try {
-        if (parsedData && parsedData.items && parsedData.items.length > 0) {
-          const itemCounts = parsedData.items.reduce((acc: { [key: string]: UniqueGachaResult }, item: GachaResult) => {
-            if (!acc[item.id]) {
-              acc[item.id] = { ...item, count: 1 };
-            } else {
-              acc[item.id].count++;
-            }
-            return acc;
-          }, {});
-
-          const uniqueItems = Object.values(itemCounts).sort((a, b) => {
-            const rarityA = a.rarity.toUpperCase();
-            const rarityB = b.rarity.toUpperCase();
-            return (RARITY_ORDER[rarityB as RarityKey] || 0) - (RARITY_ORDER[rarityA as RarityKey] || 0);
-          });
-
-          if (uniqueItems.length > 0) {
-            console.log("Showing results without gacha details:", uniqueItems);
-            
-            const grouped = uniqueItems.reduce((acc: GroupedResults, item: UniqueGachaResult) => {
-              const rarity = item.rarity.toLowerCase();
-              if (!acc[rarity]) {
-                acc[rarity] = [];
-              }
-              acc[rarity].push(item);
-              return acc;
-            }, {});
-            
-            setUniqueResults(uniqueItems);
-            setGroupedResults(grouped);
-            setIsLoading(false);
-            setShowResults(true);
-            return;
-          }
-        }
       } catch (processError) {
-        console.error('Error processing items without gacha details:', processError);
+        console.error("Error processing gacha items:", processError);
+        setErrorMessage("ガチャアイテムの処理に失敗しました。もう一度お試しください。");
+        setHasError(true);
+        toast.error("ガチャアイテムの処理に失敗しました");
       }
-      
-      toast.error("ガチャ結果の表示に失敗しました");
-      window.location.href = '/gacha';
-    });
-
+    } catch (error) {
+      console.error("Error processing gacha results:", error);
+      setErrorMessage("ガチャ結果の処理に失敗しました。もう一度お試しください。");
+      setHasError(true);
+      toast.error("ガチャ結果の処理に失敗しました");
+    }
   }, [searchParams, dispatch])
 
   const handleNext = () => {
@@ -223,7 +314,7 @@ export default function GachaResultClient() {
       })
 
       // Show results
-      if (response.data.items) {
+      if (response.data.items && Array.isArray(response.data.items) && response.data.items.length > 0) {
         // Store the result data and redirect
         const resultData = {
           items: response.data.items,
@@ -233,6 +324,8 @@ export default function GachaResultClient() {
 
         // Using window.location for client-side navigation with state
         window.location.href = `/gacha/result?data=${encodeURIComponent(JSON.stringify(resultData))}`;
+      } else {
+        toast.error("ガチャの結果が空です。もう一度お試しください。");
       }
     } catch (error: any) {
       toast.error(t("gacha.error.pull.title"), {
@@ -247,6 +340,33 @@ export default function GachaResultClient() {
     setCurrentIndex((prev) => Math.max(prev - 1, 0))
   }
 
+  // エラーが発生した場合
+  if (hasError) {
+    return (
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center py-8 px-4">
+        <h1 className="text-2xl font-bold mb-4">エラーが発生しました</h1>
+        <p className="text-gray-600 mb-8">{errorMessage}</p>
+        <div className="flex flex-col sm:flex-row gap-4">
+          <Link href="/gacha">
+            <Button variant="outline">
+              <ChevronLeft className="mr-2 h-4 w-4" />
+              ガチャ一覧に戻る
+            </Button>
+          </Link>
+          <Button 
+            onClick={handleRetryGacha} 
+            disabled={isDrawing}
+            className="bg-[#7C3AED] hover:bg-[#6D28D9]"
+          >
+            <RotateCcw className="mr-2 h-4 w-4" />
+            もう一度引く
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  // 読み込み中の場合
   if (isLoading) {
     return (
       <div className="fixed inset-0 bg-black flex items-center justify-center">
@@ -259,14 +379,32 @@ export default function GachaResultClient() {
           preload="auto"
         >
           <source src={`/movies/${getVideoByRarity(uniqueResults)}.webm`} type="video/webm" />
+          <source src={`/movies/${getVideoByRarity(uniqueResults)}.mp4`} type="video/mp4" />
           Your browser does not support the video tag.
         </video>
       </div>
     )
   }
 
-  if (!showResults || !uniqueResults.length) return null
+  // 結果が準備できていない場合
+  if (!showResults || uniqueResults.length === 0) {
+    return (
+      <div className="fixed inset-0 bg-black flex items-center justify-center">
+        <div className="text-white text-center">
+          <p className="text-xl mb-4">結果を読み込んでいます...</p>
+          <Button 
+            variant="outline" 
+            onClick={() => setShowResults(true)}
+            className="text-white border-white hover:bg-white hover:text-black"
+          >
+            今すぐ結果を表示
+          </Button>
+        </div>
+      </div>
+    )
+  }
 
+  // 現在表示するアイテム
   const currentItem = uniqueResults[currentIndex]
 
   return (
@@ -329,8 +467,8 @@ export default function GachaResultClient() {
         <h3 className="text-xl font-semibold">{t("gacha.result.summary")}</h3>
         <div className="bg-white p-4 rounded-xl shadow">
           {Object.entries(groupedResults).sort(([rarityA], [rarityB]) => {
-            return (RARITY_ORDER[rarityB.toUpperCase() as RarityKey] || 0) - 
-                  (RARITY_ORDER[rarityA.toUpperCase() as RarityKey] || 0);
+            return (RARITY_ORDER[(rarityB.toUpperCase() as RarityKey)] || 0) - 
+                  (RARITY_ORDER[(rarityA.toUpperCase() as RarityKey)] || 0);
           }).map(([rarity, items]) => (
             <div key={rarity} className="mb-4 last:mb-0">
               <h4 className={`${getRarityColor(rarity)} inline-block px-2 py-1 rounded text-sm font-medium mb-2`}>
@@ -388,50 +526,6 @@ export default function GachaResultClient() {
       </div>
     </div>
   )
-}
-
-function getRarityColor(rarity: string): string {
-  switch (rarity.toLowerCase()) {
-    case 's':
-      return 'from-purple-600 to-pink-500'
-    case 'a':
-      return 'from-yellow-400 to-orange-500'
-    case 'b':
-      return 'from-blue-400 to-blue-600'
-    case 'c':
-      return 'from-blue-400 to-blue-600'
-    default:
-      return 'from-gray-400 to-gray-600'
-  }
-}
-
-function formatRarity(rarity: string): string {
-  const rarityMap: Record<string, string> = {
-    'A': 'A',
-    'B': 'B',
-    'C': 'C',
-    'D': 'D',
-    'S': 'S'
-  };
-
-  return rarityMap[rarity.toUpperCase()] || rarity;
-}
-
-function getHighestRarity(items: GachaResult[]): string {
-  const rarityOrder = ['D', 'C', 'B', 'A', 'S'];
-
-  return items.reduce((highest, item) => {
-    const currentIndex = rarityOrder.indexOf(item.rarity.toUpperCase());
-    const highestIndex = rarityOrder.indexOf(highest.toUpperCase());
-
-    // Lower index means higher rarity (A is 0, S is 4)
-    return currentIndex < highestIndex ? item.rarity : highest;
-  }, 'D');
-}
-
-function getVideoByRarity(items: GachaResult[]): string {
-  const highestRarity = getHighestRarity(items);
-  return highestRarity.toUpperCase();
 }
 
 // Add this to your global CSS or tailwind config
