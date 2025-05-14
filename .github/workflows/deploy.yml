@@ -26,6 +26,11 @@ jobs:
 
             # ディレクトリ移動＆最新化
             APP_DIR=/var/www/html/Online-Gacha-Final
+            
+            # 権限設定（デプロイ前に実行）
+            echo "ディレクトリ権限を設定しています..."
+            sudo chown -R $(whoami):$(whoami) $APP_DIR || echo "権限変更に失敗しましたが続行します"
+            
             cd $APP_DIR
             sudo git fetch origin
             sudo git reset --hard origin/master
