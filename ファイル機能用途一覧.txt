@@ -213,4 +213,39 @@
 【backend/vercel.json】
 - Vercelデプロイメント設定ファイル。
 - CORSヘッダーを複数のドメイン（oripa-shijon.comとwww.oripa-shijon.com）に対応するよう修正。
-- OPTIONSリクエストに対するステータスコードを204に変更し、標準に準拠。 
+- OPTIONSリクエストに対するステータスコードを204に変更し、標準に準拠。
+
+## デプロイ関連
+
+### .github/workflows/deploy.yml
+- GitHub ActionsによるCI/CDパイプライン設定ファイル
+- 主な機能：
+  - masterブランチへのプッシュ時に自動デプロイを実行
+  - EC2サーバーへのSSH接続とデプロイ処理
+  - バックエンドとフロントエンドのビルドと再起動
+- 重要な設定：
+  - 権限問題解決のためのchownとchmod設定
+  - git操作の順序（権限設定前にgit操作を行う）
+  - node_modulesの削除と再インストール
+  - AWS SDKパッケージの明示的インストール
+  - PM2によるプロセス管理
+
+### backend/package.json
+- バックエンドの依存関係管理ファイル
+- AWS関連の依存関係：
+  - @aws-sdk/client-s3: S3クライアント
+  - @aws-sdk/s3-request-presigner: 署名付きURL生成
+
+### frontend/package.json
+- フロントエンドの依存関係管理ファイル
+- 主要な依存関係：
+  - Next.js: Reactフレームワーク
+  - Redux: 状態管理
+  - Stripe: 決済処理
+  - Tailwind CSS: スタイリング
+
+【backend/src/main.ts】
+- アプリケーションのエントリーポイント。
+- NestJSの組み込みCORS機能を使用して、クロスオリジンリクエストを適切に処理。
+- 全リクエストに対してCORSヘッダーを付与するミドルウェアを追加。
+- OPTIONSリクエスト（プリフライトリクエスト）に対して204ステータスを返すように修正。 

@@ -47,6 +47,11 @@ jobs:
             # node_modulesを削除して再インストール
             echo "node_modulesを削除しています..."
             rm -rf node_modules
+            
+            # AWS SDKモジュールをインストール
+            echo "AWS SDKモジュールをインストールしています..."
+            npm install --save @aws-sdk/client-s3 @aws-sdk/s3-request-presigner --legacy-peer-deps
+            
             yarn install
             echo "Building backend..."
             npm run build || echo "ビルドにエラーがありますが継続します"
