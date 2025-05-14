@@ -69,6 +69,7 @@ export function RankingTable({ period }: RankingTableProps) {
                       {index + 2}
                     </div>
                   </TableCell>
+                  {/* ユーザー名 */}
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <div className="relative h-10 w-10 overflow-hidden rounded-full bg-gray-100">
