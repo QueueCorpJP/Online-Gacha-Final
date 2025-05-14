@@ -129,7 +129,6 @@ export function SiteHeader({ isAdmin = false }: SiteHeaderProps) {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* User Menu - Desktop */}
       {!isMobile && (
         <DropdownMenu>
           <DropdownMenuTrigger className="flex items-center gap-2">
