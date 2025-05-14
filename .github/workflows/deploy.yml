@@ -32,7 +32,7 @@ jobs:
 
             # ── バックエンド処理 ──
             cd $APP_DIR/backend
-            yarn install --frozen-lockfile
+            yarn install
             echo "Building backend..."
             npm run build || echo "ビルドにエラーがありますが継続します"
             # PM2 プロセス再起動（存在しなければ起動）
@@ -42,7 +42,7 @@ jobs:
 
             # ── フロントエンド処理 ──
             cd $APP_DIR/frontend
-            yarn install --frozen-lockfile
+            yarn install
             echo "Building frontend..."
             npm run build
             pm2 describe gacha-frontend \
