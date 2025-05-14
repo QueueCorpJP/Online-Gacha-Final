@@ -25,6 +25,7 @@ import { NewsBlogModule } from './modules/news-blog/news-blog.module';
 import { FAQModule } from './modules/faqs/faq.module';
 import { PrizeModule } from './modules/prizes/prize.module';
 import { JwtModule } from '@nestjs/jwt';
+import { S3Module } from './modules/s3/s3.module';
 
 @Module({
   imports: [
@@ -69,6 +70,7 @@ import { JwtModule } from '@nestjs/jwt';
     NewsBlogModule,
     FAQModule,
     PrizeModule,
+    S3Module,
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', 'uploads'),
       serveRoot: '/uploads',

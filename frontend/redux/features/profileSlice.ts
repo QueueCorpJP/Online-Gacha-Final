@@ -8,18 +8,21 @@ interface ProfileData {
   address: string;
   phone: string;
   coinBalance: number;
+  profileUrl?: string;
 }
 
 interface ProfileState {
   data: ProfileData | null;
   loading: boolean;
   error: string | null;
+  imageUploading: boolean;
 }
 
 const initialState: ProfileState = {
   data: null,
   loading: false,
   error: null,
+  imageUploading: false,
 };
 
 export const fetchProfile = createAsyncThunk(
@@ -42,6 +45,38 @@ export const updateProfile = createAsyncThunk(
       return response.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to update profile');
+    }
+  }
+);
+
+export const uploadProfileImage = createAsyncThunk(
+  'profile/uploadImage',
+  async (file: File, { rejectWithValue }) => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await api.post('/profile/image', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
+      return response.data;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to upload image');
+    }
+  }
+);
+
+export const deleteProfileImage = createAsyncThunk(
+  'profile/deleteImage',
+  async (_, { rejectWithValue }) => {
+    try {
+      await api.delete('/profile/image');
+      return true;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to delete image');
     }
   }
 );
@@ -74,6 +109,34 @@ const profileSlice = createSlice({
       })
       .addCase(updateProfile.rejected, (state, action) => {
         state.loading = false;
+        state.error = action.payload as string;
+      })
+      .addCase(uploadProfileImage.pending, (state) => {
+        state.imageUploading = true;
+        state.error = null;
+      })
+      .addCase(uploadProfileImage.fulfilled, (state, action) => {
+        state.imageUploading = false;
+        if (state.data) {
+          state.data.profileUrl = action.payload.url;
+        }
+      })
+      .addCase(uploadProfileImage.rejected, (state, action) => {
+        state.imageUploading = false;
+        state.error = action.payload as string;
+      })
+      .addCase(deleteProfileImage.pending, (state) => {
+        state.imageUploading = true;
+        state.error = null;
+      })
+      .addCase(deleteProfileImage.fulfilled, (state) => {
+        state.imageUploading = false;
+        if (state.data) {
+          state.data.profileUrl = undefined;
+        }
+      })
+      .addCase(deleteProfileImage.rejected, (state, action) => {
+        state.imageUploading = false;
         state.error = action.payload as string;
       });
   },

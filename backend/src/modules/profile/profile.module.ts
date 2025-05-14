@@ -5,6 +5,8 @@ import { ProfileController } from './profile.controller';
 import { ProfileService } from './profile.service';
 import { User } from '../user/entities/user.entity';
 import { AuthModule } from '../auth/auth.module';
+import { S3Module } from '../s3/s3.module';
+import { MulterModule } from '@nestjs/platform-express';
 
 @Module({
   imports: [
@@ -14,6 +16,12 @@ import { AuthModule } from '../auth/auth.module';
       signOptions: { expiresIn: '1d' },
     }),
     AuthModule,
+    S3Module,
+    MulterModule.register({
+      limits: {
+        fileSize: 5 * 1024 * 1024, // 5MB
+      },
+    }),
   ],
   controllers: [ProfileController],
   providers: [ProfileService],

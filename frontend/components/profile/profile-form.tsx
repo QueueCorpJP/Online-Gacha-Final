@@ -14,6 +14,7 @@ import { useTranslations } from "@/hooks/use-translations"
 import { useDispatch, useSelector } from "react-redux"
 import { AppDispatch, RootState } from "@/redux/store"
 import { fetchProfile, updateProfile } from "@/redux/features/profileSlice"
+import { ProfileImageUpload } from "./profile-image-upload"
 
 const profileFormSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -35,6 +36,7 @@ export function ProfileForm() {
   const dispatch = useDispatch<AppDispatch>()
   const { data: profile, loading } = useSelector((state: RootState) => state.profile)
   const { t } = useTranslations()
+  const [profileImage, setProfileImage] = useState<string | null>(null)
 
   const form = useForm<ProfileFormData>({
     resolver: zodResolver(profileFormSchema),
@@ -60,6 +62,10 @@ export function ProfileForm() {
         address: profile.address,
         phone: profile.phone,
       })
+      
+      if (profile.profileUrl) {
+        setProfileImage(profile.profileUrl)
+      }
     }
   }, [profile, form])
 
@@ -85,9 +91,21 @@ export function ProfileForm() {
     }
   }
 
+  const handleImageChange = (url: string | null) => {
+    setProfileImage(url)
+  }
+
   return (
     <div className="mx-auto rounded-lg bg-white p-6 shadow-sm">
       <h2 className="mb-6 text-xl font-bold">{t("profile.form.title")}</h2>
+      
+      <div className="mb-8">
+        <ProfileImageUpload 
+          defaultImage={profileImage} 
+          onImageChange={handleImageChange}
+        />
+      </div>
+      
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <div className="grid gap-6 md:grid-cols-2">
@@ -96,7 +114,7 @@ export function ProfileForm() {
               name="firstName"
               render={({ field }) => (
                 <FormItem>
-                  <Label htmlFor="firstName">{t("signup.form.firstName")}</Label>
+                  <Label htmlFor="firstName">{t("profile.form.fields.firstName")}</Label>
                   <FormControl>
                     <Input {...field} disabled={loading} />
                   </FormControl>
@@ -109,7 +127,7 @@ export function ProfileForm() {
               name="lastName"
               render={({ field }) => (
                 <FormItem>
-                  <Label htmlFor="lastName">{t("signup.form.lastName")}</Label>
+                  <Label htmlFor="lastName">{t("profile.form.fields.lastName")}</Label>
                   <FormControl>
                     <Input {...field} disabled={loading} />
                   </FormControl>

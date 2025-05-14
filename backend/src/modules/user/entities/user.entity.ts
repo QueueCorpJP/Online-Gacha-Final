@@ -92,6 +92,9 @@ export class User {
   @Column({ nullable: true })
   passwordResetExpires: Date;
 
+  @Column({ nullable: true })
+  profileUrl?: string;
+
   @OneToOne(() => LineSettings, lineSettings => lineSettings.user, { cascade: true })
   lineSettings: LineSettings;
 }

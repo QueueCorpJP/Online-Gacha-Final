@@ -43,6 +43,40 @@
   - 在庫切れ時にe.preventDefault()を使用して遷移を防止
   - 在庫がない場合のボタン無効化と視覚的フィードバック（AlertCircleアイコン）
 
+### frontend/components/profile/profile-image-upload.tsx
+- プロフィール画像アップロードを担当するコンポーネント
+- 主な機能：
+  - 画像のドラッグ&ドロップ機能
+  - 画像のプレビュー表示
+  - 画像のアップロード処理
+  - 画像の削除機能
+- 技術要素：
+  - react-dropzoneを使用したファイルアップロードUI
+  - S3へのアップロード前の画像プレビュー
+  - ファイルサイズと形式の検証
+
+### frontend/components/profile/profile-form.tsx
+- プロフィール情報編集フォームコンポーネント
+- 主な機能：
+  - ユーザープロフィール情報の表示と編集
+  - プロフィール画像のアップロード統合
+  - フォームバリデーション
+- 修正内容：
+  - ProfileImageUploadコンポーネントの統合
+  - プロフィール画像URLの状態管理追加
+  - 画像アップロード後のプロフィール更新処理追加
+
+### frontend/redux/features/profileSlice.ts
+- プロフィール情報の状態管理を担当するReduxスライス
+- 主な機能：
+  - プロフィール情報の取得
+  - プロフィール情報の更新
+  - プロフィール画像のアップロード
+- 修正内容：
+  - プロフィール画像関連の状態とアクションの追加
+  - 画像アップロード非同期アクションの実装
+  - プロフィール情報の型定義にprofileUrlを追加
+
 ## バックエンド
 
 ### backend/
@@ -53,6 +87,58 @@
   - 在庫管理
   - ユーザー管理
   - 決済処理
+
+### backend/src/modules/s3/s3.module.ts
+- AWS S3連携のためのモジュール
+- 主な機能：
+  - S3クライアントの初期化と提供
+  - 環境変数からの設定読み込み
+  - S3サービスのエクスポート
+
+### backend/src/modules/s3/s3.service.ts
+- S3操作のためのサービス
+- 主な機能：
+  - 画像アップロード処理
+  - 署名付きURL生成
+  - 画像削除処理
+- 技術要素：
+  - AWS SDK for JavaScriptのS3クライアント
+  - S3署名付きURL生成
+  - コンテンツタイプ検証
+
+### backend/src/modules/profile/profile.controller.ts
+- プロフィール機能のコントローラー
+- 主な機能：
+  - プロフィール情報の取得
+  - プロフィール情報の更新
+  - プロフィール画像のアップロード
+- 修正内容：
+  - 画像アップロードエンドポイントの追加
+  - S3サービスとの連携
+  - CurrentUserデコレータによるセッション検証
+
+### backend/src/modules/profile/profile.service.ts
+- プロフィール機能のサービス
+- 主な機能：
+  - プロフィール情報の取得と更新
+  - プロフィール画像URLの保存
+- 修正内容：
+  - プロフィール画像URL更新メソッドの追加
+  - getProfileメソッドにprofileUrl情報を追加
+
+### backend/src/modules/user/entities/user.entity.ts
+- ユーザー情報を管理するエンティティ
+- 主な機能：
+  - ユーザー情報のデータモデル定義
+  - データベースとのマッピング
+- 修正内容：
+  - profileUrlカラムの追加（VARCHAR、nullable）
+
+### backend/src/migrations/xxxx-add-profile-url-to-users.ts
+- ユーザーテーブルにprofileUrlカラムを追加するマイグレーション
+- 主な機能：
+  - データベーススキーマの更新
+  - 既存データの互換性維持
 
 【backend/src/modules/gacha/gacha.controller.ts】
 - ガチャ機能の管理用コントローラー。
@@ -87,6 +173,7 @@
 - ユーザー情報を管理するエンティティ。
 - プロフィール情報、認証情報、コイン残高などを保持。
 - Prize エンティティとのリレーション設定を修正（@OneToMany デコレータを追加し、逆参照を削除）。
+- profileUrl カラムを追加して、ユーザープロフィール画像のS3 URLを保存。
 
 【backend/src/modules/prizes/prize.entity.ts】
 - 景品情報を管理するエンティティ。
@@ -98,6 +185,7 @@
 - 各機能モジュールのインポートと設定を行う。
 - PrizeModule を追加して Prize エンティティを正しく読み込めるようにした。
 - JwtModuleをグローバルモジュールとして登録し、アプリケーション全体で利用可能にした。
+- S3Moduleを追加してAWS S3連携機能を提供。
 - これにより「Nest can't resolve dependencies of the AuthGuard」エラーを根本的に解決。
 
 【backend/src/modules/prizes/prize.service.ts】
