@@ -26,21 +26,12 @@ jobs:
 
             # ディレクトリ移動＆最新化
             APP_DIR=/var/www/html/Online-Gacha-Final
-            
-            # 権限設定を追加（デプロイ前に実行）
-            echo "ディレクトリ権限を設定しています..."
-            sudo chown -R $(whoami):$(whoami) $APP_DIR || echo "権限変更に失敗しましたが続行します"
-            sudo chmod -R 755 $APP_DIR || echo "権限変更に失敗しましたが続行します"
-            
             cd $APP_DIR
             sudo git fetch origin
             sudo git reset --hard origin/master
 
             # ── バックエンド処理 ──
             cd $APP_DIR/backend
-            # node_modulesディレクトリを削除して再インストール
-            echo "node_modulesを削除しています..."
-            sudo rm -rf node_modules
             yarn install --frozen-lockfile
             echo "Building backend..."
             npm run build || echo "ビルドにエラーがありますが継続します"
@@ -51,9 +42,6 @@ jobs:
 
             # ── フロントエンド処理 ──
             cd $APP_DIR/frontend
-            # node_modulesディレクトリを削除して再インストール
-            echo "node_modulesを削除しています..."
-            sudo rm -rf node_modules
             yarn install --frozen-lockfile
             echo "Building frontend..."
             npm run build
