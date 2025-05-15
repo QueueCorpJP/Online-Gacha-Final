@@ -300,8 +300,8 @@ export class GachaController {
     @Param('id') id: string,
     @CurrentUser() user: UserEntity
   ) {
-    const favorite = await this.gachaService.getFavoriteStatus(id, user.id);
-    return { favorited: favorite };
+    const favoriteStatus = await this.gachaService.getFavoriteStatus(id, user.id);
+    return favoriteStatus;
   }
 
   @Post(':id/favorite')

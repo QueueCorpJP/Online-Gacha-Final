@@ -34,6 +34,17 @@ export default function NewsBlogPage() {
         }
     }
 
+    // 画像URLを正しく生成する関数
+    const getImageUrl = (imagePath?: string) => {
+        if (!imagePath) return '/placeholder.svg'
+        
+        // すでに完全なURLの場合はそのまま返す
+        if (imagePath.startsWith('http')) return imagePath
+        
+        // 相対パスの場合はAPI_URLと結合
+        return `${process.env.NEXT_PUBLIC_API_URL}${imagePath}`
+    }
+
     if (loading) {
         return (
             <div className="flex justify-center items-center min-h-[400px]">
@@ -60,7 +71,7 @@ export default function NewsBlogPage() {
                                 {post.image && (
                                     <div className="relative h-48 w-full">
                                         <Image
-                                            src={post.image}
+                                            src={getImageUrl(post.image)}
                                             alt={post.title}
                                             fill
                                             className="object-cover"
@@ -95,7 +106,7 @@ export default function NewsBlogPage() {
                                 {post.image && (
                                     <div className="relative h-48 w-full">
                                         <Image
-                                            src={post.image}
+                                            src={getImageUrl(post.image)}
                                             alt={post.title}
                                             fill
                                             className="object-cover"

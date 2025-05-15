@@ -50,29 +50,30 @@ export function GachaHeader({
             Authorization: `Bearer ${token}`
           }
         });
+        
         setIsFavorited(response.data.favorited);
         setIsDisliked(response.data.disliked);
-        setLikes(response.data.favorited.likes);
-        setDislikes(response.data.favorited.dislikes);
+        setLikes(response.data.likes || initialLikes);
+        setDislikes(response.data.dislikes || initialDislikes);
 
-        setRating( (likes + dislikes  > 0 )? 
-          ((likes) * 5 + (dislikes) * 1) / ((likes) + (dislikes)) 
-          : 0)
+        const totalReactions = (response.data.likes || initialLikes) + (response.data.dislikes || initialDislikes);
+        setRating(totalReactions > 0 ? 
+          ((response.data.likes || initialLikes) * 5 + (response.data.dislikes || initialDislikes) * 1) / totalReactions 
+          : 0);
 
-        console.log(response)
+        console.log('Reaction status:', response.data);
       } catch (error) {
         console.error('Failed to fetch reaction status:', error);
       }
     };
     checkReactionStatus();
-  }, [gachaId, user]);
+  }, [gachaId, user, initialLikes, initialDislikes]);
 
   useEffect(() => {
-    setRating( (likes + dislikes  > 0 )? 
-      ((likes) * 5 + (dislikes) * 1) / ((likes) + (dislikes)) 
-      : 0)
-
-    console.log(rating);
+    const totalReactions = likes + dislikes;
+    setRating(totalReactions > 0 ? 
+      (likes * 5 + dislikes * 1) / totalReactions 
+      : 0);
   }, [likes, dislikes])
 
   const handleReaction = async (type: 'like' | 'dislike') => {
@@ -102,16 +103,13 @@ export function GachaHeader({
       if (response.data) {
         setLikes(response.data.likes);
         setDislikes(response.data.dislikes);
-        setIsFavorited(response.data.favorited.favorited);
-        setIsDisliked(response.data.favorited.disliked);
-        
+        setIsFavorited(response.data.favorited);
+        setIsDisliked(response.data.disliked);
       }
     } catch (error) {
       console.error('Failed to update reaction:', error);
-      // Add more detailed error logging
       if (error && typeof error === 'object' && 'response' in error) {
         console.error('Error response:', (error as AxiosError).response?.data);
-        // console.error('Error status:', error.response.status);
       }
     }
   };
@@ -123,7 +121,7 @@ export function GachaHeader({
       <div className="mt-4 flex items-center gap-4">
         <div className="flex items-center gap-1">
           <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-          <span className="font-bold">{rating}</span>
+          <span className="font-bold">{rating.toFixed(1)}</span>
           <span className="text-gray-500">
             {t("gacha.header.reviews").replace("{count}", (likes + dislikes).toString())}
           </span>
@@ -136,7 +134,7 @@ export function GachaHeader({
             onClick={() => handleReaction('like')}
           >
             <Heart 
-              className={`h-5 w-5 ${likes === 1 ? 'fill-red-500 text-red-500' : ''}`} 
+              className={`h-5 w-5 ${isFavorited ? 'fill-red-500 text-red-500' : ''}`} 
             />
             <span title={t("gacha.header.likes")}>{likes}</span>
           </Button>
@@ -147,7 +145,7 @@ export function GachaHeader({
             onClick={() => handleReaction('dislike')}
           >
             <ThumbsDown 
-              className={`h-5 w-5 ${dislikes === 1 ? 'fill-gray-500 text-gray-500' : ''}`} 
+              className={`h-5 w-5 ${isDisliked ? 'fill-gray-500 text-gray-500' : ''}`} 
             />
             <span title={t("gacha.header.dislikes")}>{dislikes}</span>
           </Button>
