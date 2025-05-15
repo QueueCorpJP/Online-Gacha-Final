@@ -80,44 +80,49 @@ export function RankingTable({ period }: RankingTableProps) {
               </TableRow>
             </TableHeader>
             <TableBody className="mx-6">
-              {transactions.map((transaction, index) => (
-                <TableRow key={transaction.id || index} className="hover:bg-transparent">
-                  <TableCell className="font-medium">
-                    <div
-                      className={cn(
-                        "flex h-8 w-12 px-2 items-center justify-center rounded-full text-sm",
-                        index === 0 && "border-2 border-gray-300",
-                        index === 1 && "border-2 border-orange-300",
-                        index > 1 && "text-gray-600",
-                      )}
-                    >
-                      {index + 2}
-                    </div>
-                  </TableCell>
-                  
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-10 w-10">
-                        {transaction.user?.profileUrl ? (
-                          <AvatarImage 
-                            src={transaction.user.profileUrl} 
-                            alt={t("rankings.table.userAlt", { user: transaction.user.username })} 
-                            className="object-cover" 
-                          />
-                        ) : (
-                          <AvatarFallback className="bg-gray-100">
-                            {getInitials(transaction.user?.username)}
-                          </AvatarFallback>
+              {transactions.map((transaction, index) => {
+                // プロフィール画像URLの存在を確認
+                const hasProfileImage = !!(transaction.user?.profileUrl);
+                
+                return (
+                  <TableRow key={transaction.id || index} className="hover:bg-transparent">
+                    <TableCell className="font-medium">
+                      <div
+                        className={cn(
+                          "flex h-8 w-12 px-2 items-center justify-center rounded-full text-sm",
+                          index === 0 && "border-2 border-gray-300",
+                          index === 1 && "border-2 border-orange-300",
+                          index > 1 && "text-gray-600",
                         )}
-                      </Avatar>
-                      <span className="font-medium">{transaction.user?.username}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums font-bold">
-                    {transaction.amount.toLocaleString()} pt
-                  </TableCell>
-                </TableRow>
-              ))}
+                      >
+                        {index + 2}
+                      </div>
+                    </TableCell>
+                    
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-10 w-10">
+                          {hasProfileImage ? (
+                            <AvatarImage 
+                              src={transaction.user.profileUrl!} 
+                              alt={t("rankings.table.userAlt", { user: transaction.user.username })} 
+                              className="object-cover" 
+                            />
+                          ) : (
+                            <AvatarFallback className="bg-gray-100">
+                              {getInitials(transaction.user?.username)}
+                            </AvatarFallback>
+                          )}
+                        </Avatar>
+                        <span className="font-medium">{transaction.user?.username}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums font-bold">
+                      {transaction.amount.toLocaleString()} pt
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </div>

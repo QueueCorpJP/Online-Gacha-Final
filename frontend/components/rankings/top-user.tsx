@@ -82,9 +82,9 @@ export function TopUser({ period }: TopUserProps) {
         <div className="flex gap-4">
           <div className="relative">
             <div className="relative h-32 w-32 overflow-hidden rounded-full border-4 border-yellow-400">
-              {topUser?.user.profileUrl ? (
+              {hasProfileImage ? (
                 <Image 
-                  src={topUser.user.profileUrl} 
+                  src={topUser.user.profileUrl!} 
                   alt={topUser.user.username} 
                   fill 
                   className="object-cover" 
