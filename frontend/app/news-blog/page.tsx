@@ -27,6 +27,8 @@ export default function NewsBlogPage() {
         try {
             const response = await api.get("/news-blog")
             setPosts(response.data)
+            // レスポンスデータをコンソールに出力（デバッグ用）
+            console.log("Loaded posts:", response.data)
         } catch (error) {
             console.error("Failed to load posts:", error)
         } finally {
@@ -42,7 +44,9 @@ export default function NewsBlogPage() {
         if (imagePath.startsWith('http')) return imagePath
         
         // 相対パスの場合はAPI_URLと結合
-        return `${process.env.NEXT_PUBLIC_API_URL}${imagePath}`
+        const fullUrl = `${process.env.NEXT_PUBLIC_API_URL}${imagePath}`
+        console.log("Generated image URL:", fullUrl) // デバッグ用
+        return fullUrl
     }
 
     if (loading) {
@@ -52,6 +56,9 @@ export default function NewsBlogPage() {
             </div>
         )
     }
+
+    // NEXT_PUBLIC_API_URLの値をコンソールに出力（デバッグ用）
+    console.log("API URL:", process.env.NEXT_PUBLIC_API_URL)
 
     return (
         <div className="container mx-auto py-8 px-4">
@@ -75,6 +82,11 @@ export default function NewsBlogPage() {
                                             alt={post.title}
                                             fill
                                             className="object-cover"
+                                            onError={(e) => {
+                                                console.error("Image load error:", e);
+                                                (e.target as HTMLImageElement).src = "/placeholder.svg";
+                                            }}
+                                            unoptimized
                                         />
                                     </div>
                                 )}
@@ -110,6 +122,11 @@ export default function NewsBlogPage() {
                                             alt={post.title}
                                             fill
                                             className="object-cover"
+                                            onError={(e) => {
+                                                console.error("Image load error:", e);
+                                                (e.target as HTMLImageElement).src = "/placeholder.svg";
+                                            }}
+                                            unoptimized
                                         />
                                     </div>
                                 )}
