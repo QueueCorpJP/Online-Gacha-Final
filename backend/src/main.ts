@@ -6,30 +6,10 @@ import { middleware as lineMiddleware } from '@line/bot-sdk';
 import { Request, Response, NextFunction } from 'express';
 
 async function bootstrap() {
+  // ⚠️ CORS設定を削除
   const app = await NestFactory.create(AppModule);
 
-  // CORS設定を追加
-  app.enableCors({
-    origin: [
-      'https://oripa-shijon.com', 
-      'http://localhost:3000', 
-      process.env.FRONTEND_URL || 'http://localhost:3000'
-    ],
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-    allowedHeaders: [
-      'Origin', 
-      'X-Requested-With', 
-      'Content-Type', 
-      'Accept', 
-      'Authorization',
-      'Access-Control-Allow-Methods',
-      'Access-Control-Allow-Origin',
-      'Access-Control-Allow-Headers'
-    ],
-    credentials: true,
-    preflightContinue: false,
-    optionsSuccessStatus: 204
-  });
+  // app.setGlobalPrefix('api'); ←使わない場合はそのままコメントでOK
 
   app.use(bodyParser.json({
     verify: (req, res, buf) => {
