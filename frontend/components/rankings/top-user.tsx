@@ -29,8 +29,11 @@ export function TopUser({ period }: TopUserProps) {
       try {
         setLoading(true);
         const data = await coinService.getGachaPurchaseStats(period);
+        console.log("APIから取得したデータ全体:", data);
         if (data.recentTransactions.length > 0) {
-          setTopUser(data.recentTransactions[0]);
+          const firstUser = data.recentTransactions[0];
+          console.log("トップユーザーデータ:", firstUser);
+          setTopUser(firstUser);
         }
       } catch (error) {
         toast.error(t("common.error"));
@@ -45,6 +48,8 @@ export function TopUser({ period }: TopUserProps) {
   if (loading) {
     return <div className="relative rounded-lg bg-gradient-to-r from-[#9333EA] to-[#6B21A8] p-6 mb-10 animate-pulse" />;
   }
+
+  console.log("レンダリング時のトップユーザー:", topUser);
 
   const getInitials = (username?: string) => {
     return username?.charAt(0).toUpperCase() || 'U';

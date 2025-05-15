@@ -25,6 +25,7 @@ export function RankingTable({ period }: RankingTableProps) {
       try {
         setLoading(true)
         const data = await coinService.getGachaPurchaseStats(period)
+        console.log("ランキングデータ:", data);
         setStats(data)
       } catch (error) {
         toast.error(t("common.error"))

@@ -130,6 +130,7 @@ export class CoinService {
       .select([
         'user.id as userId',
         'user.username as username',
+        'user.profileUrl as profileUrl',
         'COALESCE(SUM(ABS(transaction.amount)), 0) as amount'
       ])
       .leftJoin(
@@ -142,7 +143,7 @@ export class CoinService {
           startDate: (dateFilter as { createdAt: { gte: Date } }).createdAt.gte 
         } : { type: 'usage' }
       )
-      .groupBy('user.id, user.username')
+      .groupBy('user.id, user.username, user.profileUrl')
       .orderBy('COALESCE(SUM(ABS(transaction.amount)), 0)', 'DESC')
       .take(5)
       .getRawMany();
@@ -152,7 +153,8 @@ export class CoinService {
       amount: Number(t.amount),
       user: {
         id: t.userId,
-        username: t.username
+        username: t.username,
+        profileUrl: t.profileUrl
       }
     }));
 
