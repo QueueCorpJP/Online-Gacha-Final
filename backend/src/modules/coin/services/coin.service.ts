@@ -84,8 +84,6 @@ export class CoinService {
 
   async getGachaPurchaseStats(period?: 'daily' | 'weekly' | 'monthly') {
     let dateFilter: { createdAt?: { gte: Date } } = {};
-
-    
     
     if (period) {
       const now = new Date();
@@ -112,6 +110,10 @@ export class CoinService {
       };
     }
 
+    // デバッグ用にクエリをコンソールに出力
+    console.log("期間:", period);
+    console.log("開始日:", dateFilter.createdAt?.gte);
+
     const stats = await this.coinTransactionRepository
       .createQueryBuilder('transaction')
       .select([
@@ -125,7 +127,25 @@ export class CoinService {
         period && 'createdAt' in dateFilter ? { startDate: (dateFilter as { createdAt: { gte: Date } }).createdAt.gte } : {})
       .getRawOne();
 
-    const recentTransactions = await this.userRepository
+    // 直接SQLクエリを使用してユーザープロフィール情報を含むクエリを実行する
+    // まず、テーブル定義を確認
+    console.log("ユーザーテーブル構造のチェック中...");
+    try {
+      // 実際のユーザーを取得
+      const allUsers = await this.userRepository.find({ take: 3 });
+      console.log("ユーザーサンプル (最初の3名):", allUsers.map(u => ({
+        id: u.id,
+        username: u.username,
+        firstName: u.firstName,
+        lastName: u.lastName,
+        profileUrl: u.profileUrl,
+      })));
+    } catch (error) {
+      console.error("ユーザー取得エラー:", error);
+    }
+
+    // ユーザーの取得を修正して確実にprofileUrlを含める
+    const usersWithTransactions = await this.userRepository
       .createQueryBuilder('user')
       .select([
         'user.id as userId',
@@ -145,18 +165,33 @@ export class CoinService {
       )
       .groupBy('user.id, user.username, user.profileUrl')
       .orderBy('COALESCE(SUM(ABS(transaction.amount)), 0)', 'DESC')
-      .take(5)
+      .take(11) // より多くのユーザーを取得
       .getRawMany();
 
-    const formattedTransactions = recentTransactions.map(t => ({
-      id: t.userId,
-      amount: Number(t.amount),
-      user: {
+    console.log("取得したユーザー数:", usersWithTransactions.length);
+    if (usersWithTransactions.length > 0) {
+      console.log("最初のユーザー RAW データ:", usersWithTransactions[0]);
+    }
+
+    // トランザクションの形式を修正
+    const formattedTransactions = usersWithTransactions.map(t => {
+      const transaction = {
         id: t.userId,
-        username: t.username,
-        profileUrl: t.profileUrl
-      }
-    }));
+        amount: Number(t.amount),
+        createdAt: new Date().toISOString(),
+        user: {
+          id: t.userId,
+          username: t.username,
+          profileUrl: t.profileUrl
+        }
+      };
+      return transaction;
+    });
+
+    console.log("フォーマット済みトランザクション数:", formattedTransactions.length);
+    if (formattedTransactions.length > 0) {
+      console.log("最初のフォーマット済みユーザー:", JSON.stringify(formattedTransactions[0]));
+    }
 
     return {
       stats,

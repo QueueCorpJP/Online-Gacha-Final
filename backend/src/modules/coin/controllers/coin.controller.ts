@@ -33,10 +33,21 @@ export class CoinController {
 
   @Get('gacha-stats')
   async getGachaPurchaseStats(@Query('period') period?: 'daily' | 'weekly' | 'monthly') {
-    if (typeof period === "undefined")
+    console.log(`API呼び出し: period=${period || 'undefined'}`);
+    
+    if (typeof period === "undefined") {
       period = 'daily';
+    }
 
-    return this.coinService.getGachaPurchaseStats(period);
+    console.log(`確定されたperiod=${period}`);
+    const result = await this.coinService.getGachaPurchaseStats(period);
+    
+    // 結果のサンプルをログに出力
+    if (result.recentTransactions.length > 0) {
+      console.log('最初のユーザーデータ例:', result.recentTransactions[0]);
+    }
+    
+    return result;
   }
 
   @UseGuards(AuthGuard)

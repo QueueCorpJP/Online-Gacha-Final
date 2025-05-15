@@ -30,12 +30,22 @@ export function TopUser({ period }: TopUserProps) {
         setLoading(true);
         const data = await coinService.getGachaPurchaseStats(period);
         console.log("APIから取得したデータ全体:", data);
-        if (data.recentTransactions.length > 0) {
+        
+        if (data.recentTransactions && data.recentTransactions.length > 0) {
           const firstUser = data.recentTransactions[0];
           console.log("トップユーザーデータ:", firstUser);
+          
+          // データ構造の詳細を確認
+          console.log("ユーザーID:", firstUser.user?.id);
+          console.log("ユーザー名:", firstUser.user?.username);
+          console.log("プロフィール画像URL:", firstUser.user?.profileUrl);
+          
           setTopUser(firstUser);
+        } else {
+          console.log("トランザクションデータがありません");
         }
       } catch (error) {
+        console.error("エラー発生:", error);
         toast.error(t("common.error"));
       } finally {
         setLoading(false);
@@ -53,6 +63,17 @@ export function TopUser({ period }: TopUserProps) {
 
   const getInitials = (username?: string) => {
     return username?.charAt(0).toUpperCase() || 'U';
+  }
+
+  // トップユーザーがないか、データ構造が正しくないとき
+  if (!topUser || !topUser.user) {
+    return (
+      <div className="relative rounded-lg bg-gradient-to-r from-[#9333EA] to-[#6B21A8] p-6 mb-10">
+        <div className="flex flex-col items-center gap-4 text-white">
+          <div className="text-xl">データ取得中...</div>
+        </div>
+      </div>
+    );
   }
 
   return (

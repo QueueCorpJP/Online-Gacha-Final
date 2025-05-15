@@ -18,16 +18,27 @@ export function RankingTable({ period }: RankingTableProps) {
   const [stats, setStats] = useState<GachaPurchaseStats | null>(null)
   const [loading, setLoading] = useState(true);
 
-  console.log(period);
-
   useEffect(() => {
     const fetchStats = async () => {
       try {
         setLoading(true)
         const data = await coinService.getGachaPurchaseStats(period)
         console.log("ランキングデータ:", data);
+        
+        // トランザクション構造の詳細確認
+        if (data.recentTransactions && data.recentTransactions.length > 1) {
+          console.log("最初の数名のユーザー:");
+          data.recentTransactions.slice(0, 3).forEach((user, index) => {
+            console.log(`ユーザー ${index + 1}:`, user);
+            console.log(`- ID: ${user.user?.id}`);
+            console.log(`- ユーザー名: ${user.user?.username}`);
+            console.log(`- プロフィール画像: ${user.user?.profileUrl}`);
+          });
+        }
+        
         setStats(data)
       } catch (error) {
+        console.error("ランキングデータ取得エラー:", error);
         toast.error(t("common.error"))
       } finally {
         setLoading(false)
@@ -48,6 +59,14 @@ export function RankingTable({ period }: RankingTableProps) {
     return username?.charAt(0).toUpperCase() || 'U';
   }
 
+  if (transactions.length === 0) {
+    return (
+      <div className="rounded-xl border bg-white shadow-sm p-3 text-center py-8">
+        <p className="text-gray-500">データがありません</p>
+      </div>
+    );
+  }
+
   return (
     <div className="rounded-xl border bg-white shadow-sm p-3">
       <ScrollArea className="w-full whitespace-nowrap">
@@ -62,7 +81,7 @@ export function RankingTable({ period }: RankingTableProps) {
             </TableHeader>
             <TableBody className="mx-6">
               {transactions.map((transaction, index) => (
-                <TableRow key={transaction.id} className="hover:bg-transparent">
+                <TableRow key={transaction.id || index} className="hover:bg-transparent">
                   <TableCell className="font-medium">
                     <div
                       className={cn(
@@ -79,7 +98,7 @@ export function RankingTable({ period }: RankingTableProps) {
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <Avatar className="h-10 w-10">
-                        {transaction.user.profileUrl ? (
+                        {transaction.user?.profileUrl ? (
                           <AvatarImage 
                             src={transaction.user.profileUrl} 
                             alt={t("rankings.table.userAlt", { user: transaction.user.username })} 
@@ -87,11 +106,11 @@ export function RankingTable({ period }: RankingTableProps) {
                           />
                         ) : (
                           <AvatarFallback className="bg-gray-100">
-                            {getInitials(transaction.user.username)}
+                            {getInitials(transaction.user?.username)}
                           </AvatarFallback>
                         )}
                       </Avatar>
-                      <span className="font-medium">{transaction.user.username}</span>
+                      <span className="font-medium">{transaction.user?.username}</span>
                     </div>
                   </TableCell>
                   <TableCell className="text-right tabular-nums font-bold">
