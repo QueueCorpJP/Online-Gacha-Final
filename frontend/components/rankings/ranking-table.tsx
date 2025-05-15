@@ -7,6 +7,7 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 import { useTranslations } from "@/hooks/use-translations"
 import { coinService, GachaPurchaseStats } from "@/services/coinService"
 import { toast } from "sonner";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 interface RankingTableProps {
   period: 'daily' | 'weekly' | 'monthly';
@@ -42,6 +43,10 @@ export function RankingTable({ period }: RankingTableProps) {
   // Get transactions excluding the first one (top user)
   const transactions = stats?.recentTransactions.slice(1) || []
 
+  const getInitials = (username?: string) => {
+    return username?.charAt(0).toUpperCase() || 'U';
+  }
+
   return (
     <div className="rounded-xl border bg-white shadow-sm p-3">
       <ScrollArea className="w-full whitespace-nowrap">
@@ -72,14 +77,19 @@ export function RankingTable({ period }: RankingTableProps) {
                   
                   <TableCell>
                     <div className="flex items-center gap-3">
-                      <div className="relative h-10 w-10 overflow-hidden rounded-full bg-gray-100">
-                        <Image 
-                          src="/placeholder.svg" 
-                          alt={t("rankings.table.userAlt", { user: transaction.user.username })} 
-                          fill 
-                          className="object-cover" 
-                        />
-                      </div>
+                      <Avatar className="h-10 w-10">
+                        {transaction.user.profileUrl ? (
+                          <AvatarImage 
+                            src={transaction.user.profileUrl} 
+                            alt={t("rankings.table.userAlt", { user: transaction.user.username })} 
+                            className="object-cover" 
+                          />
+                        ) : (
+                          <AvatarFallback className="bg-gray-100">
+                            {getInitials(transaction.user.username)}
+                          </AvatarFallback>
+                        )}
+                      </Avatar>
                       <span className="font-medium">{transaction.user.username}</span>
                     </div>
                   </TableCell>

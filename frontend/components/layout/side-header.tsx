@@ -133,9 +133,13 @@ export function SiteHeader({ isAdmin = false }: SiteHeaderProps) {
         <DropdownMenu>
           <DropdownMenuTrigger className="flex items-center gap-2">
             <Avatar className="h-8 w-8">
-              <AvatarFallback>
-                {profileData ? getInitials(profileData.lastName, profileData.firstName) : "UN"}
-              </AvatarFallback>
+              {profileData?.profileUrl ? (
+                <AvatarImage src={profileData.profileUrl} alt={profileData ? `${profileData.lastName} ${profileData.firstName}` : t("header.userMenu.username")} />
+              ) : (
+                <AvatarFallback>
+                  {profileData ? getInitials(profileData.lastName, profileData.firstName) : "UN"}
+                </AvatarFallback>
+              )}
             </Avatar>
             <span className="hidden sm:inline font-medium">
               {profileData ? `${profileData.lastName} ${profileData.firstName} ` : t("header.userMenu.username")}

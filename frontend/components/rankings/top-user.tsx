@@ -5,6 +5,7 @@ import { Crown } from "lucide-react"
 import { useTranslations } from "@/hooks/use-translations"
 import { coinService } from "@/services/coinService"
 import { toast } from "sonner"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 interface TopUserProps {
   period: 'daily' | 'weekly' | 'monthly';
@@ -18,6 +19,7 @@ export function TopUser({ period }: TopUserProps) {
     user: {
       id: string;
       username: string;
+      profileUrl?: string;
     };
   } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -30,8 +32,6 @@ export function TopUser({ period }: TopUserProps) {
         if (data.recentTransactions.length > 0) {
           setTopUser(data.recentTransactions[0]);
         }
-
-        console.log(data);
       } catch (error) {
         toast.error(t("common.error"));
       } finally {
@@ -40,10 +40,14 @@ export function TopUser({ period }: TopUserProps) {
     };
 
     fetchTopUser();
-  }, [period]); // Add period to dependency array
+  }, [period]);
 
   if (loading) {
     return <div className="relative rounded-lg bg-gradient-to-r from-[#9333EA] to-[#6B21A8] p-6 mb-10 animate-pulse" />;
+  }
+
+  const getInitials = (username?: string) => {
+    return username?.charAt(0).toUpperCase() || 'U';
   }
 
   return (
@@ -52,7 +56,18 @@ export function TopUser({ period }: TopUserProps) {
         <div className="flex gap-4">
           <div className="relative">
             <div className="relative h-32 w-32 overflow-hidden rounded-full border-4 border-yellow-400">
-              <Image src="/placeholder.svg" alt={topUser?.user.username || t("rankings.topUser.title")} fill className="object-cover" />
+              {topUser?.user.profileUrl ? (
+                <Image 
+                  src={topUser.user.profileUrl} 
+                  alt={topUser.user.username} 
+                  fill 
+                  className="object-cover" 
+                />
+              ) : (
+                <div className="h-full w-full bg-purple-800 flex items-center justify-center text-white text-4xl font-bold">
+                  {getInitials(topUser?.user.username)}
+                </div>
+              )}
             </div>
             <Crown className="absolute -top-2 -right-2 h-8 w-8 text-yellow-400" />
           </div>

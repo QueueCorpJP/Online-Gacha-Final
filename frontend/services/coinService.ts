@@ -14,6 +14,7 @@ export interface GachaPurchaseStats {
     user: {
       id: string;
       username: string;
+      profileUrl?: string;
     };
   }[];
 }
