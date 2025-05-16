@@ -494,11 +494,11 @@ export default function GachaResultClient() {
         return () => clearTimeout(timer);
       } 
       else if (animationPhase === 'fade-out') {
-        // フェードアウト後、フェードイン開始
+        // フェードアウト後すぐにフェードイン開始（タイミングを短縮）
         const timer = setTimeout(() => {
           setAnimationPhase('multi-cards');
           setShowMultiDrawAnimation(true);
-        }, 1000); // フェードアウトの時間
+        }, 500); // フェードアウトの時間を短縮（1000ms→500ms）
         
         return () => clearTimeout(timer);
       }
@@ -756,11 +756,11 @@ export default function GachaResultClient() {
     // 上段5枚、下段5枚で表示
     return (
       <div className={`w-full max-w-3xl mt-8 transition-opacity duration-1000 ${showMultiDrawAnimation ? 'opacity-100' : 'opacity-0'}`}>
-        <h3 className="text-xl font-semibold mb-4">{t("gacha.result.multi_draw")}</h3>
-        <div className="grid grid-cols-5 gap-2 mb-2">
+        <h3 className="text-xl font-semibold mb-4 text-center">{t("gacha.result.multi_draw")}</h3>
+        <div className="grid grid-cols-5 gap-3 mb-3"> {/* gap-2→gap-3, mb-2→mb-3 に変更してカードを大きく */}
           {sortedItems.slice(0, 5).map((item, index) => (
             <div key={`top-${index}`} className="relative">
-              <div className="aspect-square relative rounded-lg overflow-hidden border">
+              <div className="aspect-square relative rounded-lg overflow-hidden border shadow-md"> {/* shadow-md を追加 */}
                 <Image 
                   src={item.imageUrl ? `${process.env.NEXT_PUBLIC_API_URL}${item.imageUrl}` : "/placeholder.svg"}
                   alt={getLocalizedName(item)}
@@ -776,10 +776,10 @@ export default function GachaResultClient() {
             </div>
           ))}
         </div>
-        <div className="grid grid-cols-5 gap-2">
+        <div className="grid grid-cols-5 gap-3"> {/* gap-2→gap-3 に変更してカードを大きく */}
           {sortedItems.slice(5, 10).map((item, index) => (
             <div key={`bottom-${index}`} className="relative">
-              <div className="aspect-square relative rounded-lg overflow-hidden border">
+              <div className="aspect-square relative rounded-lg overflow-hidden border shadow-md"> {/* shadow-md を追加 */}
                 <Image 
                   src={item.imageUrl ? `${process.env.NEXT_PUBLIC_API_URL}${item.imageUrl}` : "/placeholder.svg"}
                   alt={getLocalizedName(item)}
@@ -807,7 +807,7 @@ export default function GachaResultClient() {
     const firstCard = originalItems[0];
     
     return (
-      <div className={`w-full max-w-md relative transition-opacity duration-1000 ${animationPhase === 'first-card' ? 'opacity-100' : 'opacity-0'}`}>
+      <div className={`w-full max-w-md mx-auto transition-opacity duration-1000 ${animationPhase === 'first-card' ? 'opacity-100' : 'opacity-0'} absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2`}>
         <Card className="border-0 bg-zinc-50 overflow-hidden rounded-xl shadow-lg animate-pulse-slow">
           <div className="aspect-square relative">
             <Image 
@@ -841,12 +841,14 @@ export default function GachaResultClient() {
 
         {/* 10連ガチャの場合 */}
         {isMultiDraw && (
-          <div className="relative w-full flex justify-center">
+          <div className="relative w-full flex justify-center min-h-[50vh]"> {/* min-heightを追加して十分な高さを確保 */}
             {/* 1枚目のカード表示 */}
             {renderFirstCard()}
             
-            {/* 10連表示 */}
-            {renderMultiDrawResults()}
+            {/* 10連表示 - 中央に配置 */}
+            <div className="w-full flex justify-center items-center">
+              {renderMultiDrawResults()}
+            </div>
           </div>
         )}
 
