@@ -16,12 +16,14 @@ interface GachaData {
   description: string;
   type: string;
   price: string;
-  duration: string;
+  period?: string;
+  duration?: string;
   items: {
     id: string,
     name: string;
     rarity: string;
     probability: string;
+    exchangeRate?: number;
     image?: string;
     stock?: number;
     psaGrading?: string;
@@ -252,12 +254,14 @@ const gachaSlice = createSlice({
           description: action.payload.translations.ja.description || action.payload.translations.en.description,
           type: action.payload.type,
           price: action.payload.price.toString(),
+          period: action.payload.period?.toString() || '',
           duration: action.payload.period?.toString() || '',
           items: action.payload.items.map(item => ({
             id: item.id,
             name: item.name,
             rarity: item.rarity,
             probability: item.probability.toString(),
+            exchangeRate: item.exchangeRate || 1.0,
             stock: item.stock,
           })),
           isActive: action.payload.isActive,

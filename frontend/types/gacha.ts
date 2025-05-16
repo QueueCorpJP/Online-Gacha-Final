@@ -27,6 +27,7 @@ export interface GachaItem {
   rarity: "S" | "A" | "B" | "C" | "D";
   probability: number;
   stock?: number;  // Make stock optional
+  exchangeRate?: number;
   image?: File;
   imageUrl?: string;
   hasNewImage?: boolean;

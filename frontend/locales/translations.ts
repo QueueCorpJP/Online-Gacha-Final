@@ -663,7 +663,7 @@ export const translations = {
             },
             form: {
                 lastName: "姓",
-                firstName: "名",
+                firstName: "名前",
                 username: "ユーザー名",
                 email: "メールアドレス",
                 password: "パスワード",
@@ -991,7 +991,8 @@ export const translations = {
             }
         },
         gachaForm: {
-            title: "ガチャ設定",
+            title: "ガチャを作成",
+            titleEdit: "ガチャを編集",
             toast: {
                 createSuccess: "ガチャを作成しました",
                 updateSuccess: "ガチャを更新しました",
@@ -1064,7 +1065,8 @@ export const translations = {
             status: {
                 active: "公開する"
             },
-            submit: "保存する",
+            submit: "作成する",
+            update: "更新する",
             validation: {
                 categoryRequired: "カテゴリーを選択してください",
                 thumbnailRequired: "サムネイル画像を選択してください"

@@ -12,7 +12,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { UploadZone } from "@/components/ui/upload-zone"
 import { useDispatch, useSelector } from "react-redux"
 import type { AppDispatch, RootState } from "@/redux/store"
-import { createGacha, updateGacha } from "@/redux/features/gachaSlice"
+import { createGacha, updateGacha, fetchGachaById } from "@/redux/features/gachaSlice"
 import { fetchCategories } from "@/redux/features/categorySlice"
 import { toast } from "sonner";
 import { useRouter } from "next/navigation"
@@ -23,6 +23,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 
 interface GachaFormProps {
   initialData?: GachaFormData;
+  gachaId?: string | null;
+  onSubmitSuccess?: () => void;
 }
 
 interface LastOnePrize {
@@ -33,15 +35,15 @@ interface LastOnePrize {
 }
 
 
-export function GachaForm({ initialData }: GachaFormProps) {
+export function GachaForm({ initialData, gachaId, onSubmitSuccess }: GachaFormProps) {
   const { t } = useTranslations();
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
   const { categories, isLoading: categoriesLoading } = useSelector((state: RootState) => state.category);
-  const { currentGacha } = useSelector((state: RootState) => state.gacha);
+  const { currentGacha, loading } = useSelector((state: RootState) => state.gacha);
 
   // Initialize state with either initialData or currentGacha
-  const  [gachaId, setGachaId] = useState<string | null>(null);
+  const [formGachaId, setFormGachaId] = useState<string | null>(null);
   const [items, setItems] = useState<GachaItem[]>(initialData?.items || []);
   const [isLimitless, setIsLimitless] = useState(initialData?.dailyLimit === null);
   const [isActive, setIsActive] = useState(initialData?.isActive ?? true);
@@ -67,10 +69,19 @@ export function GachaForm({ initialData }: GachaFormProps) {
   const [pityThreshold, setPityThreshold] = useState(initialData?.pityThreshold || 50);
   const [lastOnePrizeId, setLastOnePrizeId] = useState<string | null>(null);
 
+  // 外部から指定されたgachaIdが変更されたとき、そのガチャを取得して表示する
+  useEffect(() => {
+    if (gachaId && gachaId !== formGachaId) {
+      setFormGachaId(gachaId);
+      // ガチャデータを取得するアクションをディスパッチ
+      dispatch(fetchGachaById(gachaId));
+    }
+  }, [gachaId, formGachaId, dispatch]);
+
   // Use useEffect to update form data when currentGacha changes
   useEffect(() => {
     if (currentGacha) {
-      setGachaId(currentGacha.id);
+      setFormGachaId(currentGacha.id);
       setItems(currentGacha.items.map(item => ({
         id: item.id,
         name: item.name,
@@ -311,22 +322,30 @@ export function GachaForm({ initialData }: GachaFormProps) {
         }
       });
 
-      if (gachaId) {
+      if (formGachaId) {
         const result = await dispatch(updateGacha({ 
-          id: gachaId, 
+          id: formGachaId, 
           data: submitFormData
         })).unwrap();
         
         if (result) {
           toast.success(t("gachaForm.toast.updateSuccess"));
-          router.push('/admin/gacha');
+          if (onSubmitSuccess) {
+            onSubmitSuccess();
+          } else {
+            router.push('/admin/gacha');
+          }
         }
       } else {
         const result = await dispatch(createGacha(submitFormData)).unwrap();
         
         if (result) {
           toast.success(t("gachaForm.toast.createSuccess"));
-          router.push('/admin/gacha');
+          if (onSubmitSuccess) {
+            onSubmitSuccess();
+          } else {
+            router.push('/admin/gacha');
+          }
         }
       }
 
@@ -420,7 +439,9 @@ export function GachaForm({ initialData }: GachaFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
       <div className="grid">
-        <h2 className="font-bold text-2xl mb-10">{t('gachaForm.title')}</h2>
+        <h2 className="font-bold text-2xl mb-10">
+          {formGachaId ? t('gachaForm.titleEdit') : t('gachaForm.title')}
+        </h2>
         <div className="space-y-8">
           {/* Language Tabs */}
 
@@ -924,7 +945,7 @@ export function GachaForm({ initialData }: GachaFormProps) {
         <span className="text-sm text-gray-600">{t('gachaForm.status.active')}</span>
       </div>
       <Button type="submit" className="w-full bg-[#9333EA] hover:bg-[#7E22CE] text-white rounded-lg py-4">
-        {t('gachaForm.submit')}
+        {formGachaId ? t('gachaForm.update') : t('gachaForm.submit')}
       </Button>
     </form>
   )
