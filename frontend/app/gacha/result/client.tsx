@@ -480,7 +480,7 @@ export default function GachaResultClient() {
     }
   }, [searchParams, dispatch])
 
-  // 10連ガチャのアニメーション制御
+      // 10連ガチャのアニメーション制御
   useEffect(() => {
     if (showResults && isMultiDraw) {
       if (animationPhase === 'first-card') {
@@ -498,6 +498,18 @@ export default function GachaResultClient() {
         const timer = setTimeout(() => {
           setAnimationPhase('multi-cards');
           setShowMultiDrawAnimation(true);
+          
+          // 最初のカード要素を完全に非表示にする（DOM上からも消す）
+          const removeTimer = setTimeout(() => {
+            const firstCardElement = document.querySelector('.first-card-container');
+            if (firstCardElement) {
+              firstCardElement.classList.add('hidden');
+            }
+          }, 500);
+          
+          return () => {
+            clearTimeout(removeTimer);
+          };
         }, 300); // フェードアウト後すぐに表示
         
         return () => clearTimeout(timer);
@@ -753,7 +765,7 @@ export default function GachaResultClient() {
     const firstCard = originalItems[0];
     
     return (
-      <div className={`w-full max-w-md mx-auto transition-opacity duration-500 ${animationPhase === 'first-card' ? 'opacity-100' : 'opacity-0'} absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20`}>
+      <div className={`first-card-container w-full max-w-md mx-auto transition-all duration-500 ${animationPhase === 'first-card' ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'} absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20 ${animationPhase === 'multi-cards' ? 'hidden' : ''}`}>
         <Card className="border-0 bg-zinc-50 overflow-hidden rounded-xl shadow-lg animate-pulse-slow">
           <div className="aspect-square relative">
             <Image 
