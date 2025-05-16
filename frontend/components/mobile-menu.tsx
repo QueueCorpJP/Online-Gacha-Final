@@ -45,6 +45,7 @@ export function MobileMenu({ open, onOpenChange, setPaymentDialogOpen }: MobileM
 
     const authenticatedMenuItems = [
         { href: "/products", label: t("navigation.originalGacha") },
+        { href: "/rankings", label: t("navigation.gachaRanking") },
         { href: "/profile/inventory", label: t("profile.tabs.inventory") },
         { href: "/profile/inventory", label: t("navigation.exchange") },
         { href: "/profile", label: t("header.userMenu.profile") },
