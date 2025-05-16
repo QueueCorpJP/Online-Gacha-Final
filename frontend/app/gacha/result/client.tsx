@@ -159,6 +159,9 @@ export default function GachaResultClient() {
   const [groupedResults, setGroupedResults] = useState<GroupedResults>({})
   const [originalItems, setOriginalItems] = useState<GachaResult[]>([]) // 元の順番を保持
   const [isMultiDraw, setIsMultiDraw] = useState(false) // 10連ガチャかどうか
+  const [showFirstCard, setShowFirstCard] = useState(true) // 1枚目のカードを表示するかどうか
+  const [showMultiDrawAnimation, setShowMultiDrawAnimation] = useState(false) // 10連表示をフェードインするかどうか
+  const [animationPhase, setAnimationPhase] = useState<'first-card' | 'fade-out' | 'multi-cards'>('first-card') // アニメーションの段階
   const { currentGacha: gacha } = useSelector((state: RootState) => state.gacha)
   const [isLoading, setIsLoading] = useState(true)
   const [showResults, setShowResults] = useState(false)
@@ -364,6 +367,13 @@ export default function GachaResultClient() {
         setUniqueResults(uniqueItems);
         setGroupedResults(grouped);
         
+        // 10連ガチャの場合、アニメーション状態を初期化
+        if (parsedData.items.length >= 10) {
+          setShowFirstCard(true);
+          setShowMultiDrawAnimation(false);
+          setAnimationPhase('first-card');
+        }
+        
         // Then use the parsed data to fetch gacha details
         dispatch(fetchGachaById(parsedData.gachaId))
         
@@ -469,6 +479,31 @@ export default function GachaResultClient() {
       }
     }
   }, [searchParams, dispatch])
+
+  // 10連ガチャのアニメーション制御
+  useEffect(() => {
+    if (showResults && isMultiDraw) {
+      if (animationPhase === 'first-card') {
+        // 最初のカードを3秒間表示
+        const timer = setTimeout(() => {
+          setAnimationPhase('fade-out');
+          // フェードアウト開始
+          setShowFirstCard(false);
+        }, 3000);
+        
+        return () => clearTimeout(timer);
+      } 
+      else if (animationPhase === 'fade-out') {
+        // フェードアウト後、フェードイン開始
+        const timer = setTimeout(() => {
+          setAnimationPhase('multi-cards');
+          setShowMultiDrawAnimation(true);
+        }, 1000); // フェードアウトの時間
+        
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [showResults, isMultiDraw, animationPhase]);
 
   const handleNext = () => {
     setCurrentIndex((prev) => Math.min(prev + 1, uniqueResults.length - 1))
@@ -720,7 +755,7 @@ export default function GachaResultClient() {
     
     // 上段5枚、下段5枚で表示
     return (
-      <div className="w-full max-w-3xl mt-8">
+      <div className={`w-full max-w-3xl mt-8 transition-opacity duration-1000 ${showMultiDrawAnimation ? 'opacity-100' : 'opacity-0'}`}>
         <h3 className="text-xl font-semibold mb-4">{t("gacha.result.multi_draw")}</h3>
         <div className="grid grid-cols-5 gap-2 mb-2">
           {sortedItems.slice(0, 5).map((item, index) => (
@@ -764,6 +799,35 @@ export default function GachaResultClient() {
     );
   };
 
+  // 1枚目のカード表示（10連ガチャの最初の演出）
+  const renderFirstCard = () => {
+    if (!originalItems || originalItems.length === 0) return null;
+    
+    // 最初のカード（レア度順ではなく、実際に引いた順の最初のカード）
+    const firstCard = originalItems[0];
+    
+    return (
+      <div className={`w-full max-w-md relative transition-opacity duration-1000 ${animationPhase === 'first-card' ? 'opacity-100' : 'opacity-0'}`}>
+        <Card className="border-0 bg-zinc-50 overflow-hidden rounded-xl shadow-lg animate-pulse-slow">
+          <div className="aspect-square relative">
+            <Image 
+              src={firstCard?.imageUrl ? `${process.env.NEXT_PUBLIC_API_URL}${firstCard.imageUrl}` : "/placeholder.svg"}
+              alt={getLocalizedName(firstCard)}
+              fill
+              className="object-contain p-4"
+            />
+          </div>
+          <div className="p-6 text-center">
+            <Badge className={`mb-3 ${getRarityColor(firstCard?.rarity || "")}`}>
+              {formatRarity(firstCard?.rarity || "")}
+            </Badge>
+            <h2 className="text-2xl font-bold mb-2">{getLocalizedName(firstCard)}</h2>
+          </div>
+        </Card>
+      </div>
+    );
+  };
+
   return (
     <>
       <div className={`min-h-screen bg-white flex flex-col items-center py-8 px-4 
@@ -771,12 +835,20 @@ export default function GachaResultClient() {
         <div className="w-full max-w-3xl text-center mb-8">
           <h1 className="text-2xl font-bold mb-2">{t("gacha.result.title")}</h1>
           <p className="text-gray-600">
-            {t("gacha.result.congratulations")} ({currentIndex + 1}/{uniqueResults.length})
+            {t("gacha.result.congratulations")} {!isMultiDraw && `(${currentIndex + 1}/${uniqueResults.length})`}
           </p>
         </div>
 
-        {/* 10連ガチャの場合は個別表示 */}
-        {isMultiDraw && renderMultiDrawResults()}
+        {/* 10連ガチャの場合 */}
+        {isMultiDraw && (
+          <div className="relative w-full flex justify-center">
+            {/* 1枚目のカード表示 */}
+            {renderFirstCard()}
+            
+            {/* 10連表示 */}
+            {renderMultiDrawResults()}
+          </div>
+        )}
 
         {/* 単発ガチャまたは通常表示 */}
         {(!isMultiDraw || originalItems.length < 10) && (
