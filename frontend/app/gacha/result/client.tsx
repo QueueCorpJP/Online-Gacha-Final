@@ -157,6 +157,8 @@ export default function GachaResultClient() {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [uniqueResults, setUniqueResults] = useState<UniqueGachaResult[]>([])
   const [groupedResults, setGroupedResults] = useState<GroupedResults>({})
+  const [originalItems, setOriginalItems] = useState<GachaResult[]>([]) // 元の順番を保持
+  const [isMultiDraw, setIsMultiDraw] = useState(false) // 10連ガチャかどうか
   const { currentGacha: gacha } = useSelector((state: RootState) => state.gacha)
   const [isLoading, setIsLoading] = useState(true)
   const [showResults, setShowResults] = useState(false)
@@ -184,6 +186,12 @@ export default function GachaResultClient() {
     if (!items || items.length === 0) {
       throw new Error("ガチャアイテムがありません");
     }
+    
+    // 元のアイテムを保存
+    setOriginalItems(items);
+    
+    // 10連ガチャかどうかを判定
+    setIsMultiDraw(items.length >= 10);
     
     // アイテムをカウントして重複を除去
     const itemCounts = items.reduce((acc: { [key: string]: UniqueGachaResult }, item: GachaResult) => {
@@ -699,6 +707,63 @@ export default function GachaResultClient() {
     </div>
   );
 
+  // 10連ガチャの結果表示
+  const renderMultiDrawResults = () => {
+    if (!originalItems || originalItems.length < 10) return null;
+    
+    // レア度順にソート
+    const sortedItems = [...originalItems].sort((a, b) => {
+      const rarityA = a.rarity.toUpperCase() as RarityKey;
+      const rarityB = b.rarity.toUpperCase() as RarityKey;
+      return (RARITY_ORDER[rarityB] || 0) - (RARITY_ORDER[rarityA] || 0);
+    });
+    
+    // 上段5枚、下段5枚で表示
+    return (
+      <div className="w-full max-w-3xl mt-8">
+        <h3 className="text-xl font-semibold mb-4">{t("gacha.result.multi_draw")}</h3>
+        <div className="grid grid-cols-5 gap-2 mb-2">
+          {sortedItems.slice(0, 5).map((item, index) => (
+            <div key={`top-${index}`} className="relative">
+              <div className="aspect-square relative rounded-lg overflow-hidden border">
+                <Image 
+                  src={item.imageUrl ? `${process.env.NEXT_PUBLIC_API_URL}${item.imageUrl}` : "/placeholder.svg"}
+                  alt={getLocalizedName(item)}
+                  fill
+                  className="object-contain p-1"
+                />
+                <div className="absolute top-0 right-0 p-1">
+                  <Badge className={`${getRarityColor(item.rarity)}`}>
+                    {formatRarity(item.rarity)}
+                  </Badge>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-5 gap-2">
+          {sortedItems.slice(5, 10).map((item, index) => (
+            <div key={`bottom-${index}`} className="relative">
+              <div className="aspect-square relative rounded-lg overflow-hidden border">
+                <Image 
+                  src={item.imageUrl ? `${process.env.NEXT_PUBLIC_API_URL}${item.imageUrl}` : "/placeholder.svg"}
+                  alt={getLocalizedName(item)}
+                  fill
+                  className="object-contain p-1"
+                />
+                <div className="absolute top-0 right-0 p-1">
+                  <Badge className={`${getRarityColor(item.rarity)}`}>
+                    {formatRarity(item.rarity)}
+                  </Badge>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <>
       <div className={`min-h-screen bg-white flex flex-col items-center py-8 px-4 
@@ -710,85 +775,93 @@ export default function GachaResultClient() {
           </p>
         </div>
 
-        {/* Main item card display */}
-        <div className="w-full max-w-md relative">
-          <Card className="border-0 bg-zinc-50 overflow-hidden rounded-xl shadow-lg">
-            <div className="aspect-square relative">
-              <Image 
-                src={currentItem?.imageUrl ? `${process.env.NEXT_PUBLIC_API_URL}${currentItem.imageUrl}` : "/placeholder.svg"}
-                alt={currentItem ? getLocalizedName(currentItem) : ""}
-                fill
-                className="object-contain p-4"
-              />
-            </div>
-            <div className="p-6 text-center">
-              <Badge className={`mb-3 ${getRarityColor(currentItem?.rarity || "")}`}>
-                {formatRarity(currentItem?.rarity || "")}
-              </Badge>
-              <h2 className="text-2xl font-bold mb-2">{currentItem ? getLocalizedName(currentItem) : ""}</h2>
-              <p className="text-gray-500 mb-4">×{currentItem?.count || 0}</p>
-            </div>
-          </Card>
+        {/* 10連ガチャの場合は個別表示 */}
+        {isMultiDraw && renderMultiDrawResults()}
 
-          {/* Navigation buttons */}
-          <div className="absolute inset-y-0 left-0 flex items-center">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="h-10 w-10 rounded-full bg-white shadow-md"
-              onClick={handlePrevious}
-              disabled={currentIndex === 0}
-            >
-              <ChevronLeft className="h-6 w-6" />
-            </Button>
-          </div>
-          <div className="absolute inset-y-0 right-0 flex items-center">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="h-10 w-10 rounded-full bg-white shadow-md"
-              onClick={handleNext}
-              disabled={currentIndex === uniqueResults.length - 1}
-            >
-              <ChevronRight className="h-6 w-6" />
-            </Button>
-          </div>
-        </div>
-
-        {/* Results summary */}
-        <div className="w-full max-w-3xl mt-8 space-y-4">
-          <h3 className="text-xl font-semibold">{t("gacha.result.summary")}</h3>
-          <div className="bg-white p-4 rounded-xl shadow">
-            {Object.entries(groupedResults).sort(([rarityA], [rarityB]) => {
-              return (RARITY_ORDER[(rarityB.toUpperCase() as RarityKey)] || 0) - 
-                    (RARITY_ORDER[(rarityA.toUpperCase() as RarityKey)] || 0);
-            }).map(([rarity, items]) => (
-              <div key={rarity} className="mb-4 last:mb-0">
-                <h4 className={`${getRarityColor(rarity)} inline-block px-2 py-1 rounded text-sm font-medium mb-2`}>
-                  {formatRarity(rarity)}
-                </h4>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {items.map((item) => (
-                    <div key={item.id} className="flex items-center gap-2 bg-zinc-50 p-2 rounded">
-                      <div className="h-10 w-10 relative flex-shrink-0">
-                        <Image 
-                          src={item.imageUrl ? `${process.env.NEXT_PUBLIC_API_URL}${item.imageUrl}` : "/placeholder.svg"}
-                          alt={getLocalizedName(item)}
-                          fill
-                          className="object-contain"
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{getLocalizedName(item)}</p>
-                        <p className="text-xs text-gray-500">×{(item as UniqueGachaResult).count}</p>
-                      </div>
-                    </div>
-                  ))}
+        {/* 単発ガチャまたは通常表示 */}
+        {(!isMultiDraw || originalItems.length < 10) && (
+          <>
+            {/* Main item card display */}
+            <div className="w-full max-w-md relative">
+              <Card className="border-0 bg-zinc-50 overflow-hidden rounded-xl shadow-lg">
+                <div className="aspect-square relative">
+                  <Image 
+                    src={currentItem?.imageUrl ? `${process.env.NEXT_PUBLIC_API_URL}${currentItem.imageUrl}` : "/placeholder.svg"}
+                    alt={currentItem ? getLocalizedName(currentItem) : ""}
+                    fill
+                    className="object-contain p-4"
+                  />
                 </div>
+                <div className="p-6 text-center">
+                  <Badge className={`mb-3 ${getRarityColor(currentItem?.rarity || "")}`}>
+                    {formatRarity(currentItem?.rarity || "")}
+                  </Badge>
+                  <h2 className="text-2xl font-bold mb-2">{currentItem ? getLocalizedName(currentItem) : ""}</h2>
+                  <p className="text-gray-500 mb-4">×{currentItem?.count || 0}</p>
+                </div>
+              </Card>
+
+              {/* Navigation buttons */}
+              <div className="absolute inset-y-0 left-0 flex items-center">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-10 w-10 rounded-full bg-white shadow-md"
+                  onClick={handlePrevious}
+                  disabled={currentIndex === 0}
+                >
+                  <ChevronLeft className="h-6 w-6" />
+                </Button>
               </div>
-            ))}
-          </div>
-        </div>
+              <div className="absolute inset-y-0 right-0 flex items-center">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-10 w-10 rounded-full bg-white shadow-md"
+                  onClick={handleNext}
+                  disabled={currentIndex === uniqueResults.length - 1}
+                >
+                  <ChevronRight className="h-6 w-6" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Results summary */}
+            <div className="w-full max-w-3xl mt-8 space-y-4">
+              <h3 className="text-xl font-semibold">{t("gacha.result.summary")}</h3>
+              <div className="bg-white p-4 rounded-xl shadow">
+                {Object.entries(groupedResults).sort(([rarityA], [rarityB]) => {
+                  return (RARITY_ORDER[(rarityB.toUpperCase() as RarityKey)] || 0) - 
+                        (RARITY_ORDER[(rarityA.toUpperCase() as RarityKey)] || 0);
+                }).map(([rarity, items]) => (
+                  <div key={rarity} className="mb-4 last:mb-0">
+                    <h4 className={`${getRarityColor(rarity)} inline-block px-2 py-1 rounded text-sm font-medium mb-2`}>
+                      {formatRarity(rarity)}
+                    </h4>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {items.map((item) => (
+                        <div key={item.id} className="flex items-center gap-2 bg-zinc-50 p-2 rounded">
+                          <div className="h-10 w-10 relative flex-shrink-0">
+                            <Image 
+                              src={item.imageUrl ? `${process.env.NEXT_PUBLIC_API_URL}${item.imageUrl}` : "/placeholder.svg"}
+                              alt={getLocalizedName(item)}
+                              fill
+                              className="object-contain"
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{getLocalizedName(item)}</p>
+                            <p className="text-xs text-gray-500">×{(item as UniqueGachaResult).count}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
 
         {/* Action buttons */}
         {renderActionButtons()}

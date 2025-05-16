@@ -790,6 +790,7 @@ export const translations = {
                 discount: "10%オフ！",
                 returnToList: "ガチャ一覧に戻る",
                 summary: "獲得アイテム一覧",
+                multi_draw: "10連ガチャ結果",
                 cardInfo: {
                     ultraRare: "ウルトラレア",
                     id: "ID",
@@ -2147,6 +2148,7 @@ export const translations = {
                 discount: "10% OFF!",
                 returnToList: "Return to Gacha List",
                 summary: "Items Obtained",
+                multi_draw: "10 Draws Result",
                 cardInfo: {
                     ultraRare: "Ultra Rare",
                     id: "ID",
@@ -3518,6 +3520,7 @@ export const translations = {
                 discount: "10% OFF!",
                 returnToList: "返回扭蛋列表",
                 summary: "获得物品列表",
+                multi_draw: "10连抽结果",
                 cardInfo: {
                     ultraRare: "超稀有",
                     id: "ID",
