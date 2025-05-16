@@ -94,14 +94,17 @@ export function GachaForm({ initialData, gachaId, onSubmitSuccess }: GachaFormPr
           (item.image.startsWith('http') ? item.image : `${process.env.NEXT_PUBLIC_API_URL}${item.image}`)
           : undefined
       })));
-      setIsLimitless(currentGacha.dailyLimit === null);
+      // dailyLimitがnullまたは0以下の場合、無制限設定にする
+      const hasDailyLimit = currentGacha.dailyLimit !== null && Number(currentGacha.dailyLimit) > 0;
+      setIsLimitless(!hasDailyLimit);
+      setDailyLimit(hasDailyLimit ? Number(currentGacha.dailyLimit) : 1); // デフォルト値を1に設定
+      
       setIsActive(currentGacha.isActive);
       setType((currentGacha.type === 'normal' || currentGacha.type === 'limited' || currentGacha.type === 'special') 
         ? currentGacha.type 
         : 'normal');
       setPrice(Number(currentGacha.price));
       setPeriod(currentGacha.period ? Number(currentGacha.period) : 0);
-      setDailyLimit(currentGacha.dailyLimit || 0);
       setCategory(currentGacha.category?.id || '');
       setIsOneTimeFreeEnabled(currentGacha.isOneTimeFreeEnabled ?? false);
       setPityThreshold(currentGacha.pityThreshold || 50);
@@ -232,6 +235,15 @@ export function GachaForm({ initialData, gachaId, onSubmitSuccess }: GachaFormPr
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // デバッグ出力
+    console.log("送信前の状態:", {
+      isLimitless,
+      dailyLimit,
+      type,
+      price,
+      period
+    });
+
     // Create validation data object
     const formData: GachaFormData = {
       translations: {
@@ -243,7 +255,7 @@ export function GachaForm({ initialData, gachaId, onSubmitSuccess }: GachaFormPr
       type,
       price: Number(price),
       period: period ? Number(period) : 0,
-      dailyLimit: isLimitless ? null : (dailyLimit > 0 ? Number(dailyLimit) : 0),
+      dailyLimit: isLimitless === true ? null : Math.max(1, Number(dailyLimit)), // 必ず1以上の値か、nullを設定
       items: items.map(item => ({
         id: item.id,
         name: item.name,
@@ -582,7 +594,13 @@ export function GachaForm({ initialData, gachaId, onSubmitSuccess }: GachaFormPr
                         <span className="text-sm text-gray-600">{t('gachaForm.commonSettings.dailyLimit.unlimited')}</span>
                         <Switch
                           checked={isLimitless}
-                          onCheckedChange={setIsLimitless}
+                          onCheckedChange={(checked) => {
+                            setIsLimitless(checked);
+                            if (checked) {
+                              // 無制限に設定した場合、一時的にdailyLimitを1に設定（UIの見た目のため）
+                              setDailyLimit(1);
+                            }
+                          }}
                           className="data-[state=checked]:bg-[#9333EA]"
                         />
                       </div>
