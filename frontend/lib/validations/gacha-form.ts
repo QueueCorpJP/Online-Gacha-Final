@@ -23,8 +23,8 @@ export const validateGachaForm = (data: GachaFormData): Record<string, string> =
     errors.period = 'Period must be greater than 0';
   }
 
-  // Validate daily limit
-  if (data.dailyLimit !== null && data.dailyLimit <= 0) {
+  // Validate daily limit - nullの場合は無制限として扱い、検証をスキップ
+  if (data.dailyLimit !== null && (typeof data.dailyLimit === 'number' && data.dailyLimit <= 0)) {
     errors.dailyLimit = 'Daily limit must be greater than 0';
   }
 

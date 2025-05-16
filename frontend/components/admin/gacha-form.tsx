@@ -440,14 +440,14 @@ export function GachaForm({ initialData, gachaId, onSubmitSuccess }: GachaFormPr
     <form onSubmit={handleSubmit} className="space-y-8">
       <div className="grid">
         <h2 className="font-bold text-2xl mb-10">
-          {formGachaId ? t('gachaForm.titleEdit') : t('gachaForm.title')}
+          {formGachaId ? "ガチャを編集" : "ガチャを作成"}
         </h2>
         <div className="space-y-8">
           {/* Language Tabs */}
 
           {["ja", "en", "zh"].map((lang) => (
             <div key={lang} className="space-y-6">
-              <h3>{t(`gachaForm.languageSettings.${lang}`)}</h3>
+              <h3>{lang === "ja" ? "日本語設定" : lang === "en" ? "英語設定" : "中国語設定"}</h3>
               <div>
                 <Input
                   value={content[lang].name}
@@ -945,7 +945,7 @@ export function GachaForm({ initialData, gachaId, onSubmitSuccess }: GachaFormPr
         <span className="text-sm text-gray-600">{t('gachaForm.status.active')}</span>
       </div>
       <Button type="submit" className="w-full bg-[#9333EA] hover:bg-[#7E22CE] text-white rounded-lg py-4">
-        {formGachaId ? t('gachaForm.update') : t('gachaForm.submit')}
+        {formGachaId ? "更新する" : "作成する"}
       </Button>
     </form>
   )
