@@ -7,7 +7,7 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { useDispatch, useSelector } from "react-redux"
 import { AppDispatch, RootState } from "@/redux/store"
-import { uploadProfileImage, deleteProfileImage } from "@/redux/features/profileSlice"
+import { uploadProfileImage, deleteProfileImage, fetchProfile } from "@/redux/features/profileSlice"
 
 interface ProfileImageUploadProps {
   defaultImage?: string
@@ -18,7 +18,22 @@ export function ProfileImageUpload({ defaultImage, onImageChange }: ProfileImage
   const [image, setImage] = useState<string | null>(defaultImage || null)
   const [isUploading, setIsUploading] = useState(false)
   const dispatch = useDispatch<AppDispatch>()
-  const { imageUploading } = useSelector((state: RootState) => state.profile)
+  const { imageUploading, data: profileData } = useSelector((state: RootState) => state.profile)
+
+  // プロフィールデータが更新されたら画像を更新
+  useEffect(() => {
+    if (profileData?.profileUrl) {
+      setImage(`${profileData.profileUrl}?t=${new Date().getTime()}`);
+      if (onImageChange) {
+        onImageChange(profileData.profileUrl);
+      }
+    } else if (profileData && !profileData.profileUrl) {
+      setImage(null);
+      if (onImageChange) {
+        onImageChange(null);
+      }
+    }
+  }, [profileData, onImageChange]);
 
   useEffect(() => {
     if (defaultImage) {
@@ -40,14 +55,18 @@ export function ProfileImageUpload({ defaultImage, onImageChange }: ProfileImage
         setIsUploading(true)
         try {
           const result = await dispatch(uploadProfileImage(file)).unwrap()
-          const imageUrl = result.url
+          
+          // 明示的にプロフィール情報を再取得して最新状態を確保
+          await dispatch(fetchProfile()).unwrap();
           
           // 画像URLが取得できたことを確認
-          if (imageUrl) {
+          if (result.url) {
+            // 新しいタイムスタンプ付きのURLを使用してキャッシュ回避
+            const imageUrl = `${result.url}?t=${new Date().getTime()}`;
             setImage(imageUrl)
             
             if (onImageChange) {
-              onImageChange(imageUrl)
+              onImageChange(result.url)
             }
             
             toast.success("画像をアップロードしました")
@@ -59,10 +78,8 @@ export function ProfileImageUpload({ defaultImage, onImageChange }: ProfileImage
           console.error("Error uploading image:", error)
           toast.error("画像のアップロードに失敗しました")
           
-          // エラー後に1秒待ってプロフィール情報を再確認
-          setTimeout(() => {
-            // プロフィール情報を再取得するロジックをここに追加することも可能
-          }, 1000)
+          // エラー後にプロフィール情報を再取得
+          dispatch(fetchProfile());
         } finally {
           setIsUploading(false)
         }
@@ -77,6 +94,10 @@ export function ProfileImageUpload({ defaultImage, onImageChange }: ProfileImage
     setIsUploading(true)
     try {
       await dispatch(deleteProfileImage()).unwrap()
+      
+      // 明示的にプロフィール情報を再取得して最新状態を確保
+      await dispatch(fetchProfile()).unwrap();
+      
       setImage(null)
       
       if (onImageChange) {
@@ -87,6 +108,9 @@ export function ProfileImageUpload({ defaultImage, onImageChange }: ProfileImage
     } catch (error) {
       console.error("Error deleting image:", error)
       toast.error("画像の削除に失敗しました")
+      
+      // エラー後にプロフィール情報を再取得
+      dispatch(fetchProfile());
     } finally {
       setIsUploading(false)
     }
@@ -111,14 +135,25 @@ export function ProfileImageUpload({ defaultImage, onImageChange }: ProfileImage
       {image ? (
         <div className="relative">
           <img
-            src={image}
+            src={`${image}${image.includes('?') ? '&' : '?'}t=${new Date().getTime()}`}
             alt="プロフィール画像"
             className="h-32 w-32 rounded-full object-cover border"
             onError={(e) => {
               // 画像読み込みエラー時の処理
               console.error("Image load error, retrying...");
-              // 画像URLにタイムスタンプを追加して再読み込み
-              (e.target as HTMLImageElement).src = `${image}?t=${new Date().getTime()}`;
+              const imgElement = e.target as HTMLImageElement;
+              // 再試行回数を制限するためのカスタム属性
+              const retryCount = +(imgElement.getAttribute('data-retry-count') || '0');
+              const currentImage = image; // 現在のスコープの値をキャプチャ
+              
+              if (retryCount < 3 && currentImage) {
+                // 画像URLにタイムスタンプを追加して再読み込み
+                imgElement.src = `${currentImage}${currentImage.includes('?') ? '&' : '?'}t=${new Date().getTime()}`;
+                imgElement.setAttribute('data-retry-count', (retryCount + 1).toString());
+              } else {
+                // 3回試行しても失敗した場合、プロフィールデータを再取得
+                dispatch(fetchProfile());
+              }
             }}
           />
           <Button

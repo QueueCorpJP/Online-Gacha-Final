@@ -53,7 +53,7 @@ export const updateProfile = createAsyncThunk(
 
 export const uploadProfileImage = createAsyncThunk(
   'profile/uploadImage',
-  async (file: File, { rejectWithValue, dispatch }) => {
+  async (file: File, { rejectWithValue }) => {
     try {
       const formData = new FormData();
       formData.append('file', file);
@@ -64,11 +64,11 @@ export const uploadProfileImage = createAsyncThunk(
       while (retries > 0) {
         try {
           response = await api.post('/profile/image', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
             timeout: 30000,
-      });
+          });
           break;
         } catch (err) {
           retries--;
@@ -77,16 +77,17 @@ export const uploadProfileImage = createAsyncThunk(
         }
       }
       
-      setTimeout(() => {
-        dispatch(fetchProfile());
-      }, 500);
+      // タイムスタンプ付きのURLを返す（キャッシュ回避）
+      const imageUrl = response?.data?.url;
+      if (imageUrl) {
+        return { 
+          url: imageUrl,
+          timestamp: new Date().getTime() 
+        };
+      }
       
       return response?.data || { url: null };
     } catch (error: any) {
-      setTimeout(() => {
-        dispatch(fetchProfile());
-      }, 1000);
-      
       return rejectWithValue(error.response?.data?.message || 'Failed to upload image');
     }
   }
@@ -94,14 +95,9 @@ export const uploadProfileImage = createAsyncThunk(
 
 export const deleteProfileImage = createAsyncThunk(
   'profile/deleteImage',
-  async (_, { rejectWithValue, dispatch }) => {
+  async (_, { rejectWithValue }) => {
     try {
       await api.delete('/profile/image');
-      
-      setTimeout(() => {
-        dispatch(fetchProfile());
-      }, 500);
-      
       return true;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to delete image');
