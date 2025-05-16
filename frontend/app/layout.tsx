@@ -1,33 +1,43 @@
-'use client'
-import { useSelector } from 'react-redux'
-import { RootState } from '@/redux/store'
-
-// Since this is a Server Component, we need to make a Client Component wrapper
-
-
-
 import { SiteHeader } from '@/components/layout/side-header';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { CategoryNav } from "@/components/category-nav";
-import type { Metadata } from 'next'
 import './globals.css'
 import { Providers } from './providers';
 import { Toaster } from '@/components/ui/sonner';
-import { usePathname } from 'next/navigation'
+import { Metadata } from 'next';
 
-function Header() {
-  const pathname = usePathname()
-//a
-  const isAdminRoute = pathname?.startsWith('/admin')
-  const isAdmin = isAdminRoute
-  
-  return <SiteHeader isAdmin={isAdmin} />
+// デフォルトのメタデータ設定
+export const metadata: Metadata = {
+  title: {
+    default: 'SHIJON - オンラインガチャプラットフォーム',
+    template: '%s | SHIJON'
+  },
+  description: 'SHIJONでオンラインガチャを楽しもう！レアアイテムをゲットしよう。',
+  icons: {
+    icon: [
+      { url: '/shijon-logo.jpg', type: 'image/jpeg' },
+    ],
+    apple: '/apple-touch-icon.svg',
+  },
+  openGraph: {
+    type: 'website',
+    title: {
+      default: 'SHIJON - オンラインガチャプラットフォーム',
+      template: '%s | SHIJON'
+    },
+    description: 'SHIJONでオンラインガチャを楽しもう！レアアイテムをゲットしよう。',
+    url: '/',
+    images: [{ url: '/card.jpg' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: {
+      default: 'SHIJON - オンラインガチャプラットフォーム',
+      template: '%s | SHIJON'
+    },
+    description: 'SHIJONでオンラインガチャを楽しもう！レアアイテムをゲットしよう。',
+  }
 }
-
-// export const metadata: Metadata = {
-//   title: 'Gacha app',
-//   description: 'Created @2025',
-// }
 
 export default function RootLayout({
   children,
@@ -40,7 +50,7 @@ export default function RootLayout({
         <Providers>
           <Toaster />
           <div className="relative flex min-h-screen flex-col">
-            <Header />
+            <SiteHeader isAdmin={false} />
             <CategoryNav />
             <div className="flex flex-1">
               {/* <SiteSidebar className="hidden lg:block" /> */}
