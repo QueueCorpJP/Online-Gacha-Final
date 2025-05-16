@@ -16,6 +16,7 @@ interface ProfileState {
   loading: boolean;
   error: string | null;
   imageUploading: boolean;
+  lastUploadedImage: string | null;
 }
 
 const initialState: ProfileState = {
@@ -23,6 +24,7 @@ const initialState: ProfileState = {
   loading: false,
   error: null,
   imageUploading: false,
+  lastUploadedImage: null,
 };
 
 export const fetchProfile = createAsyncThunk(
@@ -51,19 +53,40 @@ export const updateProfile = createAsyncThunk(
 
 export const uploadProfileImage = createAsyncThunk(
   'profile/uploadImage',
-  async (file: File, { rejectWithValue }) => {
+  async (file: File, { rejectWithValue, dispatch }) => {
     try {
       const formData = new FormData();
       formData.append('file', file);
       
-      const response = await api.post('/profile/image', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      let retries = 3;
+      let response = null;
       
-      return response.data;
+      while (retries > 0) {
+        try {
+          response = await api.post('/profile/image', formData, {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+            timeout: 30000,
+          });
+          break;
+        } catch (err) {
+          retries--;
+          if (retries === 0) throw err;
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+      
+      setTimeout(() => {
+        dispatch(fetchProfile());
+      }, 500);
+      
+      return response?.data || { url: null };
     } catch (error: any) {
+      setTimeout(() => {
+        dispatch(fetchProfile());
+      }, 1000);
+      
       return rejectWithValue(error.response?.data?.message || 'Failed to upload image');
     }
   }
@@ -71,9 +94,14 @@ export const uploadProfileImage = createAsyncThunk(
 
 export const deleteProfileImage = createAsyncThunk(
   'profile/deleteImage',
-  async (_, { rejectWithValue }) => {
+  async (_, { rejectWithValue, dispatch }) => {
     try {
       await api.delete('/profile/image');
+      
+      setTimeout(() => {
+        dispatch(fetchProfile());
+      }, 500);
+      
       return true;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to delete image');
@@ -84,7 +112,12 @@ export const deleteProfileImage = createAsyncThunk(
 const profileSlice = createSlice({
   name: 'profile',
   initialState,
-  reducers: {},
+  reducers: {
+    clearImageUploadState: (state) => {
+      state.imageUploading = false;
+      state.error = null;
+    }
+  },
   extraReducers: (builder) => {
     builder
       .addCase(fetchProfile.pending, (state) => {
@@ -117,8 +150,9 @@ const profileSlice = createSlice({
       })
       .addCase(uploadProfileImage.fulfilled, (state, action) => {
         state.imageUploading = false;
-        if (state.data) {
+        if (state.data && action.payload?.url) {
           state.data.profileUrl = action.payload.url;
+          state.lastUploadedImage = action.payload.url;
         }
       })
       .addCase(uploadProfileImage.rejected, (state, action) => {
@@ -133,6 +167,7 @@ const profileSlice = createSlice({
         state.imageUploading = false;
         if (state.data) {
           state.data.profileUrl = undefined;
+          state.lastUploadedImage = null;
         }
       })
       .addCase(deleteProfileImage.rejected, (state, action) => {
@@ -142,4 +177,5 @@ const profileSlice = createSlice({
   },
 });
 
+export const { clearImageUploadState } = profileSlice.actions;
 export default profileSlice.reducer;

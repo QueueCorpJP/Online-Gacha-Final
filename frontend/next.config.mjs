@@ -24,6 +24,19 @@ const nextConfig = {
         protocol: 'http',
         hostname: 'localhost',
       },
+      {
+        protocol: 'http',
+        hostname: '127.0.0.1',
+      },
+      {
+        protocol: 'https',
+        hostname: 'oripa-shijon.com',
+      },
+      // S3ドメインも追加
+      {
+        protocol: 'https',
+        hostname: '**.amazonaws.com',
+      },
     ],
   },
   experimental: {

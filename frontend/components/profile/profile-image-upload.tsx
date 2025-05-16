@@ -16,6 +16,7 @@ interface ProfileImageUploadProps {
 
 export function ProfileImageUpload({ defaultImage, onImageChange }: ProfileImageUploadProps) {
   const [image, setImage] = useState<string | null>(defaultImage || null)
+  const [isUploading, setIsUploading] = useState(false)
   const dispatch = useDispatch<AppDispatch>()
   const { imageUploading } = useSelector((state: RootState) => state.profile)
 
@@ -36,19 +37,34 @@ export function ProfileImageUpload({ defaultImage, onImageChange }: ProfileImage
           return
         }
 
+        setIsUploading(true)
         try {
           const result = await dispatch(uploadProfileImage(file)).unwrap()
           const imageUrl = result.url
-          setImage(imageUrl)
           
-          if (onImageChange) {
-            onImageChange(imageUrl)
+          // 画像URLが取得できたことを確認
+          if (imageUrl) {
+            setImage(imageUrl)
+            
+            if (onImageChange) {
+              onImageChange(imageUrl)
+            }
+            
+            toast.success("画像をアップロードしました")
+          } else {
+            // URLがない場合はエラー
+            throw new Error("画像URLが取得できませんでした")
           }
-          
-          toast.success("画像をアップロードしました")
         } catch (error) {
           console.error("Error uploading image:", error)
           toast.error("画像のアップロードに失敗しました")
+          
+          // エラー後に1秒待ってプロフィール情報を再確認
+          setTimeout(() => {
+            // プロフィール情報を再取得するロジックをここに追加することも可能
+          }, 1000)
+        } finally {
+          setIsUploading(false)
         }
       }
     },
@@ -58,6 +74,7 @@ export function ProfileImageUpload({ defaultImage, onImageChange }: ProfileImage
   const deleteImage = async () => {
     if (!image) return
 
+    setIsUploading(true)
     try {
       await dispatch(deleteProfileImage()).unwrap()
       setImage(null)
@@ -70,6 +87,8 @@ export function ProfileImageUpload({ defaultImage, onImageChange }: ProfileImage
     } catch (error) {
       console.error("Error deleting image:", error)
       toast.error("画像の削除に失敗しました")
+    } finally {
+      setIsUploading(false)
     }
   }
 
@@ -82,7 +101,7 @@ export function ProfileImageUpload({ defaultImage, onImageChange }: ProfileImage
     },
     maxSize: 5 * 1024 * 1024, // 5MB
     multiple: false,
-    disabled: imageUploading,
+    disabled: imageUploading || isUploading,
   })
 
   return (
@@ -95,15 +114,21 @@ export function ProfileImageUpload({ defaultImage, onImageChange }: ProfileImage
             src={image}
             alt="プロフィール画像"
             className="h-32 w-32 rounded-full object-cover border"
+            onError={(e) => {
+              // 画像読み込みエラー時の処理
+              console.error("Image load error, retrying...");
+              // 画像URLにタイムスタンプを追加して再読み込み
+              (e.target as HTMLImageElement).src = `${image}?t=${new Date().getTime()}`;
+            }}
           />
           <Button
             variant="destructive"
             size="icon"
             className="absolute top-0 right-0 h-6 w-6 rounded-full"
             onClick={deleteImage}
-            disabled={imageUploading}
+            disabled={imageUploading || isUploading}
           >
-            {imageUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
+            {(imageUploading || isUploading) ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
           </Button>
         </div>
       ) : (
@@ -126,7 +151,7 @@ export function ProfileImageUpload({ defaultImage, onImageChange }: ProfileImage
           <p className="text-xs text-center text-muted-foreground">
             最大サイズ: 5MB
           </p>
-          {imageUploading && (
+          {(imageUploading || isUploading) && (
             <div className="mt-2 flex items-center">
               <Loader2 className="h-4 w-4 animate-spin mr-2" />
               <span className="text-sm">アップロード中...</span>
