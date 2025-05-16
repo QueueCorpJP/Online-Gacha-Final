@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
@@ -7,9 +7,8 @@ import { randomUUID } from 'crypto';
 @Injectable()
 export class S3Service {
   private s3Client: S3Client;
-  private readonly bucket: string;
-  private readonly profileFolder: string;
-  private readonly logger = new Logger(S3Service.name);
+  private bucket: string;
+  private profileFolder: string;
 
   constructor(private configService: ConfigService) {
     this.s3Client = new S3Client({
@@ -20,7 +19,7 @@ export class S3Service {
       },
     });
     this.bucket = this.configService.get<string>('S3_BUCKET_NAME');
-    this.profileFolder = this.configService.get<string>('S3_PROFILE_FOLDER', 'profiles');
+    this.profileFolder = this.configService.get<string>('S3_PROFILE_FOLDER', 'profile-images');
   }
 
   /**
@@ -30,10 +29,7 @@ export class S3Service {
    * @returns アップロードされた画像のURL
    */
   async uploadProfileImage(file: Buffer, contentType: string): Promise<string> {
-    this.logger.log(`S3アップロード開始: contentType=${contentType}`);
-    
     if (!this.isValidImageContentType(contentType)) {
-      this.logger.error(`無効な画像形式: ${contentType}`);
       throw new Error('Invalid image format. Only JPEG, PNG and GIF are allowed.');
     }
 
@@ -48,13 +44,9 @@ export class S3Service {
     });
 
     try {
-      this.logger.log(`S3にアップロード: bucket=${this.bucket}, key=${key}`);
       await this.s3Client.send(command);
-      const imageUrl = `https://${this.bucket}.s3.${this.configService.get<string>('AWS_REGION')}.amazonaws.com/${key}`;
-      this.logger.log(`S3アップロード成功: URL=${imageUrl}`);
-      return imageUrl;
+      return `https://${this.bucket}.s3.${this.configService.get<string>('AWS_REGION')}.amazonaws.com/${key}`;
     } catch (error) {
-      this.logger.error(`S3アップロードエラー: ${error.message}`, error.stack);
       console.error('Error uploading file to S3:', error);
       throw new Error('Failed to upload image');
     }

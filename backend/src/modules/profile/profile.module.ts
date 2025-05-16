@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, NestModule, MiddlewareConsumer, RequestMethod } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
 import { ProfileController } from './profile.controller';
@@ -27,4 +27,20 @@ import { MulterModule } from '@nestjs/platform-express';
   providers: [ProfileService],
   exports: [ProfileService]
 })
-export class ProfileModule {}
+export class ProfileModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply((req, res, next) => {
+        // プロフィール画像エンドポイントへのOPTIONSリクエストを処理
+        if (req.method === 'OPTIONS' && req.path.endsWith('/image')) {
+          res.header('Access-Control-Allow-Origin', '*');
+          res.header('Access-Control-Allow-Methods', 'POST, DELETE, OPTIONS');
+          res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+          res.header('Access-Control-Max-Age', '86400');
+          return res.sendStatus(200);
+        }
+        next();
+      })
+      .forRoutes({ path: 'profile/image', method: RequestMethod.OPTIONS });
+  }
+}

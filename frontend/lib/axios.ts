@@ -15,12 +15,12 @@ api.interceptors.request.use((config) => {
     config.headers.Authorization = `Bearer ${token}`;
   }
   
-  // 画像アップロード用CORSヘッダーを追加
-  if (config.headers['Content-Type'] === 'multipart/form-data') {
-    // multipart/form-data の場合は追加のCORSヘッダーを設定
-    config.headers['Access-Control-Allow-Origin'] = '*';
-    config.headers['Access-Control-Allow-Methods'] = 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS';
-    config.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Content-Length, X-Requested-With';
+  // プロフィール画像アップロード用の特別な設定
+  if (config.url === '/profile/image' && config.method === 'post') {
+    // Content-Typeはmultipart/form-dataの場合、ブラウザが自動的に設定するので削除
+    if (config.headers['Content-Type'] === 'multipart/form-data') {
+      delete config.headers['Content-Type'];
+    }
   }
   
   return config;
