@@ -696,7 +696,7 @@ export default function GachaResultClient() {
           onClick={(e) => handleDraw(e, 1)}
           disabled={isDrawing || !hasStock}
           className="bg-[#7C3AED] hover:bg-[#6D28D9] flex items-center justify-center flex-1"
-        >          <p className="text-lg font-bold">{t("gacha.result.single_draw")}</p>
+        >          <p className="text-lg font-bold">{t("gacha.result.oneDraw")}</p>
 
           <Coins className="mr-2 h-4 w-4" />
           <p className="text-lg font-bold">
