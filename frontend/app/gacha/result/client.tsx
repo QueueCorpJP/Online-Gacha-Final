@@ -701,7 +701,7 @@ export default function GachaResultClient() {
     
     // 上段5枚、下段5枚で表示
     return (
-      <div className={`w-full max-w-3xl mt-8 ${showMultiDrawAnimation ? 'block' : 'hidden'}`}>
+      <div className={`w-full max-w-3xl mt-8 ${showMultiDrawAnimation ? 'block' : 'hidden'} relative z-10`}>
         <h3 className="text-xl font-semibold mb-4 text-center">{t("gacha.result.multi_draw")}</h3>
         <div className="grid grid-cols-5 gap-3 mb-3"> {/* gap-2→gap-3, mb-2→mb-3 に変更してカードを大きく */}
           {sortedItems.slice(0, 5).map((item, index) => (
@@ -753,7 +753,7 @@ export default function GachaResultClient() {
     const firstCard = originalItems[0];
     
     return (
-      <div className={`w-full max-w-md mx-auto transition-opacity duration-500 ${animationPhase === 'first-card' ? 'opacity-100' : 'opacity-0'} absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2`}>
+      <div className={`w-full max-w-md mx-auto transition-opacity duration-500 ${animationPhase === 'first-card' ? 'opacity-100' : 'opacity-0'} absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20`}>
         <Card className="border-0 bg-zinc-50 overflow-hidden rounded-xl shadow-lg animate-pulse-slow">
           <div className="aspect-square relative">
             <Image 
@@ -884,7 +884,7 @@ export default function GachaResultClient() {
         )}
 
         {/* Action buttons */}
-        <div className="w-full max-w-3xl mt-8 flex justify-center relative z-10"> {/* z-indexを追加して最前面に表示 */}
+        <div className={`w-full max-w-3xl mt-8 flex justify-center relative ${isMultiDraw && animationPhase === 'first-card' ? 'z-0' : 'z-10'}`}> {/* 条件によってz-indexを切り替え */}
           <div className="flex gap-4 w-full max-w-md">
             <Button 
               onClick={(e) => handleDraw(e, 1)}
