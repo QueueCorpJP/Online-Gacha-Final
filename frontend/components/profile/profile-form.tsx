@@ -114,7 +114,7 @@ export function ProfileForm() {
               name="firstName"
               render={({ field }) => (
                 <FormItem>
-                  <Label htmlFor="firstName">{t("profile.form.firstName")}</Label>
+                  <Label htmlFor="firstName">{t("signup.form.firstName")}</Label>
                   <FormControl>
                     <Input {...field} disabled={loading} />
                   </FormControl>
@@ -127,7 +127,7 @@ export function ProfileForm() {
               name="lastName"
               render={({ field }) => (
                 <FormItem>
-                  <Label htmlFor="lastName">{t("profile.form.lastName")}</Label>
+                  <Label htmlFor="lastName">{t("signup.form.lastName")}</Label>
                   <FormControl>
                     <Input {...field} disabled={loading} />
                   </FormControl>

@@ -790,7 +790,7 @@ export const translations = {
                 discount: "10%オフ！",
                 returnToList: "ガチャ一覧に戻る",
                 summary: "獲得アイテム一覧",
-                multi_draw: "10連ガチャ結果",
+                multi_draw: "10連",
                 cardInfo: {
                     ultraRare: "ウルトラレア",
                     id: "ID",
