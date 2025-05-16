@@ -243,7 +243,7 @@ export function GachaForm({ initialData, gachaId, onSubmitSuccess }: GachaFormPr
       type,
       price: Number(price),
       period: period ? Number(period) : 0,
-      dailyLimit: isLimitless ? null : Number(dailyLimit),
+      dailyLimit: isLimitless ? null : (dailyLimit > 0 ? Number(dailyLimit) : 0),
       items: items.map(item => ({
         id: item.id,
         name: item.name,
@@ -274,11 +274,11 @@ export function GachaForm({ initialData, gachaId, onSubmitSuccess }: GachaFormPr
     // Update errors state
     setErrors(validationErrors);
 
-    console.log(validationErrors)
+    console.log("フォームデータ:", formData);
+    console.log("バリデーションエラー:", validationErrors);
 
     // If there are validation errors, show toast and return
     if (Object.keys(validationErrors).length > 0) {
-      console.log(validationErrors)
       toast.error(t("gachaForm.toast.validationError"));
       return;
     }

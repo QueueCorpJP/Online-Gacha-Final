@@ -24,8 +24,14 @@ export const validateGachaForm = (data: GachaFormData): Record<string, string> =
   }
 
   // Validate daily limit - nullの場合は無制限として扱い、検証をスキップ
-  if (data.dailyLimit !== null && (typeof data.dailyLimit === 'number' && data.dailyLimit <= 0)) {
-    errors.dailyLimit = 'Daily limit must be greater than 0';
+  // 文字列型の場合も適切に処理
+  if (data.dailyLimit !== null) {
+    // 数値に変換して0以下かチェック
+    const dailyLimitNum = Number(data.dailyLimit);
+    // NaNでなく、かつ0以下の場合はエラー
+    if (!isNaN(dailyLimitNum) && dailyLimitNum <= 0) {
+      errors.dailyLimit = 'Daily limit must be greater than 0';
+    }
   }
 
   // Validate items
@@ -68,5 +74,6 @@ export const validateGachaForm = (data: GachaFormData): Record<string, string> =
     }
   }
 
+  console.log("検証結果:", errors, "データ:", data);
   return errors;
 };
