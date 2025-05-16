@@ -494,11 +494,11 @@ export default function GachaResultClient() {
         return () => clearTimeout(timer);
       } 
       else if (animationPhase === 'fade-out') {
-        // フェードアウト後すぐにフェードイン開始（タイミングを短縮）
+        // フェードアウト後にすぐに表示（フェードインなし）
         const timer = setTimeout(() => {
           setAnimationPhase('multi-cards');
           setShowMultiDrawAnimation(true);
-        }, 500); // フェードアウトの時間を短縮（1000ms→500ms）
+        }, 300); // フェードアウト後すぐに表示
         
         return () => clearTimeout(timer);
       }
@@ -688,63 +688,6 @@ export default function GachaResultClient() {
   // 現在表示するアイテム
   const currentItem = uniqueResults[currentIndex]
 
-  // Action buttons
-  const renderActionButtons = () => (
-    <div className="w-full max-w-3xl mt-8 flex justify-center">
-      <div className="flex gap-4 w-full max-w-md">
-        <Button 
-          onClick={(e) => handleDraw(e, 1)}
-          disabled={isDrawing || !hasStock}
-          className="bg-[#7C3AED] hover:bg-[#6D28D9] flex items-center justify-center flex-1"
-        >          <p className="text-lg font-bold">{t("gacha.result.oneDraw")}</p>
-
-          <Coins className="mr-2 h-4 w-4" />
-          <p className="text-lg font-bold">
-            ¥{(() => {
-              try {
-                return gacha?.price !== undefined && gacha?.price !== null 
-                  ? Number(gacha.price).toLocaleString() 
-                  : '0';
-              } catch (e) {
-                return '0';
-              }
-            })()}
-          </p>
-          {!hasStock && (
-            <span className="absolute top-0 right-0 -mt-1 -mr-1">
-              <AlertCircle className="h-4 w-4 text-red-500" />
-            </span>
-          )}
-        </Button>
-        <Button 
-          onClick={(e) => handleDraw(e, 10)}
-          disabled={isDrawing || !hasStock}
-          className="bg-[#7C3AED] hover:bg-[#6D28D9] flex items-center justify-center flex-1"
-        >
-                    <p className="text-lg font-bold">{t("gacha.result.multi_draw")}</p>
-
-          <RotateCcw className="mr-2 h-4 w-4" />
-          <p className="text-lg font-bold">
-            ¥{(() => {
-              try {
-                return gacha?.price !== undefined && gacha?.price !== null
-                  ? (Number(gacha.price) * 10).toLocaleString()
-                  : '0';
-              } catch (e) {
-                return '0';
-              }
-            })()}
-          </p>
-          {!hasStock && (
-            <span className="absolute top-0 right-0 -mt-1 -mr-1">
-              <AlertCircle className="h-4 w-4 text-red-500" />
-            </span>
-          )}
-        </Button>
-      </div>
-    </div>
-  );
-
   // 10連ガチャの結果表示
   const renderMultiDrawResults = () => {
     if (!originalItems || originalItems.length < 10) return null;
@@ -758,7 +701,7 @@ export default function GachaResultClient() {
     
     // 上段5枚、下段5枚で表示
     return (
-      <div className={`w-full max-w-3xl mt-8 transition-opacity duration-1000 ${showMultiDrawAnimation ? 'opacity-100' : 'opacity-0'}`}>
+      <div className={`w-full max-w-3xl mt-8 ${showMultiDrawAnimation ? 'block' : 'hidden'}`}>
         <h3 className="text-xl font-semibold mb-4 text-center">{t("gacha.result.multi_draw")}</h3>
         <div className="grid grid-cols-5 gap-3 mb-3"> {/* gap-2→gap-3, mb-2→mb-3 に変更してカードを大きく */}
           {sortedItems.slice(0, 5).map((item, index) => (
@@ -810,7 +753,7 @@ export default function GachaResultClient() {
     const firstCard = originalItems[0];
     
     return (
-      <div className={`w-full max-w-md mx-auto transition-opacity duration-1000 ${animationPhase === 'first-card' ? 'opacity-100' : 'opacity-0'} absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2`}>
+      <div className={`w-full max-w-md mx-auto transition-opacity duration-500 ${animationPhase === 'first-card' ? 'opacity-100' : 'opacity-0'} absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2`}>
         <Card className="border-0 bg-zinc-50 overflow-hidden rounded-xl shadow-lg animate-pulse-slow">
           <div className="aspect-square relative">
             <Image 
@@ -941,7 +884,58 @@ export default function GachaResultClient() {
         )}
 
         {/* Action buttons */}
-        {renderActionButtons()}
+        <div className="w-full max-w-3xl mt-8 flex justify-center relative z-10"> {/* z-indexを追加して最前面に表示 */}
+          <div className="flex gap-4 w-full max-w-md">
+            <Button 
+              onClick={(e) => handleDraw(e, 1)}
+              disabled={isDrawing || !hasStock}
+              className="bg-[#7C3AED] hover:bg-[#6D28D9] flex items-center justify-center flex-1"
+            >
+              <p className="text-lg font-bold">{t("gacha.result.oneDraw")}</p>
+              <Coins className="mr-2 h-4 w-4" />
+              <p className="text-lg font-bold">
+                ¥{(() => {
+                  try {
+                    return gacha?.price !== undefined && gacha?.price !== null 
+                      ? Number(gacha.price).toLocaleString() 
+                      : '0';
+                  } catch (e) {
+                    return '0';
+                  }
+                })()}
+              </p>
+              {!hasStock && (
+                <span className="absolute top-0 right-0 -mt-1 -mr-1">
+                  <AlertCircle className="h-4 w-4 text-red-500" />
+                </span>
+              )}
+            </Button>
+            <Button 
+              onClick={(e) => handleDraw(e, 10)}
+              disabled={isDrawing || !hasStock}
+              className="bg-[#7C3AED] hover:bg-[#6D28D9] flex items-center justify-center flex-1"
+            >
+              <p className="text-lg font-bold">{t("gacha.result.multi_draw")}</p>
+              <RotateCcw className="mr-2 h-4 w-4" />
+              <p className="text-lg font-bold">
+                ¥{(() => {
+                  try {
+                    return gacha?.price !== undefined && gacha?.price !== null
+                      ? (Number(gacha.price) * 10).toLocaleString()
+                      : '0';
+                  } catch (e) {
+                    return '0';
+                  }
+                })()}
+              </p>
+              {!hasStock && (
+                <span className="absolute top-0 right-0 -mt-1 -mr-1">
+                  <AlertCircle className="h-4 w-4 text-red-500" />
+                </span>
+              )}
+            </Button>
+          </div>
+        </div>
       </div>
 
       {/* 購入確認ダイアログ */}
