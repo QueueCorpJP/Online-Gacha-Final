@@ -13,6 +13,17 @@ interface ProfileImageUploadProps {
   defaultImage?: string
   onImageChange?: (url: string | null) => void
 }
+//
+interface ApiError {
+  response?: {
+    status: number;
+    data: {
+      message?: string;
+    };
+  };
+  request?: any;
+  message?: string;
+}
 
 export function ProfileImageUpload({ defaultImage, onImageChange }: ProfileImageUploadProps) {
   const [image, setImage] = useState<string | null>(defaultImage || null)
@@ -37,8 +48,10 @@ export function ProfileImageUpload({ defaultImage, onImageChange }: ProfileImage
         }
 
         try {
+          console.log("画像アップロード開始:", file.name, file.type, file.size);
           const result = await dispatch(uploadProfileImage(file)).unwrap()
           const imageUrl = result.url
+          console.log("画像アップロード成功:", imageUrl);
           setImage(imageUrl)
           
           if (onImageChange) {
@@ -47,8 +60,22 @@ export function ProfileImageUpload({ defaultImage, onImageChange }: ProfileImage
           
           toast.success("画像をアップロードしました")
         } catch (error) {
-          console.error("Error uploading image:", error)
-          toast.error("画像のアップロードに失敗しました")
+          console.error("画像アップロードエラー:", error)
+          
+          // エラーの詳細を表示
+          const apiError = error as ApiError;
+          if (apiError.response) {
+            // サーバーからのレスポンスがある場合
+            console.error('サーバーエラー:', apiError.response.status, apiError.response.data);
+            toast.error(`画像アップロード失敗: ${apiError.response.status} ${apiError.response.data.message || ''}`)
+          } else if (apiError.request) {
+            // リクエストは行われたがレスポンスがない場合
+            console.error('ネットワークエラー:', apiError.request);
+            toast.error("ネットワークエラー: サーバーから応答がありません")
+          } else {
+            // その他のエラー
+            toast.error(`画像のアップロードに失敗しました: ${apiError.message || '不明なエラー'}`)
+          }
         }
       }
     },
@@ -59,7 +86,9 @@ export function ProfileImageUpload({ defaultImage, onImageChange }: ProfileImage
     if (!image) return
 
     try {
+      console.log("画像削除開始");
       await dispatch(deleteProfileImage()).unwrap()
+      console.log("画像削除成功");
       setImage(null)
       
       if (onImageChange) {
@@ -68,8 +97,22 @@ export function ProfileImageUpload({ defaultImage, onImageChange }: ProfileImage
       
       toast.success("画像を削除しました")
     } catch (error) {
-      console.error("Error deleting image:", error)
-      toast.error("画像の削除に失敗しました")
+      console.error("画像削除エラー:", error)
+      
+      // エラーの詳細を表示
+      const apiError = error as ApiError;
+      if (apiError.response) {
+        // サーバーからのレスポンスがある場合
+        console.error('サーバーエラー:', apiError.response.status, apiError.response.data);
+        toast.error(`画像削除失敗: ${apiError.response.status} ${apiError.response.data.message || ''}`)
+      } else if (apiError.request) {
+        // リクエストは行われたがレスポンスがない場合
+        console.error('ネットワークエラー:', apiError.request);
+        toast.error("ネットワークエラー: サーバーから応答がありません")
+      } else {
+        // その他のエラー
+        toast.error(`画像の削除に失敗しました: ${apiError.message || '不明なエラー'}`)
+      }
     }
   }
 

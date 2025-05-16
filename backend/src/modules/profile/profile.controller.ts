@@ -1,4 +1,4 @@
-import { Controller, Get, Put, Body, UseGuards, Post, UseInterceptors, UploadedFile, Delete, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Put, Body, UseGuards, Post, UseInterceptors, UploadedFile, Delete, BadRequestException, Logger } from '@nestjs/common';
 import { ProfileService } from './profile.service';
 import { AuthGuard } from '../../common/auth.guard';
 import { CurrentUser } from '../../common/current-user.decorator';
@@ -11,6 +11,8 @@ import { FileInterceptor } from '@nestjs/platform-express';
 @Controller('profile')
 @UseGuards(AuthGuard)
 export class ProfileController {
+  private readonly logger = new Logger(ProfileController.name);
+  
   constructor(private readonly profileService: ProfileService) {}
 
   @Get()
@@ -50,25 +52,36 @@ export class ProfileController {
     @CurrentUser() user: User,
     @UploadedFile() file: Express.Multer.File,
   ) {
+    this.logger.log(`プロフィール画像アップロード試行: ユーザーID=${user.id}, ロール=${user.roles}`);
+    
     if (!file) {
+      this.logger.error('ファイルがアップロードされていません');
       throw new BadRequestException('No file uploaded');
     }
 
     if (!file.mimetype.startsWith('image/')) {
+      this.logger.error(`無効なファイル形式: ${file.mimetype}`);
       throw new BadRequestException('Only image files are allowed');
     }
 
     if (file.size > 5 * 1024 * 1024) { // 5MB
+      this.logger.error(`ファイルサイズ超過: ${file.size} bytes`);
       throw new BadRequestException('File size exceeds 5MB limit');
     }
 
-    const imageUrl = await this.profileService.uploadProfileImage(
-      user.id,
-      file.buffer,
-      file.mimetype,
-    );
-
-    return { url: imageUrl };
+    try {
+      const imageUrl = await this.profileService.uploadProfileImage(
+        user.id,
+        file.buffer,
+        file.mimetype,
+      );
+      
+      this.logger.log(`プロフィール画像アップロード成功: ${imageUrl}`);
+      return { url: imageUrl };
+    } catch (error) {
+      this.logger.error(`プロフィール画像アップロード失敗: ${error.message}`, error.stack);
+      throw error;
+    }
   }
 
   @Delete('image')
