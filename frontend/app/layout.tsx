@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   description: 'SHIJONでオンラインガチャを楽しもう！レアアイテムをゲットしよう。',
   icons: {
     icon: [
-      { url: '/shijon-logo.jpg', type: 'image/jpeg' },
+      { url: '/shijon_logo.jpg', type: 'image/jpeg' },
     ],
     apple: '/apple-touch-icon.svg',
   },
