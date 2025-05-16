@@ -97,7 +97,7 @@ const config: Config = {
             transform: 'scale(1.05)',
             opacity: '0.9'
           }
-        }
+  			}
   		},
   		animation: {
   			'accordion-down': 'accordion-down 0.2s ease-out',

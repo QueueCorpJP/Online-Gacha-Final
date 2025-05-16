@@ -18,7 +18,7 @@ api.interceptors.request.use((config) => {
   // プロフィール画像アップロード用の特別な設定
   if (config.url === '/profile/image' && config.method === 'post') {
     // Content-Typeはmultipart/form-dataの場合、ブラウザが自動的に設定するので削除
-    if (config.headers['Content-Type'] === 'multipart/form-data') {
+  if (config.headers['Content-Type'] === 'multipart/form-data') {
       delete config.headers['Content-Type'];
     }
   }

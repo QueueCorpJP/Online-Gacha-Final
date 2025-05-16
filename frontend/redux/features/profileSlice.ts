@@ -64,11 +64,11 @@ export const uploadProfileImage = createAsyncThunk(
       while (retries > 0) {
         try {
           response = await api.post('/profile/image', formData, {
-            headers: {
-              'Content-Type': 'multipart/form-data',
-            },
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
             timeout: 30000,
-          });
+      });
           break;
         } catch (err) {
           retries--;

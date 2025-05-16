@@ -7,6 +7,11 @@ import AdminRoute from "@/components/auth/admin-route"
 import { Toaster } from "sonner"
 import { useState } from "react"
 
+export const metadata = {
+  title: "ガチャ管理 | SHIJON管理画面",
+  description: "ガチャの作成・編集・削除を行うことができます。",
+}
+
 export default function AdminGachaPage() {
     const [editingGachaId, setEditingGachaId] = useState<string | null>(null);
 
