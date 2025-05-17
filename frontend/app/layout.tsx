@@ -7,6 +7,37 @@ import { Toaster } from '@/components/ui/sonner';
 import { Metadata } from 'next';
 
 // デフォルトのメタデータ設定
+// export const metadata: Metadata = {
+//   title: {
+//     default: 'SHIJON - オンラインガチャプラットフォーム',
+//     template: '%s | SHIJON'
+//   },
+//   description: 'SHIJONでオンラインガチャを楽しもう！レアアイテムをゲットしよう。',
+//   icons: {
+//     icon: [
+//       { url: '/shijon_logo.jpg', type: 'image/jpeg' },
+//     ],
+//     apple: '/apple-touch-icon.svg',
+//   },
+//   openGraph: {
+//     type: 'website',
+//     title: {
+//       default: 'SHIJON - オンラインガチャプラットフォーム',
+//       template: '%s | SHIJON'
+//     },
+//     description: 'SHIJONでオンラインガチャを楽しもう！レアアイテムをゲットしよう。',
+//     url: 'https://oripa-shijon.com/',
+//     images: [{ url: 'https://oripa-shijon.com/card.jpg' }],
+//   },
+//   twitter: {
+//     card: 'summary_large_image',
+//     title: {
+//       default: 'SHIJON - オンラインガチャプラットフォーム',
+//       template: '%s | SHIJON'
+//     },
+//     description: 'SHIJONでオンラインガチャを楽しもう！レアアイテムをゲットしよう。',
+//   }
+// }
 export const metadata: Metadata = {
   title: {
     default: 'SHIJON - オンラインガチャプラットフォーム',
@@ -27,7 +58,15 @@ export const metadata: Metadata = {
     },
     description: 'SHIJONでオンラインガチャを楽しもう！レアアイテムをゲットしよう。',
     url: 'https://oripa-shijon.com/',
-    images: [{ url: 'https://oripa-shijon.com/card.jpg' }],
+    images: [
+      { 
+        url: 'https://oripa-shijon.com/card.jpg',
+        width: 1200,
+        height: 630,
+        alt: 'SHIJON オンラインガチャプラットフォーム'
+      }
+    ],
+    siteName: 'SHIJON',
   },
   twitter: {
     card: 'summary_large_image',
@@ -36,9 +75,15 @@ export const metadata: Metadata = {
       template: '%s | SHIJON'
     },
     description: 'SHIJONでオンラインガチャを楽しもう！レアアイテムをゲットしよう。',
+    images: [
+      {
+        url: 'https://oripa-shijon.com/card.jpg',
+        alt: 'SHIJON オンラインガチャプラットフォーム'
+      }
+    ],
+   
   }
 }
-
 export default function RootLayout({
   children,
 }: Readonly<{
