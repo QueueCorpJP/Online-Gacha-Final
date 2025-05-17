@@ -222,8 +222,8 @@ export function SiteHeader({ isAdmin = false }: SiteHeaderProps) {
             <Image
               src="/shijon_logo.png"
               alt="SHIJON管理画面"
-              width={40}
-              height={40}
+              width={55}
+              height={55}
               className="rounded-full"
             />
           </Link>
