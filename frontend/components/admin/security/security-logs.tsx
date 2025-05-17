@@ -17,6 +17,25 @@ export function SecurityLogs() {
   const [currentPage, setCurrentPage] = useState(pagination.page)
   const itemsPerPage = pagination.limit
 
+  // ログメッセージを日本語に翻訳する関数
+  const translateLogDetails = (details: string | undefined) => {
+    if (!details) return '-';
+    
+    // ログイン成功メッセージを翻訳
+    if (details === 'Successful login') {
+      return 'ログイン成功';
+    }
+    
+    // ログイン失敗メッセージを翻訳
+    if (details.startsWith('Failed login attempt for email:')) {
+      const email = details.replace('Failed login attempt for email:', '').trim();
+      return `メールでのログイン失敗: ${email}`;
+    }
+    
+    // その他のメッセージはそのまま返す
+    return details;
+  };
+
   useEffect(() => {
     dispatch(fetchSecurityLogs({ page: currentPage, limit: itemsPerPage }) as any)
   }, [dispatch, currentPage])
@@ -52,7 +71,7 @@ export function SecurityLogs() {
                   <TableCell>
                     {format(new Date(log.timestamp), 'yyyy/MM/dd HH:mm:ss', { locale: ja })}
                   </TableCell>
-                  <TableCell>{log.details || '-'}</TableCell>
+                  <TableCell>{translateLogDetails(log.details)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -77,7 +96,7 @@ export function SecurityLogs() {
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               <span className="text-sm">
-                Page {currentPage} of {totalPages}
+                ページ {currentPage} / {totalPages}
               </span>
               <Button
                 variant="outline"

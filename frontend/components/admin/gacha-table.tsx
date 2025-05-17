@@ -141,7 +141,7 @@ export function GachaTable({ onEdit }: GachaTableProps) {
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div className="bg-gray-50 p-2 rounded">
                 <span className="text-gray-500">{t("admin.gachaTable.headers.price")}</span>
-                <p className="font-medium">{item.price} {t("admin.gachaTable.points")}</p>
+                <p className="font-medium">{parseInt(item.price)} {t("admin.gachaTable.points")}</p>
               </div>
               <div className="bg-gray-50 p-2 rounded">
                 <span className="text-gray-500">{t("admin.gachaTable.headers.period")}</span>
@@ -258,7 +258,7 @@ export function GachaTable({ onEdit }: GachaTableProps) {
                   </TableCell>
                   <TableCell className="font-medium">{item.translations.ja.name}</TableCell>
                   <TableCell>{t(`admin.gachaTable.types.${item.type}`)}</TableCell>
-                  <TableCell>{item.price} {t("admin.gachaTable.points")}</TableCell>
+                  <TableCell>{parseInt(item.price)} {t("admin.gachaTable.points")}</TableCell>
                   <TableCell>
                     {item.duration 
                       ? t("admin.gachaTable.period.days", { days: item.duration })

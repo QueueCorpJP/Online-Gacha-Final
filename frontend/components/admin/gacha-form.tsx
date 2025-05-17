@@ -427,7 +427,7 @@ export function GachaForm({ initialData, gachaId, onSubmitSuccess }: GachaFormPr
       <div className="mt-4 flex items-center gap-2">
         <span className="text-sm">Total Probability:</span>
         <span className={`font-medium ${isValid ? 'text-green-600' : 'text-red-500'}`}>
-          {totalProbability.toFixed(2)}%
+          {parseInt(totalProbability.toString())}%
         </span>
         {!isValid && (
           <span className="text-sm text-red-500">
@@ -695,8 +695,8 @@ export function GachaForm({ initialData, gachaId, onSubmitSuccess }: GachaFormPr
                               type="number"
                               min="0"
                               max="100"
-                              step="0.01"
-                              value={item.probability || ''}
+                              step="1"
+                              value={parseInt(item.probability?.toString() || '0')}
                               onChange={(e) => {
                                 handleProbabilityChange(item.id, Number(e.target.value));
                               }}
@@ -723,8 +723,8 @@ export function GachaForm({ initialData, gachaId, onSubmitSuccess }: GachaFormPr
                               type="number"
                               min="0"
                               max="100"
-                              step="0.01"
-                              value={item.exchangeRate || 1.00}
+                              step="1"
+                              value={parseInt((item.exchangeRate || 1).toString())}
                               onChange={(e) => {
                                 setItems(prevItems => prevItems.map(i => 
                                   i.id === item.id ? { ...i, exchangeRate: Number(e.target.value) } : i

@@ -211,7 +211,7 @@ export function InventoryStatusManager() {
           <ChevronLeft className="h-4 w-4" />
         </Button>
         <span className="text-sm">
-          Page {currentPage} of {totalPages}
+          ページ {currentPage} / {totalPages}
         </span>
         <Button
           variant="outline"
