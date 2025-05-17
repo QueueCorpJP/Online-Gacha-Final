@@ -128,7 +128,6 @@ function getVideoByRarity(items: GachaResult[]): string {
   }
   
   // 不明なレア度の場合はデフォルトとしてDを返す
-  console.warn(`Unknown rarity: ${highestRarity}, using default 'D'`);
   return 'D';
 }
 
@@ -137,13 +136,9 @@ function safeRedirect(url: string): void {
   try {
     // 現在のURLと同じでないことを確認（無限リダイレクト防止）
     if (window.location.href !== url) {
-      console.log(`Redirecting to: ${url}`);
       window.location.href = url;
-    } else {
-      console.warn('Prevented redirect to the same URL');
     }
   } catch (error) {
-    console.error('Redirect failed:', error);
     // エラーが発生した場合はトップページへ
     window.location.href = '/';
   }
@@ -226,73 +221,44 @@ export default function GachaResultClient() {
     return { uniqueItems, grouped };
   };
 
+  // 在庫チェック関数
+  const checkGachaStock = async (gachaId: string): Promise<boolean> => {
+    try {
+      const stockCheckResponse = await api.get(`/gacha/${gachaId}/stock-check`);
+      return stockCheckResponse.data.hasStock;
+    } catch (error) {
+      // 在庫確認APIがない場合は利用可能と見なす
+      return true;
+    }
+  };
+
   // ガチャを再度引く処理
-  const handleRetryGacha = async (e: React.MouseEvent) => {
+  const handleRetryGacha = async () => {
     try {
       setIsDrawing(true);
       
-      // ガチャIDが存在する場合のみ実行
-      if (!gacha?.id) {
-        e.preventDefault();
-        toast.error("ガチャ情報が見つかりません");
+      // 在庫のチェック
+      const hasStock = await checkGachaStock(gacha.id);
+      if (!hasStock) {
+        toast.error(t('gacha.result.outOfStock'));
+        setIsDrawing(false);
         return;
       }
       
-      // 在庫確認
-      try {
-        const stockCheck = await api.get(`/admin/gacha/${gacha.id}/stock-check`).catch(() => null);
-        
-        if (stockCheck?.data?.availableItems === 0 || stockCheck?.data?.isEmpty) {
-          e.preventDefault();
-          toast.error("ガチャアイテムの在庫がありません");
-          setHasStock(false);
-          setIsDrawing(false);
-          return;
-        }
-      } catch (stockError) {
-        // 在庫確認APIがない場合は無視して続行
-        console.log("Stock check API not available, continuing...");
-      }
+      // ガチャを引く
+      const response = await api.post(`/gacha/${gacha.id}/pull`);
+      const resultData = response.data;
       
-      const response = await api.post(`/admin/gacha/${gacha.id}/pull`, {
-        times: 1,
-        isFree: false,
-      });
+      // ガチャ結果をURLパラメータとして渡す
+      const encodedData = btoa(JSON.stringify(resultData));
       
-      if (response.data.items && Array.isArray(response.data.items) && response.data.items.length > 0) {
-        // 成功した場合は結果ページにリダイレクト
-        const resultData = {
-          items: response.data.items,
-          gachaId: gacha.id,
-          pullTime: new Date().toISOString()
-        };
-        
-        // 新しいガチャ結果のため、sessionStorageをクリア
-        if (typeof window !== 'undefined') {
-          // 現在のガチャ結果に関連するキーを削除（リロード判定用）
-          const currentResultKey = `gacha_result_${gacha.id}_${resultData.pullTime}`;
-          sessionStorage.removeItem(currentResultKey);
-        }
-        
-        const resultUrl = `/gacha/result?data=${encodeURIComponent(JSON.stringify(resultData))}`;
-        safeRedirect(resultUrl);
-      } else {
-        e.preventDefault();
-        toast.error("ガチャの結果が空です。在庫がない可能性があります。");
-        setHasStock(false);
-      }
-    } catch (error: any) {
-      console.error("Error retrying gacha:", error);
-      if (error.response?.data?.code === 'OUT_OF_STOCK' || 
-          error.response?.status === 409 || 
-          error.response?.data?.message?.includes('stock') || 
-          error.response?.data?.message?.includes('在庫')) {
-        e.preventDefault();
-        toast.error("ガチャアイテムの在庫がありません");
-        setHasStock(false);
-      } else {
-        toast.error("ガチャの実行に失敗しました");
-      }
+      // 結果画面への遷移URL
+      const resultUrl = `/gacha/result?data=${encodedData}`;
+      
+      // 結果画面へリダイレクト
+      safeRedirect(resultUrl);
+    } catch (error) {
+      toast.error(t('gacha.result.retryError'));
     } finally {
       setIsDrawing(false);
     }
@@ -310,12 +276,11 @@ export default function GachaResultClient() {
         setHasStock(hasAvailableItems);
         
         if (!hasAvailableItems) {
-          console.log("ガチャアイテムの在庫がありません");
+          // 在庫がない
         }
       }
     } catch (error) {
       // APIがサポートされていない場合は在庫ありと仮定
-      console.log("在庫確認APIがサポートされていません");
       setHasStock(true);
     }
   };
@@ -348,7 +313,6 @@ export default function GachaResultClient() {
       
       // アイテムが空の場合はエラー表示せず、トーストだけ表示してガチャ一覧に戻る
       if (!parsedData.items || !Array.isArray(parsedData.items) || parsedData.items.length === 0) {
-        console.error("No items found in parsed data:", parsedData);
         toast.error("ガチャアイテムが見つかりません。在庫がない可能性があります。");
         // エラー画面を表示せずにガチャ一覧に戻る
         if (!isRedirecting.current) {
@@ -361,7 +325,6 @@ export default function GachaResultClient() {
       // 先にアイテムを処理して表示できるようにする
       try {
         const { uniqueItems, grouped } = processGachaResults(parsedData.items);
-        console.log("Processed items:", uniqueItems);
         
         // ステートを更新
         setUniqueResults(uniqueItems);
@@ -385,7 +348,6 @@ export default function GachaResultClient() {
         
         if (isAlreadyViewed) {
           // 既に表示済みの場合は動画をスキップ
-          console.log("This result has already been viewed, skipping video");
           setSkipVideo(true);
           setIsLoading(false);
           setShowResults(true);
@@ -423,7 +385,6 @@ export default function GachaResultClient() {
             
             // 動画再生完了時の処理
             videoRef.current.onended = () => {
-              console.log("Video playback ended");
               // 即座に結果を表示
               setIsLoading(false);
               setShowResults(true);
@@ -431,7 +392,6 @@ export default function GachaResultClient() {
             
             // 動画再生エラー時のフォールバック
             videoRef.current.onerror = () => {
-              console.error("Video playback error");
               setIsLoading(false);
               setShowResults(true);
             };
@@ -442,7 +402,6 @@ export default function GachaResultClient() {
               
               if (playPromise !== undefined) {
                 playPromise.catch(err => {
-                  console.error("Error playing video:", err);
                   // 動画再生に失敗した場合は結果を直接表示
                   setIsLoading(false);
                   setShowResults(true);
@@ -450,19 +409,16 @@ export default function GachaResultClient() {
               }
             };
           } catch (playError) {
-            console.error("Error during video playback setup:", playError);
             setIsLoading(false);
             setShowResults(true);
           }
-        } else {
-          // ビデオ要素がない場合は直接結果を表示
-          console.warn("Video element not found, showing results directly");
-          setIsLoading(false);
-          setShowResults(true);
+                  } else {
+            // ビデオ要素がない場合は直接結果を表示
+            setIsLoading(false);
+            setShowResults(true);
         }
-      } catch (processError) {
-        console.error("Error processing gacha items:", processError);
-        toast.error("ガチャアイテムの処理に失敗しました");
+              } catch (processError) {
+          toast.error("ガチャアイテムの処理に失敗しました");
         // エラー画面を表示せずにガチャ一覧に戻る
         if (!isRedirecting.current) {
           isRedirecting.current = true;
@@ -470,7 +426,6 @@ export default function GachaResultClient() {
         }
       }
     } catch (error) {
-      console.error("Error processing gacha results:", error);
       toast.error("ガチャ結果の処理に失敗しました");
       // エラー画面を表示せずにガチャ一覧に戻る
       if (!isRedirecting.current) {
@@ -565,8 +520,7 @@ export default function GachaResultClient() {
           return;
         }
       } catch (stockError) {
-        // 在庫確認APIがない場合は無視して続行
-        console.log("Stock check API not available, continuing...");
+              // 在庫確認APIがない場合は無視して続行
       }
       
       // Make API call to purchase and pull gacha
@@ -660,7 +614,6 @@ export default function GachaResultClient() {
   if (isLoading) {
     // 最高レアリティを取得
     const videoRarity = getVideoByRarity(uniqueResults);
-    console.log(`Playing video for rarity: ${videoRarity}`);
     
     return (
       <div className="fixed inset-0 bg-black flex items-center justify-center">

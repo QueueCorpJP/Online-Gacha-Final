@@ -3,9 +3,9 @@ import { useEffect, useState } from "react"
 import Image from "next/image"
 import { Crown } from "lucide-react"
 import { useTranslations } from "@/hooks/use-translations"
-import { coinService } from "@/services/coinService"
 import { toast } from "sonner"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { api } from "@/lib/axios"
 
 interface TopUserProps {
   period: 'daily' | 'weekly' | 'monthly';
@@ -23,43 +23,33 @@ export function TopUser({ period }: TopUserProps) {
     };
   } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [noData, setNoData] = useState(false);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
-    const fetchTopUser = async () => {
+    const fetchTopUserData = async () => {
       try {
         setLoading(true);
-        const data = await coinService.getGachaPurchaseStats(period);
-        console.log("APIから取得したデータ全体:", data);
+        const response = await api.get(`/rankings/${period}/top`);
         
-        if (data.recentTransactions && data.recentTransactions.length > 0) {
-          const firstUser = data.recentTransactions[0];
-          console.log("トップユーザーデータ:", firstUser);
-          
-          // データ構造の詳細を確認
-          console.log("ユーザーID:", firstUser.user?.id);
-          console.log("ユーザー名:", firstUser.user?.username);
-          console.log("プロフィール画像URL:", firstUser.user?.profileUrl);
-          
-          setTopUser(firstUser);
+        if (response.data?.user) {
+          setTopUser(response.data);
         } else {
-          console.log("トランザクションデータがありません");
+          setNoData(true);
         }
       } catch (error) {
-        console.error("エラー発生:", error);
-        toast.error(t("common.error"));
+        setError(true);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchTopUser();
+    fetchTopUserData();
   }, [period]);
 
   if (loading) {
     return <div className="relative rounded-lg bg-gradient-to-r from-[#9333EA] to-[#6B21A8] p-6 mb-10 animate-pulse" />;
   }
-
-  console.log("レンダリング時のトップユーザー:", topUser);
 
   const getInitials = (username?: string) => {
     return username?.charAt(0).toUpperCase() || 'U';

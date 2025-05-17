@@ -45,8 +45,6 @@ export function Charge() {
   const paymentMethod = useSelector((state: RootState) => state.paymentMethod.selectedMethod)
   const userBalance = useSelector((state: RootState) => state.auth.user?.coinBalance ?? 0)
 
-  console.log(paymentMethod)
-
   const handlePurchase = async (coins: number, price: number) => {
     if (!paymentMethod) {
       setIsMethodDialogOpen(true)
@@ -65,8 +63,6 @@ export function Charge() {
         coins: coins,
       })
 
-      console.log(clientSecret)
-
       if (!response.data?.clientSecret) {
         throw new Error('No client secret received from server')
       }
@@ -76,8 +72,6 @@ export function Charge() {
       setClientSecret(response.data.clientSecret)
       setIsDetailsDialogOpen(true)
     } catch (error: any) {
-      console.error('Failed to create payment intent:', error)
-      
       toast({
         title: t("payment.error.title"),
         description: error.response?.data?.message || t("payment.error.description"),
@@ -101,7 +95,6 @@ export function Charge() {
       // Redirect to the payment complete page
       window.location.href = `${window.location.origin}/payment/complete?payment_intent=${paymentMethod.id}`;
     } catch (error) {
-      console.error('Payment failed:', error);
       toast({
         title: "Error",
         description: "Payment failed",

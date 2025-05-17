@@ -27,7 +27,7 @@ export function GachaGrid({ initialFilters }: GachaGridProps) {
     setVisibleGachas(prev => prev + 3);
   };
 
-  console.log("initial filtere", initialFilters)
+  // 初期フィルターの設定
 
   // Initialize filters with initialFilters prop
   useEffect(() => {
@@ -41,8 +41,7 @@ export function GachaGrid({ initialFilters }: GachaGridProps) {
   }, [dispatch])
 
   useEffect(() => {
-    console.log(filters);
-    console.log("fetching gachas", initialFilters);
+    // ガチャデータを取得
     let newFilters: GachaFilters;
     if (selected) {
       newFilters = {
@@ -79,7 +78,7 @@ export function GachaGrid({ initialFilters }: GachaGridProps) {
     let sortField: string;
     let sortOrder: string;
 
-    console.log("change", filters);
+    // フィルター変更の処理
 
     setSortType(value);
 

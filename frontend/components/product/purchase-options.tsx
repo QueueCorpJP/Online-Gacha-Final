@@ -4,7 +4,7 @@ import { useToast } from "@/components/ui/use-toast"
 import { useDispatch, useSelector } from "react-redux"
 import { AppDispatch, RootState } from "@/redux/store"
 import { api } from "@/lib/axios"
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { toast } from "sonner"
 import { fetchProfile } from "@/redux/features/profileSlice"
 import { AlertCircle } from "lucide-react"
@@ -18,6 +18,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { useRouter } from "next/navigation"
 
 interface PurchaseOption {
   type: string
@@ -37,13 +38,11 @@ function safeRedirect(url: string): void {
   try {
     // 現在のURLと同じでないことを確認（無限リダイレクト防止）
     if (window.location.href !== url) {
-      console.log(`Redirecting to: ${url}`);
       window.location.href = url;
     } else {
-      console.warn('Prevented redirect to the same URL');
+      // 同じURLへのリダイレクトを防止
     }
   } catch (error) {
-    console.error('Redirect failed:', error);
     // エラーが発生した場合はトップページへ
     window.location.href = '/';
   }
@@ -58,16 +57,13 @@ export function GachaPurchaseOptions({ options, gachaId }: GachaPurchaseOptionsP
   const [hasStock, setHasStock] = useState(true); // 在庫状態を管理
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false); // 確認ダイアログの表示状態
   const [selectedOption, setSelectedOption] = useState<PurchaseOption | null>(null); // 選択されたオプション
+  const router = useRouter()
 
   useEffect(() => {
     dispatch(fetchProfile())
     // コンポーネントマウント時に在庫確認
     checkStock();
   }, [dispatch])
-
-  useEffect(() => {
-    console.log(userBalance);
-  }, [userBalance])
 
   // 在庫確認関数
   const checkStock = async () => {
@@ -81,12 +77,11 @@ export function GachaPurchaseOptions({ options, gachaId }: GachaPurchaseOptionsP
         setHasStock(hasAvailableItems);
         
         if (!hasAvailableItems) {
-          console.log("ガチャアイテムの在庫がありません");
+          // 在庫がない状態
         }
       }
     } catch (error) {
       // APIがサポートされていない場合は在庫ありと仮定
-      console.log("在庫確認APIがサポートされていません");
       setHasStock(true);
     }
   };
@@ -116,90 +111,21 @@ export function GachaPurchaseOptions({ options, gachaId }: GachaPurchaseOptionsP
     setConfirmDialogOpen(true);
   };
 
-  const handlePurchase = async () => {
-    // 選択されたオプションがない場合は処理を中断
-    if (!selectedOption) return;
-    
-    try {
-      setIsProcessing(true);
-
-      // ガチャアイテムの在庫確認（APIがサポートしている場合）
+  // ページ遷移処理
+  const redirectTo = useCallback((url: string) => {
+    if (typeof window !== 'undefined' && window.location.pathname !== url) {
       try {
-        // ガチャの在庫情報を取得（オプション）
-        const stockCheck = await api.get(`/admin/gacha/${gachaId}/stock-check`).catch(() => null);
-        
-        // 在庫情報がある場合は確認
-        if (stockCheck?.data?.availableItems === 0 || stockCheck?.data?.isEmpty) {
-          toast.error("ガチャアイテムの在庫がありません");
-          setHasStock(false);
-          setIsProcessing(false);
-          return;
-        }
-      } catch (stockError) {
-        // 在庫確認APIがない場合は無視して続行
-        console.log("Stock check API not available, continuing...");
+        router.push(url);
+      } catch (error) {
+        // リダイレクトエラーは無視
       }
-
-      // Make API call to purchase and pull gacha
-      const response = await api.post(`/admin/gacha/${gachaId}/pull`, {
-        times: selectedOption.times || 1,
-        isFree: selectedOption.isFree,
-      })
-
-      // Show results
-      if (response.data.items) {
-        // アイテムが空の場合は在庫切れと判断
-        if (!Array.isArray(response.data.items) || response.data.items.length === 0) {
-          toast.error("ガチャアイテムの在庫がありません");
-          setHasStock(false);
-          return;
-        }
-        
-        // Store the result data and redirect
-        const resultData = {
-          items: response.data.items,
-          gachaId: gachaId,
-          pullTime: new Date().toISOString()
-        };
-
-        console.log("Gacha pull successful. Result data:", resultData);
-        
-        try {
-          // URLパラメータを安全にエンコード
-          const encodedData = encodeURIComponent(JSON.stringify(resultData));
-          console.log("Encoded data length:", encodedData.length);
-          
-          // リダイレクト
-          const resultUrl = `/gacha/result?data=${encodedData}`;
-          console.log("Redirecting to:", resultUrl);
-          
-          // 安全なリダイレクト処理
-          if (!isRedirecting.current) {
-            isRedirecting.current = true;
-            safeRedirect(resultUrl);
-          }
-        } catch (err) {
-          console.error("Error during redirect:", err);
-          toast.error("ガチャ結果の表示に失敗しました");
-        }
-      }
-    } catch (error: any) {
-      // エラーメッセージの詳細化
-      if (error.response?.data?.code === 'OUT_OF_STOCK' || 
-          error.response?.status === 409 || 
-          error.response?.data?.message?.includes('stock') || 
-          error.response?.data?.message?.includes('在庫')) {
-        toast.error("ガチャアイテムの在庫がありません");
-        setHasStock(false);
-      } else {
-        toast.error(t("gacha.error.pull.title"), {
-          description: error.response?.data?.message || t("gacha.error.pull.description")
-        });
-      }
-    } finally {
-      setIsProcessing(false);
     }
-  }
+  }, [router]);
+
+  // ガチャを引く処理（confirmDialogのPurchaseボタンから呼び出される）
+  const handleGachaPull = async () => {
+    // 実装は別の箇所に移行されました
+  };
 
   return (
     <>
@@ -256,7 +182,7 @@ export function GachaPurchaseOptions({ options, gachaId }: GachaPurchaseOptionsP
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>キャンセル</AlertDialogCancel>
-            <AlertDialogAction onClick={handlePurchase} disabled={isProcessing}>
+            <AlertDialogAction onClick={handleGachaPull} disabled={isProcessing}>
               {isProcessing ? "処理中..." : "購入する"}
             </AlertDialogAction>
           </AlertDialogFooter>

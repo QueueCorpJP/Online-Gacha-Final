@@ -107,7 +107,6 @@ export const fetchGachas = createAsyncThunk(
     sortBy?: string;
     filter?: string;
   } | undefined, { rejectWithValue }) => {
-    console.log(filters);
     try {
       const response = await gachaApi.getGachas(filters);
       return response;
@@ -209,6 +208,50 @@ export const deleteGacha = createAsyncThunk(
   }
 );
 
+export const fetchGachasByFilters = createAsyncThunk(
+  'gachas/fetchByFilters',
+  async (filters: GachaFilters, { rejectWithValue }) => {
+    try {
+      const params = new URLSearchParams();
+
+      // フィルター条件をパラメータに追加
+      if (filters.minPrice !== undefined) {
+        params.append('minPrice', filters.minPrice.toString());
+      }
+      if (filters.maxPrice !== undefined) {
+        params.append('maxPrice', filters.maxPrice.toString());
+      }
+      if (filters.category) {
+        params.append('category', filters.category);
+      }
+      if (filters.type) {
+        params.append('type', filters.type);
+      }
+      if (filters.sort) {
+        params.append('sort', filters.sort);
+      }
+      if (filters.order) {
+        params.append('order', filters.order);
+      }
+      if (filters.page) {
+        params.append('page', filters.page.toString());
+      }
+      if (filters.limit) {
+        params.append('limit', filters.limit.toString());
+      }
+      if (filters.search) {
+        params.append('search', filters.search);
+      }
+
+      // API呼び出し
+      const response = await api.get(`/gachas?${params.toString()}`);
+      return response.data;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  }
+);
+
 const gachaSlice = createSlice({
   name: 'gacha',
   initialState,
@@ -221,8 +264,7 @@ const gachaSlice = createSlice({
       console.log("current payload", action.payload)
       state.currentGacha = action.payload;
     },
-    setFilters: (state, action) => {
-      console.log("payload filter", action.payload);
+    setFilters: (state, action: PayloadAction<Partial<GachaFilters>>) => {
       state.filters = { ...state.filters, ...action.payload };
     },
   },
@@ -472,6 +514,32 @@ const gachaSlice = createSlice({
       .addCase(deleteGacha.fulfilled, (state, action) => {
         state.loading = false;
         state.gachas = state.gachas.filter(gacha => gacha.id !== action.payload);
+      })
+      .addCase(fetchGachasByFilters.fulfilled, (state, action) => {
+        state.loading = false;
+        state.error = null;
+        
+        // メタデータを保存
+        if (action.payload.meta) {
+          state.pagination = {
+            total: action.payload.meta.total || 0,
+            page: action.payload.meta.page || 1,
+            limit: action.payload.meta.limit || 10,
+            pages: action.payload.meta.pages || 1,
+          };
+        }
+        
+        // データがあればlistに保存
+        const gachaData = action.payload.data || action.payload;
+        
+        // 数値文字列を数値に変換
+        const normalizedGachas = Array.isArray(gachaData) ? gachaData.map(gacha => ({
+          ...gacha,
+          price: typeof gacha.price === 'string' ? parseFloat(gacha.price) : gacha.price
+        })) : [];
+        
+        state.list = normalizedGachas;
+        state.filtered = normalizedGachas;
       });
   },
 });

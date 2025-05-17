@@ -235,14 +235,7 @@ export function GachaForm({ initialData, gachaId, onSubmitSuccess }: GachaFormPr
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // デバッグ出力
-    console.log("送信前の状態:", {
-      isLimitless,
-      dailyLimit,
-      type,
-      price,
-      period
-    });
+
 
     // Create validation data object
     const formData: GachaFormData = {
@@ -286,8 +279,7 @@ export function GachaForm({ initialData, gachaId, onSubmitSuccess }: GachaFormPr
     // Update errors state
     setErrors(validationErrors);
 
-    console.log("フォームデータ:", formData);
-    console.log("バリデーションエラー:", validationErrors);
+
 
     // If there are validation errors, show toast and return
     if (Object.keys(validationErrors).length > 0) {

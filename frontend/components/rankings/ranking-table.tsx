@@ -5,9 +5,10 @@ import { cn } from "@/lib/utils"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 import { useTranslations } from "@/hooks/use-translations"
-import { coinService, GachaPurchaseStats } from "@/services/coinService"
+import { coinService } from "@/services/coinService"
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { api } from "@/lib/axios"
 
 interface RankingTableProps {
   period: 'daily' | 'weekly' | 'monthly';
@@ -17,29 +18,16 @@ export function RankingTable({ period }: RankingTableProps) {
   const { t } = useTranslations()
   const [stats, setStats] = useState<GachaPurchaseStats | null>(null)
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
         setLoading(true)
         const data = await coinService.getGachaPurchaseStats(period)
-        console.log("ランキングデータ:", data);
-        
-        // トランザクション構造の詳細確認
-        if (data.recentTransactions && data.recentTransactions.length > 1) {
-          console.log("最初の数名のユーザー:");
-          data.recentTransactions.slice(0, 3).forEach((user, index) => {
-            console.log(`ユーザー ${index + 1}:`, user);
-            console.log(`- ID: ${user.user?.id}`);
-            console.log(`- ユーザー名: ${user.user?.username}`);
-            console.log(`- プロフィール画像: ${user.user?.profileUrl}`);
-          });
-        }
-        
         setStats(data)
       } catch (error) {
-        console.error("ランキングデータ取得エラー:", error);
-        toast.error(t("common.error"))
+        setError(true)
       } finally {
         setLoading(false)
       }
@@ -50,6 +38,10 @@ export function RankingTable({ period }: RankingTableProps) {
 
   if (loading) {
     return <div className="p-4 text-center">{t("common.loading")}</div>
+  }
+
+  if (error) {
+    return <div className="p-4 text-center">{t("common.error")}</div>
   }
 
   // Get transactions excluding the first one (top user)

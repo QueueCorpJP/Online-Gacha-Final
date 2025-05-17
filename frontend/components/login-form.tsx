@@ -23,8 +23,6 @@ export function LoginForm() {
   const dispatch = useDispatch<AppDispatch>()
   const { isLoading, error } = useSelector((state: RootState) => state.auth);
 
-  console.log("loading", isLoading)
-
   const formSchema = z.object({
     email: z.string().email({
       message: t("login.form.email.error"),
@@ -60,7 +58,7 @@ export function LoginForm() {
       try {
         await dispatch(fetchProfile()).unwrap()
       } catch (error) {
-        console.error('Failed to fetch profile data:', error)
+        // プロフィールデータの取得に失敗した場合のエラー処理
       }
       
       router.push('/')

@@ -14,7 +14,7 @@ interface CardGridProps {
 
 export function CardGrid({ items = [] }: CardGridProps) {
 
-  console.log("items", items);
+  // アイテムデータを処理
   const { t } = useTranslations()
 
   return (

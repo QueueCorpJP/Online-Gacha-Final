@@ -34,7 +34,7 @@ function getStripePromise() {
 const stripePromise = getStripePromise()
 
 if (!process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY) {
-  console.error('Stripe publishable key is not set')
+  // Stripe publishable key is not set
 }
 
 interface PaymentDetailsDialogProps {
@@ -103,8 +103,6 @@ function PaymentForm({
 
         const data = await response.json();
 
-        console.log(data);
-
         if (data.BODY.data.url) {
           // Redirect to PayPay payment page
           window.location.href = data.BODY.data.url;
@@ -112,7 +110,6 @@ function PaymentForm({
           throw new Error('PayPay payment URL not received');
         }
       } catch (error) {
-        console.error('PayPay payment error:', error);
         toast.error(t("payment.error.title"), {
           description: t("payment.error.description")
         });
@@ -132,7 +129,6 @@ function PaymentForm({
     try {
       const { error: submitError } = await elements.submit();
       if (submitError) {
-        console.error(submitError);
         return;
       }
 
@@ -144,7 +140,6 @@ function PaymentForm({
       });
 
       if (error) {
-        console.error('Payment confirmation error:', error);
         return;
       }
 
@@ -152,7 +147,7 @@ function PaymentForm({
         onSubmit({ id: clientSecret.split('_secret_')[0] });
       }
     } catch (error) {
-      console.error('Payment processing error:', error);
+      // エラー処理（トースト通知は別関数で実行）
     } finally {
       setIsProcessing(false);
     }
@@ -228,6 +223,24 @@ export function PaymentDetailsDialog({
     },
     loader: 'auto',
   }
+
+  useEffect(() => {
+    // Stripe設定
+    if (!process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY) {
+      // Stripeキーが設定されていない場合
+      return;
+    }
+
+    // Stripe初期化とElements準備
+    const loadStripe = async () => {
+      if (!stripePromise) {
+        const stripeInstance = await stripePromise;
+        setStripe(stripeInstance);
+      }
+    };
+
+    loadStripe();
+  }, []);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

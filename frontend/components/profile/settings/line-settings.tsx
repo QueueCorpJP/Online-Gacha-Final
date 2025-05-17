@@ -29,7 +29,6 @@ export function LineSettings() {
     api.get('/user/line/login')
       .then((response) => setLoginUrl(response.data.url.url))
       .catch((error) => {
-        console.error('Failed to fetch LINE login URL:', error);
         toast.error(t("line.messages.loginUrlError"));
       });
   }, []);
@@ -81,7 +80,6 @@ export function LineSettings() {
 
   const handleNotificationChange = async (checked: boolean) => {
     try {
-      console.log(checked)
       const result = await dispatch(updateLineNotifications(checked)).unwrap()
       if (result.success) {
         toast.success(t("line.messages.notificationSuccess"))

@@ -32,7 +32,6 @@ export function UploadZone({
   
   useEffect(() => {
     if (defaultPreview) {
-      console.log(defaultPreview);
       setPreview(defaultPreview)
     }
   }, [defaultPreview])

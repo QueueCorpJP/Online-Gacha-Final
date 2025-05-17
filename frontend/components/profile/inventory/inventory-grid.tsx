@@ -27,8 +27,6 @@ export function InventoryGrid() {
     error: state.inventory.error,
     filter: state.inventory.filter
   }));
-
-  console.log(items);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const loadInventoryData = async () => {

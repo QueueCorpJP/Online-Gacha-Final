@@ -60,10 +60,8 @@ export function GachaHeader({
         setRating(totalReactions > 0 ? 
           ((response.data.likes || initialLikes) * 5 + (response.data.dislikes || initialDislikes) * 1) / totalReactions 
           : 0);
-
-        console.log('Reaction status:', response.data);
       } catch (error) {
-        console.error('Failed to fetch reaction status:', error);
+        // エラー処理
       }
     };
     checkReactionStatus();
@@ -89,7 +87,7 @@ export function GachaHeader({
     }
 
     try {
-      console.log(`Sending ${type} reaction for gacha ${gachaId}`);
+      // リアクションを送信
       const response = await api.post(`/admin/gacha/${gachaId}/favorite`, 
         { type },
         {
@@ -99,7 +97,7 @@ export function GachaHeader({
         }
       );
       
-      console.log('Response from server:', response.data);
+      // サーバーからの応答を処理
       if (response.data) {
         setLikes(response.data.likes);
         setDislikes(response.data.dislikes);
@@ -107,10 +105,7 @@ export function GachaHeader({
         setIsDisliked(response.data.disliked);
       }
     } catch (error) {
-      console.error('Failed to update reaction:', error);
-      if (error && typeof error === 'object' && 'response' in error) {
-        console.error('Error response:', (error as AxiosError).response?.data);
-      }
+      // リアクションの更新に失敗した場合のエラー処理
     }
   };
 

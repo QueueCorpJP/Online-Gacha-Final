@@ -89,8 +89,6 @@ export function ProfileImageUpload({ defaultImage, onImageChange }: ProfileImage
             toast.error("画像のアップロードに失敗しました")
           }
         } catch (error) {
-          console.error("Error uploading image:", error)
-          
           // エラーが発生しても念のためプロフィール情報を取得して確認
           try {
             const profileResult = await dispatch(fetchProfile())
@@ -111,7 +109,7 @@ export function ProfileImageUpload({ defaultImage, onImageChange }: ProfileImage
               return
             }
           } catch (e) {
-            console.error("Error fetching profile after upload error:", e)
+            // プロフィール取得中のエラーは無視
           }
           
           toast.error("画像のアップロードに失敗しました")
@@ -159,8 +157,6 @@ export function ProfileImageUpload({ defaultImage, onImageChange }: ProfileImage
         toast.error("画像の削除に失敗しました")
       }
     } catch (error) {
-      console.error("Error deleting image:", error)
-      
       // エラーが発生してもプロフィール情報を取得して実際の状態を確認
       const profileResult = await dispatch(fetchProfile())
       
@@ -205,7 +201,6 @@ export function ProfileImageUpload({ defaultImage, onImageChange }: ProfileImage
             className="h-32 w-32 rounded-full object-cover border"
             onError={(e) => {
               // 画像読み込みエラー時の処理
-              console.error("Image load error, retrying...");
               const imgElement = e.target as HTMLImageElement;
               // 再試行回数を制限するためのカスタム属性
               const retryCount = +(imgElement.getAttribute('data-retry-count') || '0');
