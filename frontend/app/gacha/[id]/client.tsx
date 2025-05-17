@@ -98,7 +98,7 @@ export default function GachaDetailPage() {
         },
         { 
             title: t("gacha.purchase.details.rarity.title"), 
-            content: gacha?.items?.map(item => `${item.rarity.toUpperCase()}: ${item.probability}%`).join("\n") || 
+            content: gacha?.items?.map(item => `${item.rarity.toUpperCase()}: ${parseInt(item.probability)}%`).join("\n") || 
                      t("gacha.purchase.details.rarity.description"), 
             isPurple: true 
         },

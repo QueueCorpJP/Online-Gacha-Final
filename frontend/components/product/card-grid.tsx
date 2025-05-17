@@ -32,7 +32,7 @@ export function CardGrid({ items = [] }: CardGridProps) {
           <div className="text-white text-sm bg-[#00000080] p-3 rounded-b-lg">
             <div>{item.name}</div>
             <div className="text-xs mt-1">
-              {item.rarity.charAt(0).toUpperCase() + item.rarity.slice(1)} • {item.probability}%
+              {item.rarity.charAt(0).toUpperCase() + item.rarity.slice(1)} • {parseInt(item.probability)}%
               {item.stock !== undefined && ` • ${t("gacha.cards.remaining"), item.stock}`}
             </div>
           </div>
