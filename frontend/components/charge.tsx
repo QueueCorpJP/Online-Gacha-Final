@@ -13,10 +13,7 @@ import { api } from "@/lib/axios"
 import { PaymentDetailsDialog } from "./payment-details-dialog"
 
 const stripePromise = loadStripe(
-  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!, 
-  {
-    betas: ['payment_element_beta_1']
-  }
+  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
 );
 
 const coinOptions = [

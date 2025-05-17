@@ -15,7 +15,7 @@ import {
   useElements,
 } from "@stripe/react-stripe-js"
 import { toast } from "sonner"
-import { ApplePayButton } from "@/components/apple-pay-button"
+// import { ApplePayButton } from "@/components/apple-pay-button" // 未使用のため削除
 import type { Stripe, StripeElementsOptions } from '@stripe/stripe-js'
 import CheckoutForm from "./payment/checkout"
 
@@ -188,11 +188,12 @@ function PaymentForm({
           type: 'tabs',
           defaultCollapsed: false,
         },
-        paymentMethodOrder: ['card', 'apple_pay', 'google_pay'],
-        wallets: {
-          applePay: 'auto' as const,
-          googlePay: 'auto' as const
-        }
+        paymentMethodOrder: ['card'],
+        // ウォレット支払いを無効化
+        // wallets: {
+        //   applePay: 'auto' as const,
+        //   googlePay: 'auto' as const
+        // }
       }} />
       <Button 
         type="submit" 
