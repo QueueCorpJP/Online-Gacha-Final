@@ -54,32 +54,31 @@ export function ProfileImageUpload({ defaultImage, onImageChange }: ProfileImage
 
         setIsUploading(true)
         try {
-          // リザルトの型チェックで、fulfilledとrejectedを判別する
           const uploadResult = await dispatch(uploadProfileImage(file))
           
-          if (uploadResult.meta.requestStatus === 'fulfilled' && uploadResult.payload?.url) {
-            // 明示的にプロフィール情報を再取得して最新状態を確保
+          // uploadResult.metaを確認して成功したかどうかを判断
+          if (uploadResult.meta.requestStatus === 'fulfilled') {
+            // 成功の場合はプロフィール情報を再取得
             await dispatch(fetchProfile())
             
-            // 新しいタイムスタンプ付きのURLを使用してキャッシュ回避
-            const imageUrl = `${uploadResult.payload.url}?t=${new Date().getTime()}`
-            setImage(imageUrl)
-            
-            if (onImageChange) {
-              onImageChange(uploadResult.payload.url)
+            if (uploadResult.payload?.url) {
+              // URLがある場合は画像を更新
+              const imageUrl = `${uploadResult.payload.url}?t=${new Date().getTime()}`
+              setImage(imageUrl)
+              
+              if (onImageChange) {
+                onImageChange(uploadResult.payload.url)
+              }
+              
+              toast.success("画像をアップロードしました")
             }
-            
-            toast.success("画像をアップロードしました")
-          } else {
-            // requestStatusがfulfilledでないか、URLがない場合
-            throw new Error(uploadResult.payload?.toString() || "画像アップロードエラー")
+          } else if (uploadResult.meta.requestStatus === 'rejected') {
+            // 明示的に失敗の場合のみエラートーストを表示
+            toast.error("画像のアップロードに失敗しました")
           }
         } catch (error) {
           console.error("Error uploading image:", error)
           toast.error("画像のアップロードに失敗しました")
-          
-          // エラー後にプロフィール情報を再取得
-          dispatch(fetchProfile())
         } finally {
           setIsUploading(false)
         }
@@ -93,13 +92,44 @@ export function ProfileImageUpload({ defaultImage, onImageChange }: ProfileImage
 
     setIsUploading(true)
     try {
-      // リザルトの型チェックで、fulfilledとrejectedを判別する
       const deleteResult = await dispatch(deleteProfileImage())
       
-      if (deleteResult.meta.requestStatus === 'fulfilled') {
-        // 明示的にプロフィール情報を再取得して最新状態を確保
-        await dispatch(fetchProfile())
+      // プロフィール情報を再取得して実際に画像が削除されたか確認
+      const profileResult = await dispatch(fetchProfile())
+      
+      // プロフィールデータに画像URLがなければ削除成功と判断
+      if (profileResult.meta.requestStatus === 'fulfilled' && !profileResult.payload?.profileUrl) {
+        setImage(null)
         
+        if (onImageChange) {
+          onImageChange(null)
+        }
+        
+        toast.success("画像を削除しました")
+        return
+      }
+      
+      // 判断できない場合は、deleteResultのステータスで判断
+      if (deleteResult.meta.requestStatus === 'fulfilled') {
+        setImage(null)
+        
+        if (onImageChange) {
+          onImageChange(null)
+        }
+        
+        toast.success("画像を削除しました")
+      } else if (deleteResult.meta.requestStatus === 'rejected') {
+        // 明示的に失敗の場合のみエラートーストを表示
+        toast.error("画像の削除に失敗しました")
+      }
+    } catch (error) {
+      console.error("Error deleting image:", error)
+      
+      // エラーが発生してもプロフィール情報を取得して実際の状態を確認
+      const profileResult = await dispatch(fetchProfile())
+      
+      // プロフィールデータに画像URLがなければ削除成功と判断
+      if (profileResult.meta.requestStatus === 'fulfilled' && !profileResult.payload?.profileUrl) {
         setImage(null)
         
         if (onImageChange) {
@@ -108,15 +138,8 @@ export function ProfileImageUpload({ defaultImage, onImageChange }: ProfileImage
         
         toast.success("画像を削除しました")
       } else {
-        // requestStatusがfulfilledでない場合
-        throw new Error(deleteResult.payload?.toString() || "画像削除エラー")
+        toast.error("画像の削除に失敗しました")
       }
-    } catch (error) {
-      console.error("Error deleting image:", error)
-      toast.error("画像の削除に失敗しました")
-      
-      // エラー後にプロフィール情報を再取得
-      dispatch(fetchProfile())
     } finally {
       setIsUploading(false)
     }

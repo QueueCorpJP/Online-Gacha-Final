@@ -100,7 +100,13 @@ export const deleteProfileImage = createAsyncThunk(
       await api.delete('/profile/image');
       return true;
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to delete image');
+      // ERR_FAILEDエラーの場合でも実際には削除できている可能性があるため
+      // 真のエラーかどうかを区別するための情報を含める
+      return rejectWithValue({
+        message: error.response?.data?.message || 'Failed to delete image',
+        isNetworkError: !error.response,
+        status: error.response?.status
+      });
     }
   }
 );
