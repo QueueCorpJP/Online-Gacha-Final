@@ -56,13 +56,26 @@ export function ProfileImageUpload({ defaultImage, onImageChange }: ProfileImage
         try {
           const uploadResult = await dispatch(uploadProfileImage(file))
           
-          // uploadResult.metaを確認して成功したかどうかを判断
-          if (uploadResult.meta.requestStatus === 'fulfilled') {
-            // 成功の場合はプロフィール情報を再取得
-            await dispatch(fetchProfile())
+          // アップロード後、プロフィール情報を再取得して実際の状態を確認
+          const profileResult = await dispatch(fetchProfile())
+          
+          // プロフィールデータに新しい画像URLがあれば成功と判断
+          if (profileResult.meta.requestStatus === 'fulfilled' && profileResult.payload?.profileUrl) {
+            // 新しいタイムスタンプ付きのURLを使用してキャッシュ回避
+            const imageUrl = `${profileResult.payload.profileUrl}?t=${new Date().getTime()}`
+            setImage(imageUrl)
             
+            if (onImageChange) {
+              onImageChange(profileResult.payload.profileUrl)
+            }
+            
+            toast.success("画像をアップロードしました")
+            return
+          }
+          
+          // プロフィール確認で判断できない場合は、元のレスポンスで判断
+          if (uploadResult.meta.requestStatus === 'fulfilled') {
             if (uploadResult.payload?.url) {
-              // URLがある場合は画像を更新
               const imageUrl = `${uploadResult.payload.url}?t=${new Date().getTime()}`
               setImage(imageUrl)
               
@@ -73,18 +86,41 @@ export function ProfileImageUpload({ defaultImage, onImageChange }: ProfileImage
               toast.success("画像をアップロードしました")
             }
           } else if (uploadResult.meta.requestStatus === 'rejected') {
-            // 明示的に失敗の場合のみエラートーストを表示
             toast.error("画像のアップロードに失敗しました")
           }
         } catch (error) {
           console.error("Error uploading image:", error)
+          
+          // エラーが発生しても念のためプロフィール情報を取得して確認
+          try {
+            const profileResult = await dispatch(fetchProfile())
+            
+            // 新しいプロフィール画像URLがあれば、エラーが発生しても実際には成功している
+            if (profileResult.meta.requestStatus === 'fulfilled' && 
+                profileResult.payload?.profileUrl &&
+                (!image || (image && !image.includes(profileResult.payload.profileUrl)))) {
+              
+              const imageUrl = `${profileResult.payload.profileUrl}?t=${new Date().getTime()}`
+              setImage(imageUrl)
+              
+              if (onImageChange) {
+                onImageChange(profileResult.payload.profileUrl)
+              }
+              
+              toast.success("画像をアップロードしました")
+              return
+            }
+          } catch (e) {
+            console.error("Error fetching profile after upload error:", e)
+          }
+          
           toast.error("画像のアップロードに失敗しました")
         } finally {
           setIsUploading(false)
         }
       }
     },
-    [dispatch, onImageChange],
+    [dispatch, onImageChange, image],
   )
 
   const deleteImage = async () => {
@@ -177,7 +213,8 @@ export function ProfileImageUpload({ defaultImage, onImageChange }: ProfileImage
               
               if (retryCount < 3 && currentImage) {
                 // 画像URLにタイムスタンプを追加して再読み込み
-                imgElement.src = `${currentImage}${currentImage.includes('?') ? '&' : '?'}t=${new Date().getTime()}`;
+                const newTimestamp = new Date().getTime();
+                imgElement.src = `${currentImage.split('?')[0]}?t=${newTimestamp}`;
                 imgElement.setAttribute('data-retry-count', (retryCount + 1).toString());
               } else {
                 // 3回試行しても失敗した場合、プロフィールデータを再取得

@@ -88,7 +88,13 @@ export const uploadProfileImage = createAsyncThunk(
       
       return response?.data || { url: null };
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to upload image');
+      // ERR_FAILEDエラーなど、ネットワークエラーの場合でも
+      // 実際には処理が成功している場合があるため、詳細情報を含める
+      return rejectWithValue({
+        message: error.response?.data?.message || 'Failed to upload image',
+        isNetworkError: !error.response,
+        status: error.response?.status
+      });
     }
   }
 );
