@@ -222,11 +222,10 @@ export function SiteHeader({ isAdmin = false }: SiteHeaderProps) {
             <Image
               src="/shijon_logo.png"
               alt="SHIJON管理画面"
-              width={32}
-              height={32}
+              width={40}
+              height={40}
               className="rounded-full"
             />
-            <span className="text-xl font-bold text-[#7C3AED]">SHIJON管理画面</span>
           </Link>
           <div className="flex items-center gap-4">
             <Button 
@@ -258,11 +257,10 @@ export function SiteHeader({ isAdmin = false }: SiteHeaderProps) {
             <Image
               src="/shijon_logo.png"
               alt={t("header.logo.alt")}
-              width={32}
-              height={32}
+              width={40}
+              height={40}
               className="rounded-full"
             />
-            <span className="text-xl font-bold text-[#7C3AED]">SHIJON</span>
             {/* <span className="ml-2 text-red-500 font-bold">【テスト表示</span> */}
           </Link>
 
