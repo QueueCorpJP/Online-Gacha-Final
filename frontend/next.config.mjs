@@ -13,6 +13,10 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,  // TypeScriptエラーを無視する設定
   },
+  // 環境変数の設定
+  env: {
+    NEXT_PUBLIC_DISABLE_CONSOLE: 'true', // 本番環境でコンソールを無効化
+  },
   images: {
     unoptimized: true,
     remotePatterns: [
