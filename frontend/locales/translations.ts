@@ -1,3 +1,4 @@
+// 多言語翻訳定義
 export const translations = {
     ja: {
         common: {
@@ -14,6 +15,9 @@ export const translations = {
             loading: "読み込み中...",
             error: "エラー",
             success: "完了しました",
+            page: "ページ",
+            next: "次へ",
+            previous: "前へ",
             actions: {
                 retry: "再試行",
                 // ... other action translations
@@ -1408,6 +1412,9 @@ export const translations = {
             loading: "Loading...",
             error: "Error",
             success: "Success",
+            page: "Page",
+            next: "Next",
+            previous: "Previous",
             actions: {
                 retry: "Retry",
                 // ... other action translations
@@ -2782,6 +2789,9 @@ export const translations = {
             loading: "加载中...",
             error: "错误",
             success: "成功",
+            page: "页面",
+            next: "下一页",
+            previous: "上一页",
             actions: {
                 retry: "重试",
                 // ... other action translations

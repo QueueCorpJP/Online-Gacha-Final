@@ -182,7 +182,7 @@ export function GachaTable({ onEdit }: GachaTableProps) {
           </Button>
           
           <span className="text-xs text-center">
-            {t("common.page")} {page}/{totalPages}
+            {t("common.page")} {page} / {totalPages}
           </span>
           
           <Button
