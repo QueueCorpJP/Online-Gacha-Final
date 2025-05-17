@@ -218,8 +218,15 @@ export function SiteHeader({ isAdmin = false }: SiteHeaderProps) {
     return (
       <header className="sticky top-0 z-50 w-full border-b bg-white">
         <div className="mx-auto container flex h-16 items-center justify-between">
-          <Link href="/" className="text-xl font-bold text-[#7C3AED]">
-            SHIJON管理画面
+          <Link href="/" className="flex items-center gap-2">
+            <Image
+              src="/shijon_logo.png"
+              alt="SHIJON管理画面"
+              width={32}
+              height={32}
+              className="rounded-full"
+            />
+            <span className="text-xl font-bold text-[#7C3AED]">SHIJON管理画面</span>
           </Link>
           <div className="flex items-center gap-4">
             <Button 
@@ -249,10 +256,11 @@ export function SiteHeader({ isAdmin = false }: SiteHeaderProps) {
         <div className="w-full flex h-16 items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <Image
-              src="/logo.svg"
+              src="/shijon_logo.png"
               alt={t("header.logo.alt")}
-              width={24}
-              height={24}
+              width={32}
+              height={32}
+              className="rounded-full"
             />
             <span className="text-xl font-bold text-[#7C3AED]">SHIJON</span>
             {/* <span className="ml-2 text-red-500 font-bold">【テスト表示</span> */}
