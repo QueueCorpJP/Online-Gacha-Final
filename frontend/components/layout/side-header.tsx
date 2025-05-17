@@ -256,12 +256,11 @@ export function SiteHeader({ isAdmin = false }: SiteHeaderProps) {
           <Link href="/" className="flex items-center gap-2">
             <Image
               src="/shijon_logo.png"
-              alt="SHIJON管理画面"
+              alt={t("header.logo.alt")}
               width={55}
               height={55}
               className="object-contain"
             />
-            <span className="text-xl font-bold text-[#7C3AED]">SHIJON管理画面</span>
           </Link>
 
           {isLoggedIn ? <UserActions /> : <AuthButtons />}
