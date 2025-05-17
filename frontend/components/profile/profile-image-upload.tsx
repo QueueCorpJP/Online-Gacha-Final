@@ -54,32 +54,32 @@ export function ProfileImageUpload({ defaultImage, onImageChange }: ProfileImage
 
         setIsUploading(true)
         try {
-          const result = await dispatch(uploadProfileImage(file)).unwrap()
+          // リザルトの型チェックで、fulfilledとrejectedを判別する
+          const uploadResult = await dispatch(uploadProfileImage(file))
           
-          // 明示的にプロフィール情報を再取得して最新状態を確保
-          await dispatch(fetchProfile()).unwrap();
-          
-          // 画像URLが取得できたことを確認
-          if (result.url) {
+          if (uploadResult.meta.requestStatus === 'fulfilled' && uploadResult.payload?.url) {
+            // 明示的にプロフィール情報を再取得して最新状態を確保
+            await dispatch(fetchProfile())
+            
             // 新しいタイムスタンプ付きのURLを使用してキャッシュ回避
-            const imageUrl = `${result.url}?t=${new Date().getTime()}`;
+            const imageUrl = `${uploadResult.payload.url}?t=${new Date().getTime()}`
             setImage(imageUrl)
             
             if (onImageChange) {
-              onImageChange(result.url)
+              onImageChange(uploadResult.payload.url)
             }
             
             toast.success("画像をアップロードしました")
           } else {
-            // URLがない場合はエラー
-            throw new Error("画像URLが取得できませんでした")
+            // requestStatusがfulfilledでないか、URLがない場合
+            throw new Error(uploadResult.payload?.toString() || "画像アップロードエラー")
           }
         } catch (error) {
           console.error("Error uploading image:", error)
           toast.error("画像のアップロードに失敗しました")
           
           // エラー後にプロフィール情報を再取得
-          dispatch(fetchProfile());
+          dispatch(fetchProfile())
         } finally {
           setIsUploading(false)
         }
@@ -93,24 +93,30 @@ export function ProfileImageUpload({ defaultImage, onImageChange }: ProfileImage
 
     setIsUploading(true)
     try {
-      await dispatch(deleteProfileImage()).unwrap()
+      // リザルトの型チェックで、fulfilledとrejectedを判別する
+      const deleteResult = await dispatch(deleteProfileImage())
       
-      // 明示的にプロフィール情報を再取得して最新状態を確保
-      await dispatch(fetchProfile()).unwrap();
-      
-      setImage(null)
-      
-      if (onImageChange) {
-        onImageChange(null)
+      if (deleteResult.meta.requestStatus === 'fulfilled') {
+        // 明示的にプロフィール情報を再取得して最新状態を確保
+        await dispatch(fetchProfile())
+        
+        setImage(null)
+        
+        if (onImageChange) {
+          onImageChange(null)
+        }
+        
+        toast.success("画像を削除しました")
+      } else {
+        // requestStatusがfulfilledでない場合
+        throw new Error(deleteResult.payload?.toString() || "画像削除エラー")
       }
-      
-      toast.success("画像を削除しました")
     } catch (error) {
       console.error("Error deleting image:", error)
       toast.error("画像の削除に失敗しました")
       
       // エラー後にプロフィール情報を再取得
-      dispatch(fetchProfile());
+      dispatch(fetchProfile())
     } finally {
       setIsUploading(false)
     }
