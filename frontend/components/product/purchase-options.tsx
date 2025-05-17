@@ -124,7 +124,80 @@ export function GachaPurchaseOptions({ options, gachaId }: GachaPurchaseOptionsP
 
   // ガチャを引く処理（confirmDialogのPurchaseボタンから呼び出される）
   const handleGachaPull = async () => {
-    // 実装は別の箇所に移行されました
+    if (!selectedOption || !gachaId) return;
+    
+    if (!hasStock) {
+      toast.error("ガチャアイテムの在庫がありません");
+      return;
+    }
+    
+    try {
+      setIsProcessing(true);
+      
+      // 在庫確認（APIがサポートしている場合）
+      try {
+        const stockCheck = await api.get(`/admin/gacha/${gachaId}/stock-check`).catch(() => null);
+        
+        if (stockCheck?.data?.availableItems === 0 || stockCheck?.data?.isEmpty) {
+          toast.error("ガチャアイテムの在庫がありません");
+          setHasStock(false);
+          setIsProcessing(false);
+          setConfirmDialogOpen(false);
+          return;
+        }
+      } catch (stockError) {
+        // 在庫確認APIがない場合は無視して続行
+      }
+      
+      // APIを呼び出してガチャを購入・引く
+      const response = await api.post(`/admin/gacha/${gachaId}/pull`, {
+        times: selectedOption.times || 1,
+        isFree: selectedOption.isFree || false,
+      });
+
+      // 結果を表示
+      if (response.data.items && Array.isArray(response.data.items) && response.data.items.length > 0) {
+        // 結果データを保存してリダイレクト
+        const resultData = {
+          items: response.data.items,
+          gachaId: gachaId,
+          pullTime: new Date().toISOString()
+        };
+
+        // 新しいガチャ結果のため、sessionStorageをクリア
+        if (typeof window !== 'undefined') {
+          const currentResultKey = `gacha_result_${gachaId}_${resultData.pullTime}`;
+          sessionStorage.removeItem(currentResultKey);
+        }
+
+        // 結果ページへリダイレクト
+        const resultUrl = `/gacha/result?data=${encodeURIComponent(JSON.stringify(resultData))}`;
+        if (!isRedirecting.current) {
+          isRedirecting.current = true;
+          safeRedirect(resultUrl);
+        }
+      } else {
+        toast.error("ガチャアイテムの在庫がありません");
+        setHasStock(false);
+        setConfirmDialogOpen(false);
+      }
+    } catch (error: any) {
+      // エラーメッセージの詳細化
+      if (error.response?.data?.code === 'OUT_OF_STOCK' || 
+          error.response?.status === 409 || 
+          error.response?.data?.message?.includes('stock') || 
+          error.response?.data?.message?.includes('在庫')) {
+        toast.error("ガチャアイテムの在庫がありません");
+        setHasStock(false);
+      } else {
+        toast.error(t("gacha.error.pull.title"), {
+          description: error.response?.data?.message || t("gacha.error.pull.description")
+        });
+      }
+      setConfirmDialogOpen(false);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
