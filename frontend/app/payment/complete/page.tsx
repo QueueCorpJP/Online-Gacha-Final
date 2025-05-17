@@ -11,7 +11,7 @@ import { CheckCircle2, XCircle } from "lucide-react"
 import { updateCoinBalance } from "@/redux/features/authSlice"
 import { fetchProfile } from "@/redux/features/profileSlice"
 
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY!)
 
 export default function PaymentCompletePage() {
   const { t } = useTranslations()
