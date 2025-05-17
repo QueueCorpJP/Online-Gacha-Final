@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     },
     description: 'SHIJONでオンラインガチャを楽しもう！レアアイテムをゲットしよう。',
     url: '/',
-    images: [{ url: '/card.jpg' }],
+    images: [{ url: 'https://oripa-shijon.com/card.jpg' }],
   },
   twitter: {
     card: 'summary_large_image',
