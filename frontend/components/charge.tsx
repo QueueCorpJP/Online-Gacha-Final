@@ -153,7 +153,7 @@ export function Charge() {
               <div className="flex items-baseline gap-2">
                 <span className="text-xl font-bold">{coins.toLocaleString()}</span>
                 <span>{t("charge.coin")}</span>
-                <div className="flex items-center gap-1 text-gray-500">
+                <div className="hidden md:flex items-center gap-1 text-gray-500">
                   <Coins className="h-4 w-4 text-yellow-400" />
                   <span>{coins.toLocaleString()}</span>
                 </div>
