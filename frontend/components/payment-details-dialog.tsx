@@ -33,7 +33,7 @@ function getStripePromise() {
 
 const stripePromise = getStripePromise()
 
-if (!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
+if (!process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY) {
   console.error('Stripe publishable key is not set')
 }
 

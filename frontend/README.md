@@ -29,7 +29,7 @@
 NEXT_PUBLIC_API_URL=http://localhost:8000
 
 # Stripe
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=your_stripe_publishable_key
+NEXT_PUBLIC_STRIPE_PUBLISH_KEY=your_stripe_publishable_key
 
 # その他の設定
 NEXT_PUBLIC_APP_URL=http://localhost:3000
