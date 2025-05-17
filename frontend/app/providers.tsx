@@ -11,24 +11,39 @@ import '../lib/console-wrapper'
 const DevToolsBlocker = () => {
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      // F12キー、Ctrl+Shift+I、Ctrl+Shift+J、Ctrl+Shift+Cの無効化
+      // F12キー、Ctrl+Shift+I/J/Cの無効化（機密ページでのみ）
       const handleKeyDown = (e: KeyboardEvent) => {
-        if (
+        // 機密情報を含むページかどうかチェック
+        const isSecurePage = window.location.pathname.includes('/profile') || 
+                            window.location.pathname.includes('/payment') ||
+                            window.location.pathname.includes('/admin') ||
+                            window.location.pathname.includes('/gacha/result');
+                            
+        if (isSecurePage && (
           e.keyCode === 123 || 
           (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67))
-        ) {
+        )) {
           e.preventDefault();
           return false;
         }
       };
 
-      // 右クリックメニューの無効化
+      // 右クリックメニューの制限（画像などの保護コンテンツのみ）
       const handleContextMenu = (e: MouseEvent) => {
-        e.preventDefault();
-        return false;
+        const target = e.target as HTMLElement;
+        // 画像や特定のコンテンツのみ保護
+        if (
+          target instanceof HTMLImageElement || 
+          target.closest('.protected-content') ||
+          target.closest('.gacha-card')
+        ) {
+          e.preventDefault();
+          return false;
+        }
+        // その他の要素では通常の右クリックを許可
       };
 
-      // コンソール警告メッセージ
+      // コンソール警告メッセージ（頻度を抑える）
       const warnDevTools = () => {
         console.clear();
         const warningTitleCSS = 'color:red; font-size:60px; font-weight: bold; -webkit-text-stroke: 1px black;';
@@ -44,8 +59,8 @@ const DevToolsBlocker = () => {
       // 初回警告
       warnDevTools();
       
-      // 定期的に警告を表示（コンソールクリア対策）
-      const intervalId = setInterval(warnDevTools, 3000);
+      // 警告表示の頻度を下げる（SEOとパフォーマンスに配慮）
+      const intervalId = setInterval(warnDevTools, 30000); // 30秒ごとに変更
 
       return () => {
         // クリーンアップ

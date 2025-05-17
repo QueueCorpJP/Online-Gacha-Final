@@ -91,6 +91,16 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja">
+       <head>
+        {/* 明示的にmetaタグを書く */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="SHIJON - オンラインガチャプラットフォーム" />
+        <meta name="twitter:description" content="SHIJONでオンラインガチャを楽しもう！レアアイテムをゲットしよう。" />
+        <meta name="twitter:image" content="https://oripa-shijon.com/card.jpg" />
+        <meta property="og:image" content="https://oripa-shijon.com/card.jpg" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+      </head>
       <body>
         <Providers>
           <Toaster />
