@@ -24,7 +24,7 @@ function getStripePromise() {
   const language = localStorage.getItem('language') || 'ja'
   // NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY が実際の環境変数名と一致するように修正
   return loadStripe(
-    process.env.NEXT_PUBLIC_STRIPE_PUBLISH_KEY ?? '',
+    process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY ?? '',
     {
       locale: language as 'ja' | 'en' | 'zh',
     }
