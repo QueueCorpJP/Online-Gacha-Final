@@ -369,7 +369,7 @@ export default function GachaResultClient() {
 
       // 最高レアリティに基づいて動画ファイルを決定
       const rarity = getVideoByRarity(parsedItems);
-      const videoPath = `/videos/${rarity}.webm`;
+      const videoPath = `/movies/${rarity}.webm`;
 
       // ビデオ要素の初期化
       if (videoRef.current) {
