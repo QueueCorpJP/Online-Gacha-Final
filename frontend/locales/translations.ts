@@ -787,19 +787,14 @@ export const translations = {
             },
             result: {
                 title: "ガチャ結果",
+                multi_draw: "10連ガチャ",
+                oneDraw: "単発ガチャ",
                 congratulations: "おめでとうございます！",
-                drawAgain: "もう一度引く？",
-                oneDraw: "単発",
-                tenDraws: "10連",
-                discount: "10%オフ！",
-                returnToList: "ガチャ一覧に戻る",
                 summary: "獲得アイテム一覧",
-                multi_draw: "10連",
-                cardInfo: {
-                    ultraRare: "ウルトラレア",
-                    id: "ID",
-                    grade: "グレード"
-                }
+                outOfStock: "ガチャアイテムの在庫がありません",
+                retryError: "エラーが発生しました。もう一度お試しください。",
+                next: "次へ",
+                complete: "結果を確認する"
             }
         },
         header: {

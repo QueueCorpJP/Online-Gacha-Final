@@ -14,6 +14,7 @@ import { useSearchParams } from 'next/navigation'
 import { fetchGachaById } from "@/redux/features/gachaSlice"
 import { toast } from 'sonner'
 import { api } from '@/lib/axios'
+import { GachaMultiDraw } from "@/components/product/gacha-multi-draw"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -169,6 +170,9 @@ export default function GachaResultClient() {
   const [skipVideo, setSkipVideo] = useState(false) // 動画をスキップするかどうか
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false)
   const [purchaseInfo, setPurchaseInfo] = useState<{ times: number; price: number | string }>({ times: 1, price: 0 })
+  const [multiDrawMode, setMultiDrawMode] = useState(false) // 新しい多重引きモード状態
+  const [showActionButtons, setShowActionButtons] = useState(true) // アクションボタンの表示状態
+  const [showSummary, setShowSummary] = useState(false) // 結果サマリーの表示状態
 
   // 言語に応じたアイテム名を取得する関数
   const getLocalizedName = (item: GachaResult): string => {
@@ -232,15 +236,21 @@ export default function GachaResultClient() {
     }
   };
 
-  // ガチャを再度引く処理
+  // ガチャを引く処理
   const handleRetryGacha = async () => {
     try {
       setIsDrawing(true);
       
-      // 在庫のチェック
-      const hasStock = await checkGachaStock(gacha.id);
-      if (!hasStock) {
-        toast.error(t('gacha.result.outOfStock'));
+      if (!gacha?.id) {
+        toast.error("ガチャデータがありません");
+        setIsDrawing(false);
+        return;
+      }
+      
+      // 在庫確認
+      const hasAvailableStock = await checkGachaStock(gacha.id);
+      if (!hasAvailableStock) {
+        toast.error("ガチャアイテムの在庫がありません");
         setIsDrawing(false);
         return;
       }
@@ -258,7 +268,7 @@ export default function GachaResultClient() {
       // 結果画面へリダイレクト
       safeRedirect(resultUrl);
     } catch (error) {
-      toast.error(t('gacha.result.retryError'));
+      toast.error("エラーが発生しました。もう一度お試しください。");
     } finally {
       setIsDrawing(false);
     }
@@ -292,150 +302,109 @@ export default function GachaResultClient() {
     }
   }, [gacha]);
 
+  // useEffect内でデータの読み込み処理を行う
   useEffect(() => {
-    const data = searchParams.get('data')
-    if (!data) {
-      if (!isRedirecting.current) {
-        isRedirecting.current = true;
-        safeRedirect('/gacha');
-      }
-      return;
-    }
-
-    // Start loading animation
-    setIsLoading(true)
-    setShowResults(false)
-    setHasError(false)
+    if (!searchParams) return;
 
     try {
-      // データをデコードしてパース
-      const parsedData: PullResult = JSON.parse(decodeURIComponent(data))
+      // URLパラメータからデータを取得 (古い形式)
+      const encodedData = searchParams.get('data');
       
-      // アイテムが空の場合はエラー表示せず、トーストだけ表示してガチャ一覧に戻る
-      if (!parsedData.items || !Array.isArray(parsedData.items) || parsedData.items.length === 0) {
-        toast.error("ガチャアイテムが見つかりません。在庫がない可能性があります。");
-        // エラー画面を表示せずにガチャ一覧に戻る
-        if (!isRedirecting.current) {
-          isRedirecting.current = true;
-          safeRedirect('/gacha');
-        }
+      // データがなければエラー
+      if (!encodedData) {
+        setHasError(true);
         return;
       }
 
-      // 先にアイテムを処理して表示できるようにする
+      // データをデコードして解析
+      let parsedData: PullResult;
       try {
-        const { uniqueItems, grouped } = processGachaResults(parsedData.items);
-        
-        // ステートを更新
-        setUniqueResults(uniqueItems);
-        setGroupedResults(grouped);
-        
-        // 10連ガチャの場合、アニメーション状態を初期化
-        if (parsedData.items.length >= 10) {
-          setShowFirstCard(true);
-          setShowMultiDrawAnimation(false);
-          setAnimationPhase('first-card');
-        }
-        
-        // Then use the parsed data to fetch gacha details
-        dispatch(fetchGachaById(parsedData.gachaId))
-        
-        // リロードかどうかを判定するためのキーを生成
-        const resultKey = `gacha_result_${parsedData.gachaId}_${parsedData.pullTime}`;
-        
-        // sessionStorageをチェックして、既に表示済みかどうかを判定
-        const isAlreadyViewed = typeof window !== 'undefined' && sessionStorage.getItem(resultKey);
-        
-        if (isAlreadyViewed) {
-          // 既に表示済みの場合は動画をスキップ
-          setSkipVideo(true);
-          setIsLoading(false);
-          setShowResults(true);
-          return;
-        }
-        
-        // 表示済みとしてマーク
-        if (typeof window !== 'undefined') {
-          sessionStorage.setItem(resultKey, 'viewed');
-        }
-        
-        // 動画再生処理
-        if (videoRef.current) {
-          try {
-            // 動画ソースを事前に設定
-            const videoRarity = getVideoByRarity(parsedData.items);
-            const webmSource = document.createElement('source');
-            webmSource.src = `/movies/${videoRarity}.webm`;
-            webmSource.type = 'video/webm';
-            
-            const mp4Source = document.createElement('source');
-            mp4Source.src = `/movies/${videoRarity}.mp4`;
-            mp4Source.type = 'video/mp4';
-            
-            // 既存のソースをクリアして新しいソースを追加
-            while (videoRef.current.firstChild) {
-              videoRef.current.removeChild(videoRef.current.firstChild);
-            }
-            
-            videoRef.current.appendChild(webmSource);
-            videoRef.current.appendChild(mp4Source);
-            
-            // 動画のロードを確実に行う
-            videoRef.current.load();
-            
-            // 動画再生完了時の処理
-            videoRef.current.onended = () => {
-              // 即座に結果を表示
-              setIsLoading(false);
-              setShowResults(true);
-            };
-            
-            // 動画再生エラー時のフォールバック
-            videoRef.current.onerror = () => {
-              setIsLoading(false);
-              setShowResults(true);
-            };
-            
-            // 動画が準備できたら再生
-            videoRef.current.oncanplay = () => {
-              const playPromise = videoRef.current!.play();
-              
-              if (playPromise !== undefined) {
-                playPromise.catch(err => {
-                  // 動画再生に失敗した場合は結果を直接表示
-                  setIsLoading(false);
-                  setShowResults(true);
-                });
-              }
-            };
-          } catch (playError) {
-            setIsLoading(false);
-            setShowResults(true);
-          }
-                  } else {
-            // ビデオ要素がない場合は直接結果を表示
-            setIsLoading(false);
-            setShowResults(true);
-        }
-              } catch (processError) {
-          toast.error("ガチャアイテムの処理に失敗しました");
-        // エラー画面を表示せずにガチャ一覧に戻る
-        if (!isRedirecting.current) {
-          isRedirecting.current = true;
-          safeRedirect('/gacha');
+        parsedData = JSON.parse(decodeURIComponent(encodedData));
+      } catch (e) {
+        // Base64エンコードの場合はデコードを試みる
+        try {
+          const decodedData = atob(encodedData);
+          parsedData = JSON.parse(decodedData);
+        } catch (e2) {
+          throw new Error("データの解析に失敗しました");
         }
       }
-    } catch (error) {
-      toast.error("ガチャ結果の処理に失敗しました");
+
+      // ガチャIDがある場合は取得
+      if (parsedData.gachaId) {
+        dispatch(fetchGachaById(parsedData.gachaId));
+      }
+
+      // アイテムデータを取得
+      const parsedItems = parsedData.items;
+      
+      // ガチャアイテムがない場合はエラー
+      if (!parsedItems || parsedItems.length === 0) {
+        setHasError(true);
+        setErrorMessage("ガチャアイテムがありません");
+        return;
+      }
+
+      // マルチドロー判定 (10連や100連)
+      if (parsedItems.length > 1) {
+        setIsMultiDraw(true);
+        setMultiDrawMode(true);
+        setShowActionButtons(false);
+      } else {
+        setIsMultiDraw(false);
+        setMultiDrawMode(false);
+        setShowActionButtons(true);
+      }
+
+      // ガチャ結果を処理
+      const { uniqueItems, grouped } = processGachaResults(parsedItems);
+      setUniqueResults(uniqueItems);
+      setGroupedResults(grouped);
+
+      // 再表示を防止するためにセッションストレージに保存
+      if (typeof window !== 'undefined' && parsedData.gachaId && parsedData.pullTime) {
+        const resultKey = `gacha_result_${parsedData.gachaId}_${parsedData.pullTime}`;
+        sessionStorage.setItem(resultKey, 'displayed');
+      }
+
+      // 最高レアリティに基づいて動画ファイルを決定
+      const rarity = getVideoByRarity(parsedItems);
+      const videoPath = `/videos/${rarity}.webm`;
+
+      // ビデオ要素の初期化
+      if (videoRef.current) {
+        videoRef.current.src = videoPath;
+        videoRef.current.oncanplay = () => {
+          if (videoRef.current) {
+            videoRef.current.play().catch(e => {
+              // 自動再生に失敗した場合は結果を直接表示
+              setIsLoading(false);
+              setShowResults(true);
+            });
+          }
+        };
+        videoRef.current.onended = () => {
+          setIsLoading(false);
+          setShowResults(true);
+        };
+      } else {
+        // ビデオ要素がない場合は直接結果を表示
+        setIsLoading(false);
+        setShowResults(true);
+      }
+    } catch (processError) {
+      console.error(processError);
+      toast.error("ガチャアイテムの処理に失敗しました");
       // エラー画面を表示せずにガチャ一覧に戻る
       if (!isRedirecting.current) {
         isRedirecting.current = true;
-        safeRedirect('/gacha');
+        // トップページにリダイレクト
+        window.location.href = '/';
       }
     }
-  }, [searchParams, dispatch])
+  }, [searchParams, dispatch]);
 
-      // 10連ガチャのアニメーション制御
+  // 10連ガチャのアニメーション制御
   useEffect(() => {
     if (showResults && isMultiDraw) {
       if (animationPhase === 'first-card') {
@@ -497,22 +466,21 @@ export default function GachaResultClient() {
     setConfirmDialogOpen(true);
   };
 
-  // 確認後に実際に購入を実行する関数
+  // 購入処理を実行
   const executePurchase = async () => {
-    if (!hasStock) {
-      toast.error("ガチャアイテムの在庫がありません");
+    if (!gacha) {
+      toast.error("ガチャデータがありません");
+      setConfirmDialogOpen(false);
       return;
     }
-    
+
     try {
       setIsDrawing(true);
       
-      // ガチャアイテムの在庫確認（APIがサポートしている場合）
+      // 在庫確認を実行
       try {
-        // ガチャの在庫情報を取得（オプション）
-        const stockCheck = await api.get(`/admin/gacha/${gacha?.id}/stock-check`).catch(() => null);
+        const stockCheck = await api.get(`/admin/gacha/${gacha.id}/stock-check`).catch(() => null);
         
-        // 在庫情報がある場合は確認
         if (stockCheck?.data?.availableItems === 0 || stockCheck?.data?.isEmpty) {
           toast.error("ガチャアイテムの在庫がありません");
           setHasStock(false);
@@ -520,11 +488,11 @@ export default function GachaResultClient() {
           return;
         }
       } catch (stockError) {
-              // 在庫確認APIがない場合は無視して続行
+        // 在庫確認APIがない場合は無視して続行
       }
       
-      // Make API call to purchase and pull gacha
-      const response = await api.post(`/admin/gacha/${gacha?.id}/pull`, {
+      // Purchase and pull gacha
+      const response = await api.post(`/admin/gacha/${gacha.id}/pull`, {
         times: purchaseInfo.times,
         isFree: false,
       })
@@ -534,14 +502,14 @@ export default function GachaResultClient() {
         // Store the result data and redirect
         const resultData = {
           items: response.data.items,
-          gachaId: gacha?.id,
+          gachaId: gacha.id,
           pullTime: new Date().toISOString()
         };
 
         // 新しいガチャ結果のため、sessionStorageをクリア
         if (typeof window !== 'undefined') {
           // 現在のガチャ結果に関連するキーを削除（リロード判定用）
-          const currentResultKey = `gacha_result_${gacha?.id}_${resultData.pullTime}`;
+          const currentResultKey = `gacha_result_${gacha.id}_${resultData.pullTime}`;
           sessionStorage.removeItem(currentResultKey);
         }
 
@@ -566,12 +534,11 @@ export default function GachaResultClient() {
         toast.error("ガチャアイテムの在庫がありません");
         setHasStock(false);
       } else {
-        toast.error(t("gacha.error.pull.title"), {
-          description: error.response?.data?.message || t("gacha.error.pull.description")
-        });
+        toast.error("ガチャ購入処理でエラーが発生しました。再度お試しください。");
       }
     } finally {
-      setIsDrawing(false)
+      setIsDrawing(false);
+      setConfirmDialogOpen(false);
     }
   };
 
@@ -653,120 +620,37 @@ export default function GachaResultClient() {
   // 現在表示するアイテム
   const currentItem = uniqueResults[currentIndex]
 
-  // 10連ガチャの結果表示
-  const renderMultiDrawResults = () => {
-    if (!originalItems || originalItems.length < 10) return null;
-    
-    // レア度順にソート
-    const sortedItems = [...originalItems].sort((a, b) => {
-      const rarityA = a.rarity.toUpperCase() as RarityKey;
-      const rarityB = b.rarity.toUpperCase() as RarityKey;
-      return (RARITY_ORDER[rarityB] || 0) - (RARITY_ORDER[rarityA] || 0);
-    });
-    
-    // 上段5枚、下段5枚で表示
-    return (
-      <div className={`w-full max-w-3xl mt-8 ${showMultiDrawAnimation ? 'block' : 'hidden'} relative z-10`}>
-        <h3 className="text-xl font-semibold mb-4 text-center">{t("gacha.result.multi_draw")}</h3>
-        <div className="grid grid-cols-5 gap-3 mb-3"> {/* gap-2→gap-3, mb-2→mb-3 に変更してカードを大きく */}
-          {sortedItems.slice(0, 5).map((item, index) => (
-            <div key={`top-${index}`} className="relative">
-              <div className="aspect-square relative rounded-lg overflow-hidden border shadow-md"> {/* shadow-md を追加 */}
-                <Image 
-                  src={item.imageUrl ? `${process.env.NEXT_PUBLIC_API_URL}${item.imageUrl}` : "/placeholder.svg"}
-                  alt={getLocalizedName(item)}
-                  fill
-                  className="object-contain p-1"
-                />
-                <div className="absolute top-0 right-0 p-1">
-                  <Badge className={`${getRarityColor(item.rarity)}`}>
-                    {formatRarity(item.rarity)}
-                  </Badge>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="grid grid-cols-5 gap-3"> {/* gap-2→gap-3 に変更してカードを大きく */}
-          {sortedItems.slice(5, 10).map((item, index) => (
-            <div key={`bottom-${index}`} className="relative">
-              <div className="aspect-square relative rounded-lg overflow-hidden border shadow-md"> {/* shadow-md を追加 */}
-                <Image 
-                  src={item.imageUrl ? `${process.env.NEXT_PUBLIC_API_URL}${item.imageUrl}` : "/placeholder.svg"}
-                  alt={getLocalizedName(item)}
-                  fill
-                  className="object-contain p-1"
-                />
-                <div className="absolute top-0 right-0 p-1">
-                  <Badge className={`${getRarityColor(item.rarity)}`}>
-                    {formatRarity(item.rarity)}
-                  </Badge>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  };
-
-  // 1枚目のカード表示（10連ガチャの最初の演出）
-  const renderFirstCard = () => {
-    if (!originalItems || originalItems.length === 0) return null;
-    
-    // 最初のカード（レア度順ではなく、実際に引いた順の最初のカード）
-    const firstCard = originalItems[0];
-    
-    return (
-      <div className={`first-card-container w-full max-w-md mx-auto transition-all duration-500 ${animationPhase === 'first-card' ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'} absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20 ${animationPhase === 'multi-cards' ? 'hidden' : ''}`}>
-        <Card className="border-0 bg-zinc-50 overflow-hidden rounded-xl shadow-lg animate-pulse-slow">
-          <div className="aspect-square relative">
-            <Image 
-              src={firstCard?.imageUrl ? `${process.env.NEXT_PUBLIC_API_URL}${firstCard.imageUrl}` : "/placeholder.svg"}
-              alt={getLocalizedName(firstCard)}
-              fill
-              className="object-contain p-4"
-            />
-          </div>
-          <div className="p-6 text-center">
-            <Badge className={`mb-3 ${getRarityColor(firstCard?.rarity || "")}`}>
-              {formatRarity(firstCard?.rarity || "")}
-            </Badge>
-            <h2 className="text-2xl font-bold mb-2">{getLocalizedName(firstCard)}</h2>
-          </div>
-        </Card>
-      </div>
-    );
-  };
+  // 多重引きモードの完了ハンドラ
+  const handleMultiDrawComplete = () => {
+    setMultiDrawMode(false);
+    setShowSummary(true);
+    setShowActionButtons(true);
+  }
 
   return (
     <>
       <div className={`min-h-screen bg-white flex flex-col items-center py-8 px-4 
         ${showResults ? 'animate-fadeIn' : 'opacity-0'}`}>
-        <div className="w-full max-w-3xl text-center mb-8">
+        <div className="w-full max-h-3xl text-center mb-8">
           <h1 className="text-2xl font-bold mb-2">{t("gacha.result.title")}</h1>
           <p className="text-gray-600">
-            {t("gacha.result.congratulations")} {!isMultiDraw && `(${currentIndex + 1}/${uniqueResults.length})`}
+            {t("gacha.result.congratulations")}
           </p>
         </div>
 
-        {/* 10連ガチャの場合 */}
-        {isMultiDraw && (
-          <div className="relative w-full flex justify-center min-h-[50vh]"> {/* min-heightを追加して十分な高さを確保 */}
-            {/* 1枚目のカード表示 */}
-            {renderFirstCard()}
-            
-            {/* 10連表示 - 中央に配置 */}
-            <div className="w-full flex justify-center items-center">
-              {renderMultiDrawResults()}
-            </div>
-          </div>
+        {/* 多重引きモード（1回ずつカードを表示して次へボタンで進む） */}
+        {multiDrawMode && (
+          <GachaMultiDraw 
+            items={originalItems} 
+            onComplete={handleMultiDrawComplete} 
+            totalDraws={originalItems.length}
+          />
         )}
 
-        {/* 単発ガチャまたは通常表示 */}
-        {(!isMultiDraw || originalItems.length < 10) && (
+        {/* 単発ガチャまたは通常表示（多重引きモードじゃない場合） */}
+        {!multiDrawMode && !isMultiDraw && (
           <>
-            {/* Main item card display */}
+            {/* メインアイテムカード表示 */}
             <div className="w-full max-w-md relative">
               <Card className="border-0 bg-zinc-50 overflow-hidden rounded-xl shadow-lg">
                 <div className="aspect-square relative">
@@ -786,7 +670,7 @@ export default function GachaResultClient() {
                 </div>
               </Card>
 
-              {/* Navigation buttons */}
+              {/* ナビゲーションボタン (前へ/次へ) */}
               <div className="absolute inset-y-0 left-0 flex items-center">
                 <Button 
                   variant="ghost" 
@@ -810,97 +694,101 @@ export default function GachaResultClient() {
                 </Button>
               </div>
             </div>
-
-            {/* Results summary */}
-            <div className="w-full max-w-3xl mt-8 space-y-4">
-              <h3 className="text-xl font-semibold">{t("gacha.result.summary")}</h3>
-              <div className="bg-white p-4 rounded-xl shadow">
-                {Object.entries(groupedResults).sort(([rarityA], [rarityB]) => {
-                  return (RARITY_ORDER[(rarityB.toUpperCase() as RarityKey)] || 0) - 
-                        (RARITY_ORDER[(rarityA.toUpperCase() as RarityKey)] || 0);
-                }).map(([rarity, items]) => (
-                  <div key={rarity} className="mb-4 last:mb-0">
-                    <h4 className={`${getRarityColor(rarity)} inline-block px-2 py-1 rounded text-sm font-medium mb-2`}>
-                      {formatRarity(rarity)}
-                    </h4>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                      {items.map((item) => (
-                        <div key={item.id} className="flex items-center gap-2 bg-zinc-50 p-2 rounded">
-                          <div className="h-10 w-10 relative flex-shrink-0">
-                            <Image 
-                              src={item.imageUrl ? `${process.env.NEXT_PUBLIC_API_URL}${item.imageUrl}` : "/placeholder.svg"}
-                              alt={getLocalizedName(item)}
-                              fill
-                              className="object-contain"
-                            />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">{getLocalizedName(item)}</p>
-                            <p className="text-xs text-gray-500">×{(item as UniqueGachaResult).count}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
           </>
         )}
 
-        {/* Action buttons */}
-        <div className={`w-full max-w-3xl mt-8 flex justify-center relative ${isMultiDraw && animationPhase === 'first-card' ? 'z-0' : 'z-10'}`}> {/* 条件によってz-indexを切り替え */}
-          <div className="flex gap-4 w-full max-w-md">
-            <Button 
-              onClick={(e) => handleDraw(e, 1)}
-              disabled={isDrawing || !hasStock}
-              className="bg-[#7C3AED] hover:bg-[#6D28D9] flex items-center justify-center flex-1"
-            >
-              <p className="text-lg font-bold">{t("gacha.result.oneDraw")}</p>
-              <Coins className="mr-2 h-4 w-4" />
-              <p className="text-lg font-bold">
-                ¥{(() => {
-                  try {
-                    return gacha?.price !== undefined && gacha?.price !== null 
-                      ? Number(gacha.price).toLocaleString() 
-                      : '0';
-                  } catch (e) {
-                    return '0';
-                  }
-                })()}
-              </p>
-              {!hasStock && (
-                <span className="absolute top-0 right-0 -mt-1 -mr-1">
-                  <AlertCircle className="h-4 w-4 text-red-500" />
-                </span>
-              )}
-            </Button>
-            <Button 
-              onClick={(e) => handleDraw(e, 10)}
-              disabled={isDrawing || !hasStock}
-              className="bg-[#7C3AED] hover:bg-[#6D28D9] flex items-center justify-center flex-1"
-            >
-              <p className="text-lg font-bold">{t("gacha.result.multi_draw")}</p>
-              <RotateCcw className="mr-2 h-4 w-4" />
-              <p className="text-lg font-bold">
-                ¥{(() => {
-                  try {
-                    return gacha?.price !== undefined && gacha?.price !== null
-                      ? (Number(gacha.price) * 10).toLocaleString()
-                      : '0';
-                  } catch (e) {
-                    return '0';
-                  }
-                })()}
-              </p>
-              {!hasStock && (
-                <span className="absolute top-0 right-0 -mt-1 -mr-1">
-                  <AlertCircle className="h-4 w-4 text-red-500" />
-                </span>
-              )}
-            </Button>
+        {/* 結果サマリー（多重引きモードじゃない場合、または多重引き完了後） */}
+        {(!multiDrawMode || showSummary) && (
+          <div className="w-full max-w-3xl mt-8 space-y-4">
+            <h3 className="text-xl font-semibold">{t("gacha.result.summary")}</h3>
+            <div className="bg-white p-4 rounded-xl shadow">
+              {Object.entries(groupedResults).sort(([rarityA], [rarityB]) => {
+                return (RARITY_ORDER[(rarityB.toUpperCase() as RarityKey)] || 0) - 
+                      (RARITY_ORDER[(rarityA.toUpperCase() as RarityKey)] || 0);
+              }).map(([rarity, items]) => (
+                <div key={rarity} className="mb-4 last:mb-0">
+                  <h4 className={`${getRarityColor(rarity)} inline-block px-2 py-1 rounded text-sm font-medium mb-2`}>
+                    {formatRarity(rarity)}
+                  </h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {items.map((item) => (
+                      <div key={item.id} className="flex items-center gap-2 bg-zinc-50 p-2 rounded">
+                        <div className="h-10 w-10 relative flex-shrink-0">
+                          <Image 
+                            src={item.imageUrl ? `${process.env.NEXT_PUBLIC_API_URL}${item.imageUrl}` : "/placeholder.svg"}
+                            alt={getLocalizedName(item)}
+                            fill
+                            className="object-contain"
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{getLocalizedName(item)}</p>
+                          <p className="text-xs text-gray-500">×{(item as UniqueGachaResult).count}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* アクションボタン（単発/10連ガチャボタンは多重引きモードがオフの場合のみ表示） */}
+        {showActionButtons && (
+          <div className="w-full max-w-3xl mt-8 flex justify-center relative z-10">
+            <div className="flex gap-4 w-full max-w-md">
+              <Button 
+                onClick={(e) => handleDraw(e, 1)}
+                disabled={isDrawing || !hasStock}
+                className="bg-[#7C3AED] hover:bg-[#6D28D9] flex items-center justify-center flex-1"
+              >
+                <p className="text-lg font-bold">{t("gacha.result.oneDraw")}</p>
+                <Coins className="mr-2 h-4 w-4" />
+                <p className="text-lg font-bold">
+                  ¥{(() => {
+                    try {
+                      return gacha?.price !== undefined && gacha?.price !== null 
+                        ? Number(gacha.price).toLocaleString() 
+                        : '0';
+                    } catch (e) {
+                      return '0';
+                    }
+                  })()}
+                </p>
+                {!hasStock && (
+                  <span className="absolute top-0 right-0 -mt-1 -mr-1">
+                    <AlertCircle className="h-4 w-4 text-red-500" />
+                  </span>
+                )}
+              </Button>
+              <Button 
+                onClick={(e) => handleDraw(e, 10)}
+                disabled={isDrawing || !hasStock}
+                className="bg-[#7C3AED] hover:bg-[#6D28D9] flex items-center justify-center flex-1"
+              >
+                <p className="text-lg font-bold">{t("gacha.result.multi_draw")}</p>
+                <RotateCcw className="mr-2 h-4 w-4" />
+                <p className="text-lg font-bold">
+                  ¥{(() => {
+                    try {
+                      return gacha?.price !== undefined && gacha?.price !== null
+                        ? (Number(gacha.price) * 10).toLocaleString()
+                        : '0';
+                    } catch (e) {
+                      return '0';
+                    }
+                  })()}
+                </p>
+                {!hasStock && (
+                  <span className="absolute top-0 right-0 -mt-1 -mr-1">
+                    <AlertCircle className="h-4 w-4 text-red-500" />
+                  </span>
+                )}
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 購入確認ダイアログ */}
