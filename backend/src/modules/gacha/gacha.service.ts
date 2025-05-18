@@ -317,12 +317,14 @@ export class GachaService {
   }
 
   async pullItems(gachaId: string, times: number, userId: string): Promise<GachaItem[]> {
+    console.log(`[pullItems] gachaId=${gachaId}, times=${times}, userId=${userId}`);
     const gacha = await this.gachaRepository.findOne({
       where: { id: gachaId },
       relations: ['items', 'lastOnePrize'],
     });
 
     if (!gacha) {
+      console.error(`[pullItems] Gacha not found: ${gachaId}`);
       throw new NotFoundException('Gacha not found');
     }
 
@@ -342,6 +344,7 @@ export class GachaService {
 
     const items: GachaItem[] = [];
     let availableItems = gacha.items.filter(item => item.stock === null || item.stock > 0);
+    console.log(`[pullItems] availableItems:`, availableItems.map(i => ({id: i.id, rarity: i.rarity, prob: i.probability, stock: i.stock})));
 
     // Check for last one prize
     const totalRemainingStock = availableItems.reduce((sum, item) => {
@@ -354,6 +357,7 @@ export class GachaService {
         lastItem.stock -= 1;
         await this.gachaItemRepository.save(lastItem);
       }
+      console.log(`[pullItems] lastOnePrize triggered, item:`, lastItem);
       return [{ ...lastItem, ...gacha.lastOnePrize }];
     }
 
@@ -364,356 +368,108 @@ export class GachaService {
       }
       acc[item.rarity].push(item);
       return acc;
-    }, {});
+    }, {} as Record<string, GachaItem[]>);
 
     for (let i = 0; i < times; i++) {
-      // Refresh available items for each pull
       availableItems = gacha.items.filter(item => item.stock === null || item.stock > 0);
-      
       if (availableItems.length === 0) {
-        break; // Stop if no more items available
+        console.warn(`[pullItems] No more available items at draw ${i}`);
+        break;
       }
-
       pullHistory.pullCount++;
       pullHistory.pullsSinceLastRare++;
-
       let selectedItem: GachaItem | null = null;
-
-      // Check if pity system should activate
-      if (pullHistory.pullsSinceLastRare >= pityThreshold) {
-        // Get the index of the current rarity level
-        const currentRarityIndex = this.RARITY_LEVELS.indexOf('D'); // Start from lowest rarity 'D'
-        // Calculate how many rarity levels we can increase based on pull count
+      // pity発動
+      if (pityThreshold && pullHistory.pullsSinceLastRare >= pityThreshold) {
+        const currentRarityIndex = this.RARITY_LEVELS.indexOf('D');
         const rarityIncrease = Math.floor(pullHistory.pullsSinceLastRare / pityThreshold);
-        // Limit the maximum rarity based on pull count
         const maximumRarityIndex = Math.max(0, this.RARITY_LEVELS.length - 1 - rarityIncrease);
-        
-        // Calculate the minimum rarity index based on current rarity and maximum rarity
-        const minimumRarityIndex = Math.min(
-          currentRarityIndex - rarityIncrease,
-          maximumRarityIndex
-        );
-        
-        // Get available rarities from current level up to the calculated maximum
+        const minimumRarityIndex = Math.min(currentRarityIndex - rarityIncrease, maximumRarityIndex);
         const availableRarities = this.RARITY_LEVELS
           .slice(minimumRarityIndex, maximumRarityIndex + 1)
           .filter(rarity => itemsByRarity[rarity]?.some(item => item.stock === null || item.stock > 0));
-
+        console.log(`[pullItems] pity check: pullsSinceLastRare=${pullHistory.pullsSinceLastRare}, availableRarities=`, availableRarities);
         if (availableRarities.length > 0) {
-          // Sort rarities to prefer higher ones (lower letters)
           const sortedRarities = [...availableRarities].sort();
-          const rarity = sortedRarities[0]; // Get the highest available rarity
+          const rarity = sortedRarities[0];
           const rareItems = itemsByRarity[rarity].filter(item => item.stock === null || item.stock > 0);
-          
           if (rareItems.length > 0) {
             let rand = Math.random();
             let currentSum = 0;
-            
             const shuffledRareItems = [...rareItems];
-            
             for (const item of shuffledRareItems) {
               currentSum += item.probability;
               if (rand <= currentSum) {
                 selectedItem = { ...item };
                 pullHistory.pullsSinceLastRare = 0;
+                console.log(`[pullItems] pity抽選: rarity=${rarity}, rand=${rand}, currentSum=${currentSum}, selectedItem=`, selectedItem);
                 break;
               }
             }
           }
         }
       }
-
-      // If no pity item selected, do normal probability roll
+      // 通常確率抽選
       if (!selectedItem && availableItems.length > 0) {
-        // Calculate total probability of all available items
         const totalProb = availableItems.reduce((sum, item) => sum + item.probability, 0);
-        
-        // Generate random number between 0 and total probability
         const rand = Math.random() * totalProb;
-        
-        // Use cumulative probability to select an item (D > C)
         let cumulativeProb = 0;
         for (const item of availableItems) {
           cumulativeProb += item.probability;
           if (rand <= cumulativeProb) {
             selectedItem = { ...item };
-            // Reset pity counter if we get a higher rarity item (D > C)
             if (this.RARITY_LEVELS.indexOf(item.rarity) < this.RARITY_LEVELS.indexOf('D')) {
               pullHistory.pullsSinceLastRare = 0;
             }
+            console.log(`[pullItems] 通常抽選: rand=${rand}, cumulativeProb=${cumulativeProb}, selectedItem=`, selectedItem);
             break;
           }
         }
+        if (!selectedItem) {
+          console.warn(`[pullItems] 通常抽選で何も当たらなかった: rand=${rand}, totalProb=${totalProb}, availableItems=`, availableItems.map(i => ({id: i.id, rarity: i.rarity, prob: i.probability, stock: i.stock})));
+        }
       }
-
       if (selectedItem) {
-        // Find original item to update stock
         const originalItem = availableItems.find(item => item.id === selectedItem.id);
         if (originalItem && originalItem.stock !== null) {
           originalItem.stock -= 1;
           await this.gachaItemRepository.save(originalItem);
-          
-          // Update itemsByRarity
           const rarityArray = itemsByRarity[originalItem.rarity];
           const itemIndex = rarityArray.findIndex(item => item.id === originalItem.id);
           if (itemIndex !== -1) {
             rarityArray[itemIndex] = originalItem;
           }
         }
-        
         items.push(selectedItem);
+      } else {
+        console.warn(`[pullItems] selectedItemがnull: draw=${i}`);
       }
     }
-
     await this.pullHistoryRepository.save(pullHistory);
-
-    // Before returning items, check if we need to fill with lowest rarity items
+    // D埋め処理
     if (items.length < times) {
       const remainingPulls = times - items.length;
-      
-      // Get lowest rarity level
-      const lowestRarity = this.RARITY_LEVELS[0]; // Assuming RARITY_LEVELS is sorted from lowest to highest
-      
-      // Get all available items of lowest rarity
+      const lowestRarity = this.RARITY_LEVELS[0];
       const lowestRarityItems = gacha.items.filter(item => 
         item.rarity === lowestRarity && 
         (item.stock === null || item.stock > 0)
       );
-
+      console.warn(`[pullItems] D埋め処理: remainingPulls=${remainingPulls}, lowestRarityItems=`, lowestRarityItems.map(i => ({id: i.id, prob: i.probability, stock: i.stock})));
       for (let i = 0; i < remainingPulls && lowestRarityItems.length > 0; i++) {
-        // Randomly select an item from lowest rarity
         const randomIndex = Math.floor(Math.random() * lowestRarityItems.length);
         const selectedItem = { ...lowestRarityItems[randomIndex] };
-        
-        // Update stock if needed
         if (lowestRarityItems[randomIndex].stock !== null) {
           lowestRarityItems[randomIndex].stock -= 1;
           await this.gachaItemRepository.save(lowestRarityItems[randomIndex]);
-          
-          // Remove item from available pool if stock reaches 0
           if (lowestRarityItems[randomIndex].stock === 0) {
             lowestRarityItems.splice(randomIndex, 1);
           }
         }
-        
         items.push(selectedItem);
+        console.log(`[pullItems] D埋め: i=${i}, selectedItem=`, selectedItem);
       }
     }
-
+    console.log(`[pullItems] 結果: items=`, items.map(i => ({id: i.id, rarity: i.rarity, prob: i.probability, stock: i.stock})));
     return items;
-  }
-
-  async recordPulls(gachaId: string, userId: string, items: GachaItem[]): Promise<void> {
-    // Create a new inventory record for each pulled item
-    const inventoryItems = items.map(item => ({
-      userId,
-      itemId: item.id,
-      status: 'available' as 'available' | 'exchanged' | 'locked',
-      isTraded: false
-    }));
-
-    // Save to inventory
-    await this.inventoryRepository.save(inventoryItems as DeepPartial<Inventory>[]);
-
-    // Update item stock if necessary
-    for (const item of items) {
-      if (item.stock !== null && item.stock !== undefined) {
-        item.stock -= 1;
-        await this.gachaItemRepository.save(item);
-      }
-    }
-  }
-
-  async getFavoriteStatus(gachaId: string, userId: string): Promise<{ 
-    favorited: boolean; 
-    disliked: boolean;
-    likes: number;
-    dislikes: number;
-  }> {
-    const favorite = await this.favoriteRepository.findOne({
-      where: { gachaId, userId }
-    });
-
-    const gacha = await this.gachaRepository.findOne({
-      where: { id: gachaId }
-    });
-
-    if (!gacha) {
-      throw new NotFoundException(`Gacha with ID ${gachaId} not found`);
-    }
-
-    return {
-      favorited: favorite ? favorite.type === 'like' : false,
-      disliked: favorite ? favorite.type === 'dislike' : false,
-      likes: gacha.likes || 0,
-      dislikes: gacha.dislikes || 0
-    };
-  }
-
-  async toggleReaction(gachaId: string, userId: string, type: 'like' | 'dislike'): Promise<{ 
-    favorited: boolean;
-    disliked: boolean;
-    likes: number;
-    dislikes: number;
-  }> {
-    const favorite = await this.favoriteRepository.findOne({
-      where: { gachaId, userId }
-    });
-
-    const gacha = await this.gachaRepository.findOne({
-      where: { id: gachaId }
-    });
-
-    if (!gacha) {
-      throw new NotFoundException(`Gacha with ID ${gachaId} not found`);
-    }
-
-    if (favorite) {
-      console.log("favorite", favorite);
-      if (favorite.type === type) {
-        // Remove reaction if clicking the same button
-        await this.favoriteRepository.remove(favorite);
-        if (type === 'like') {
-          await this.gachaRepository.decrement({ id: gachaId }, 'likes', 1);
-        } else {
-          await this.gachaRepository.decrement({ id: gachaId }, 'dislikes', 1);
-        }
-        return { 
-          favorited: false, 
-          disliked: false,
-          likes: gacha.likes + (type === 'like' ? -1 : 0),
-          dislikes: gacha.dislikes + (type === 'dislike' ? -1 : 0)
-        };
-      } else {
-        // Switch reaction type
-        favorite.type = type;
-        await this.favoriteRepository.save(favorite);
-        if (type === 'like') {
-          await this.gachaRepository.increment({ id: gachaId }, 'likes', 1);
-          await this.gachaRepository.decrement({ id: gachaId }, 'dislikes', 1);
-        } else {
-          await this.gachaRepository.decrement({ id: gachaId }, 'likes', 1);
-          await this.gachaRepository.increment({ id: gachaId }, 'dislikes', 1);
-        }
-        return { 
-          favorited: type === 'like', 
-          disliked: type === 'dislike',
-          likes: gacha.likes + (type === 'like' ? 1 : -1),
-          dislikes: gacha.dislikes + (type === 'dislike' ? 1 : -1)
-        };
-      }
-    } else {
-      // Create new reaction
-      const newFavorite = this.favoriteRepository.create({ 
-        gachaId, 
-        userId, 
-        type 
-      });
-      await this.favoriteRepository.save(newFavorite);
-      if (type === 'like') {
-        await this.gachaRepository.increment({ id: gachaId }, 'likes', 1);
-      } else {
-        await this.gachaRepository.increment({ id: gachaId }, 'dislikes', 1);
-      }
-      return { 
-        favorited: type === 'like', 
-        disliked: type === 'dislike',
-        likes: gacha.likes + (type === 'like' ? 1 : 0),
-        dislikes: gacha.dislikes + (type === 'dislike' ? 1 : 0)
-      };
-    }
-  }
-
-  async toggleFavorite(gachaId: string, userId: string, type: 'like' | 'dislike'): Promise<{ favorited: boolean }> {
-    const favorite = await this.favoriteRepository.findOne({
-      where: { gachaId, userId }
-    });
-
-    if (favorite) {
-      favorite.type = type;
-      await this.favoriteRepository.save(favorite);
-      return { favorited: false };
-      // if (type === 'like') {
-      //   await this.gachaRepository.increment({ id: gachaId }, 'likes', 1);
-      //   await this.gachaRepository.decrement({ id: gachaId }, 'dislikes', 1);
-      //   return { favorited: true };
-      // } else {
-      //   await this.gachaRepository.decrement({ id: gachaId }, 'likes', 1);
-      //   await this.gachaRepository.increment({ id: gachaId }, 'dislikes', 1);
-      //   
-      // }
-    } else {
-      const newFavorite = this.favoriteRepository.create({ gachaId, userId, type });
-      await this.favoriteRepository.save(newFavorite);
-      // if (type === 'like') {
-      //   await this.gachaRepository.increment({ id: gachaId }, 'likes', 1);
-      // } else {
-      //   await this.gachaRepository.increment({ id: gachaId }, 'dislikes', 1);
-      // }
-      return { favorited: type === 'like' };
-    }
-  }
-
-  async deleteGacha(id: string) {
-    const gacha = await this.gachaRepository.findOne({
-      where: { id },
-      relations: ['items'],
-    });
-
-    if (!gacha) {
-      throw new NotFoundException('Gacha not found');
-    }
-
-    // Start a transaction to ensure all operations succeed or fail together
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-
-    try {
-      // Delete all related records in the correct order to avoid FK constraint violations
-      
-      // 1. Delete favorites related to this gacha
-      await queryRunner.manager.delete('favorites', { gachaId: id });
-      
-      // 2. Delete pull history related to this gacha
-      await queryRunner.manager.delete('gacha_pull_history', { gachaId: id });
-      
-      // 3. Handle inventory and gacha items
-      if (gacha.items && gacha.items.length > 0) {
-        // Delete inventory records referencing these items
-        await queryRunner.manager.delete('inventory', {
-          itemId: In(gacha.items.map(item => item.id))
-        });
-        
-        // Delete all gacha items
-        for (const item of gacha.items) {
-          await queryRunner.manager.remove(item);
-        }
-      }
-
-      // 4. Finally delete the gacha itself
-      await queryRunner.manager.remove(gacha);
-
-      // Commit the transaction
-      await queryRunner.commitTransaction();
-      
-      return { success: true, message: 'Gacha deleted successfully' };
-    } catch (error) {
-      // Rollback in case of error
-      await queryRunner.rollbackTransaction();
-      
-      console.error('Error deleting gacha:', error);
-      
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
-      
-      throw new BadRequestException(
-        'Failed to delete gacha: ' + (error.message || 'Unknown error')
-      );
-    } finally {
-      // Release the query runner
-      await queryRunner.release();
-    }
   }
 }
