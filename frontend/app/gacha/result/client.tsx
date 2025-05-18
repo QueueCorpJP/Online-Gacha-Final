@@ -174,6 +174,9 @@ export default function GachaResultClient() {
   const [showActionButtons, setShowActionButtons] = useState(true) // アクションボタンの表示状態
   const [showSummary, setShowSummary] = useState(false) // 結果サマリーの表示状態
 
+  // gachaがnullの場合の型エラー対策: gachaがnullの場合はデフォルト値を使う
+  const safeGacha = gacha ?? { id: '', price: 0 };
+
   // 言語に応じたアイテム名を取得する関数
   const getLocalizedName = (item: GachaResult): string => {
     if (item.translations && language && item.translations[language as keyof typeof item.translations]?.name) {
@@ -659,6 +662,31 @@ export default function GachaResultClient() {
 
         {/* 10連・複数回ガチャも単発と同じリザルトUIでまとめて表示 */}
         <div className="w-full max-w-3xl mt-8 space-y-4">
+          <h3 className="text-xl font-semibold">{t("gacha.result.resultList")} {isMultiDraw && originalItems.length > 1 ? `（${originalItems.length}枚）` : ''}</h3>
+          <div className="bg-white p-4 rounded-xl shadow">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+              {originalItems.map((item, idx) => (
+                <div key={idx} className="flex flex-col items-center bg-zinc-50 p-3 rounded-lg border border-gray-100">
+                  <div className="h-20 w-20 relative mb-2">
+                    <Image
+                      src={item.imageUrl ? `${process.env.NEXT_PUBLIC_API_URL}${item.imageUrl}` : "/placeholder.svg"}
+                      alt={getLocalizedName(item)}
+                      fill
+                      className="object-contain rounded"
+                    />
+                  </div>
+                  <div className="w-full text-center">
+                    <p className="text-sm font-medium truncate">{getLocalizedName(item)}</p>
+                    <span className={`text-xs font-bold ${getRarityColor(item.rarity)} px-2 py-0.5 rounded`}>{formatRarity(item.rarity)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* サマリー（集計）表示はそのまま残す */}
+        <div className="w-full max-w-3xl mt-8 space-y-4">
           <h3 className="text-xl font-semibold">{t("gacha.result.summary")} {isMultiDraw && originalItems.length > 1 ? `（${originalItems.length}枚）` : ''}</h3>
           <div className="bg-white p-4 rounded-xl shadow">
             {Object.entries(groupedResults).sort(([rarityA], [rarityB]) => {
@@ -706,8 +734,8 @@ export default function GachaResultClient() {
                 <p className="text-lg font-bold">
                   ¥{(() => {
                     try {
-                      return gacha?.price !== undefined && gacha?.price !== null 
-                        ? Number(gacha.price).toLocaleString() 
+                      return safeGacha.price !== undefined && safeGacha.price !== null 
+                        ? Number(safeGacha.price).toLocaleString() 
                         : '0';
                     } catch (e) {
                       return '0';
@@ -730,8 +758,8 @@ export default function GachaResultClient() {
                 <p className="text-lg font-bold">
                   ¥{(() => {
                     try {
-                      return gacha?.price !== undefined && gacha?.price !== null
-                        ? (Number(gacha.price) * 10).toLocaleString()
+                      return safeGacha.price !== undefined && safeGacha.price !== null
+                        ? (Number(safeGacha.price) * 10).toLocaleString()
                         : '0';
                     } catch (e) {
                       return '0';
