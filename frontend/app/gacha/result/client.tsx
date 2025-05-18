@@ -647,126 +647,52 @@ export default function GachaResultClient() {
     <>
       <div className={`min-h-screen bg-white flex flex-col items-center py-8 px-4 
         ${showResults ? 'animate-fadeIn' : 'opacity-0'}`}>
+        {/* タイトル・サマリーに10連の回数を明示 */}
         <div className="w-full max-h-3xl text-center mb-8">
-          <h1 className="text-2xl font-bold mb-2">{t("gacha.result.title")}</h1>
+          <h1 className="text-2xl font-bold mb-2">
+            {t("gacha.result.title")} {isMultiDraw && originalItems.length > 1 ? `（${originalItems.length}連）` : ''}
+          </h1>
           <p className="text-gray-600">
             {t("gacha.result.congratulations")}
           </p>
         </div>
 
-        {/* 多重引きモード（1回ずつカードを表示して次へボタンで進む） */}
-        {multiDrawMode && (
-          <GachaMultiDraw 
-            gachaId={gacha?.id}
-            onComplete={(results) => {
-              // 10回分終わったらリザルト画面に遷移
-              const resultData = {
-                items: results,
-                gachaId: gacha?.id,
-                pullTime: new Date().toISOString()
-              };
-              if (typeof window !== 'undefined') {
-                const currentResultKey = `gacha_result_${gacha?.id}_${resultData.pullTime}`;
-                sessionStorage.removeItem(currentResultKey);
-              }
-              const resultUrl = `/gacha/result?data=${encodeURIComponent(JSON.stringify(resultData))}`;
-              if (!isRedirecting.current) {
-                isRedirecting.current = true;
-                safeRedirect(resultUrl);
-              }
-            }}
-            totalDraws={purchaseInfo.times}
-          />
-        )}
-
-        {/* 単発ガチャまたは通常表示（多重引きモードじゃない場） */}
-        {!multiDrawMode && !isMultiDraw && (
-          <>
-            {/* メインアイテムカード表示 */}
-            <div className="w-full max-w-md relative">
-              <Card className="border-0 bg-zinc-50 overflow-hidden rounded-xl shadow-lg">
-                <div className="aspect-square relative">
-                  <Image 
-                    src={currentItem?.imageUrl ? `${process.env.NEXT_PUBLIC_API_URL}${currentItem.imageUrl}` : "/placeholder.svg"}
-                    alt={currentItem ? getLocalizedName(currentItem) : ""}
-                    fill
-                    className="object-contain p-4"
-                  />
-                </div>
-                <div className="p-6 text-center">
-                  <Badge className={`mb-3 ${getRarityColor(currentItem?.rarity || "")}`}>
-                    {formatRarity(currentItem?.rarity || "")}
-                  </Badge>
-                  <h2 className="text-2xl font-bold mb-2">{currentItem ? getLocalizedName(currentItem) : ""}</h2>
-                  <p className="text-gray-500 mb-4">×{currentItem?.count || 0}</p>
-                </div>
-              </Card>
-
-              {/* ナビゲーションボタン (前へ/次へ) */}
-              <div className="absolute inset-y-0 left-0 flex items-center">
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-10 w-10 rounded-full bg-white shadow-md"
-                  onClick={handlePrevious}
-                  disabled={currentIndex === 0}
-                >
-                  <ChevronLeft className="h-6 w-6" />
-                </Button>
-              </div>
-              <div className="absolute inset-y-0 right-0 flex items-center">
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-10 w-10 rounded-full bg-white shadow-md"
-                  onClick={handleNext}
-                  disabled={currentIndex === uniqueResults.length - 1}
-                >
-                  <ChevronRight className="h-6 w-6" />
-                </Button>
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* 結果サマリー（多重引きモードじゃない場合、または多重引き完了後） */}
-        {(!multiDrawMode || showSummary) && (
-          <div className="w-full max-w-3xl mt-8 space-y-4">
-            <h3 className="text-xl font-semibold">{t("gacha.result.summary")}</h3>
-            <div className="bg-white p-4 rounded-xl shadow">
-              {Object.entries(groupedResults).sort(([rarityA], [rarityB]) => {
-                return (RARITY_ORDER[(rarityB.toUpperCase() as RarityKey)] || 0) - 
-                      (RARITY_ORDER[(rarityA.toUpperCase() as RarityKey)] || 0);
-              }).map(([rarity, items]) => (
-                <div key={rarity} className="mb-4 last:mb-0">
-                  <h4 className={`${getRarityColor(rarity)} inline-block px-2 py-1 rounded text-sm font-medium mb-2`}>
-                    {formatRarity(rarity)}
-                  </h4>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    {items.map((item) => (
-                      <div key={item.id} className="flex items-center gap-2 bg-zinc-50 p-2 rounded">
-                        <div className="h-10 w-10 relative flex-shrink-0">
-                          <Image 
-                            src={item.imageUrl ? `${process.env.NEXT_PUBLIC_API_URL}${item.imageUrl}` : "/placeholder.svg"}
-                            alt={getLocalizedName(item)}
-                            fill
-                            className="object-contain"
-                          />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{getLocalizedName(item)}</p>
-                          <p className="text-xs text-gray-500">×{(item as UniqueGachaResult).count}</p>
-                        </div>
+        {/* 10連・複数回ガチャも単発と同じリザルトUIでまとめて表示 */}
+        <div className="w-full max-w-3xl mt-8 space-y-4">
+          <h3 className="text-xl font-semibold">{t("gacha.result.summary")} {isMultiDraw && originalItems.length > 1 ? `（${originalItems.length}枚）` : ''}</h3>
+          <div className="bg-white p-4 rounded-xl shadow">
+            {Object.entries(groupedResults).sort(([rarityA], [rarityB]) => {
+              return (RARITY_ORDER[(rarityB.toUpperCase() as RarityKey)] || 0) - 
+                    (RARITY_ORDER[(rarityA.toUpperCase() as RarityKey)] || 0);
+            }).map(([rarity, items]) => (
+              <div key={rarity} className="mb-4 last:mb-0">
+                <h4 className={`${getRarityColor(rarity)} inline-block px-2 py-1 rounded text-sm font-medium mb-2`}>
+                  {formatRarity(rarity)}
+                </h4>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {items.map((item) => (
+                    <div key={item.id} className="flex items-center gap-2 bg-zinc-50 p-2 rounded">
+                      <div className="h-10 w-10 relative flex-shrink-0">
+                        <Image 
+                          src={item.imageUrl ? `${process.env.NEXT_PUBLIC_API_URL}${item.imageUrl}` : "/placeholder.svg"}
+                          alt={getLocalizedName(item)}
+                          fill
+                          className="object-contain"
+                        />
                       </div>
-                    ))}
-                  </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{getLocalizedName(item)}</p>
+                        <p className="text-xs text-gray-500">×{(item as UniqueGachaResult).count}</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
-        )}
+        </div>
 
-        {/* アクションボタン（単発/10連ガチャボタンは多重引きモードがオフの場合のみ表示） */}
+        {/* アクションボタン（単発/10連ガチャボタンはリザルト下に表示） */}
         {showActionButtons && (
           <div className="w-full max-w-3xl mt-8 flex justify-center relative z-10">
             <div className="flex gap-4 w-full max-w-md">
