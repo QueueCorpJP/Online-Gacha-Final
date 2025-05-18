@@ -489,38 +489,32 @@ export default function GachaResultClient() {
         // 在庫確認APIがない場合は無視して続行
       }
 
-      // --- ここから複数回ガチャ時の個別API呼び出しロジック ---
+      // --- ここから複数回ガチャ時のAPI呼び出しロジック ---
       if (purchaseInfo.times > 1) {
-        let allResults: GachaResult[] = [];
-        setMultiDrawMode(true); // 多重引きモードON
         setShowActionButtons(false);
         setShowSummary(false);
-        for (let i = 0; i < purchaseInfo.times; i++) {
-          // 1回ずつAPIを叩く
-          const response = await api.post(`/admin/gacha/${gacha.id}/pull`, { times: 1, isFree: false });
-          if (response.data.items && Array.isArray(response.data.items) && response.data.items.length > 0) {
-            console.log(`ガチャ${i+1}回目:`, response.data.items[0]); // デバッグ用
-            allResults.push(response.data.items[0]);
-            // 1回分の演出はGachaMultiDrawで順番に表示されるため、ここでは配列に追加するだけ
-          } else {
-            toast.error(`ガチャ${i + 1}回目で在庫切れ`);
-            break;
+        // 1回だけAPIを叩く
+        const response = await api.post(`/admin/gacha/${gacha.id}/pull`, { times: purchaseInfo.times, isFree: false });
+        if (response.data.items && Array.isArray(response.data.items) && response.data.items.length > 0) {
+          const allResults = response.data.items;
+          // 10個まとめてリザルト画面に遷移
+          const resultData = {
+            items: allResults,
+            gachaId: gacha.id,
+            pullTime: new Date().toISOString()
+          };
+          if (typeof window !== 'undefined') {
+            const currentResultKey = `gacha_result_${gacha.id}_${resultData.pullTime}`;
+            sessionStorage.removeItem(currentResultKey);
           }
-        }
-        // 全回数分終わったらリザルト画面に遷移
-        const resultData = {
-          items: allResults,
-          gachaId: gacha.id,
-          pullTime: new Date().toISOString()
-        };
-        if (typeof window !== 'undefined') {
-          const currentResultKey = `gacha_result_${gacha.id}_${resultData.pullTime}`;
-          sessionStorage.removeItem(currentResultKey);
-        }
-        const resultUrl = `/gacha/result?data=${encodeURIComponent(JSON.stringify(resultData))}`;
-        if (!isRedirecting.current) {
-          isRedirecting.current = true;
-          safeRedirect(resultUrl);
+          const resultUrl = `/gacha/result?data=${encodeURIComponent(JSON.stringify(resultData))}`;
+          if (!isRedirecting.current) {
+            isRedirecting.current = true;
+            safeRedirect(resultUrl);
+          }
+        } else {
+          toast.error("ガチャアイテムの在庫がありません");
+          setHasStock(false);
         }
       } else {
         // 単発は従来通り
