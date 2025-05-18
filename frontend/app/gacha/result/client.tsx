@@ -668,7 +668,7 @@ export default function GachaResultClient() {
           />
         )}
 
-        {/* 単発ガチャまたは通常表示（多重引きモードじゃない場合） */}
+        {/* 単発ガチャまたは通常表示（多重引きモードじゃない場） */}
         {!multiDrawMode && !isMultiDraw && (
           <>
             {/* メインアイテムカード表示 */}
