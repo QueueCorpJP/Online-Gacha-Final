@@ -499,6 +499,7 @@ export default function GachaResultClient() {
           // 1回ずつAPIを叩く
           const response = await api.post(`/admin/gacha/${gacha.id}/pull`, { times: 1, isFree: false });
           if (response.data.items && Array.isArray(response.data.items) && response.data.items.length > 0) {
+            console.log(`ガチャ${i+1}回目:`, response.data.items[0]); // デバッグ用
             allResults.push(response.data.items[0]);
             // 1回分の演出はGachaMultiDrawで順番に表示されるため、ここでは配列に追加するだけ
           } else {
@@ -662,9 +663,25 @@ export default function GachaResultClient() {
         {/* 多重引きモード（1回ずつカードを表示して次へボタンで進む） */}
         {multiDrawMode && (
           <GachaMultiDraw 
-            items={originalItems} 
-            onComplete={handleMultiDrawComplete} 
-            totalDraws={originalItems.length}
+            gachaId={gacha?.id}
+            onComplete={(results) => {
+              // 10回分終わったらリザルト画面に遷移
+              const resultData = {
+                items: results,
+                gachaId: gacha?.id,
+                pullTime: new Date().toISOString()
+              };
+              if (typeof window !== 'undefined') {
+                const currentResultKey = `gacha_result_${gacha?.id}_${resultData.pullTime}`;
+                sessionStorage.removeItem(currentResultKey);
+              }
+              const resultUrl = `/gacha/result?data=${encodeURIComponent(JSON.stringify(resultData))}`;
+              if (!isRedirecting.current) {
+                isRedirecting.current = true;
+                safeRedirect(resultUrl);
+              }
+            }}
+            totalDraws={purchaseInfo.times}
           />
         )}
 

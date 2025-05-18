@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
 import { ChevronRight } from "lucide-react"
+import { api } from '@/lib/axios'
 
 interface GachaMultiDrawProps {
-  items: any[];
-  onComplete: () => void;
+  gachaId: string;
+  onComplete: (results: any[]) => void;
   totalDraws: number;
 }
 
@@ -51,11 +52,33 @@ function formatRarity(rarity: string): string {
   return rarityMap[rarity.toUpperCase()] || rarity;
 }
 
-export function GachaMultiDraw({ items, onComplete, totalDraws }: GachaMultiDrawProps) {
+export function GachaMultiDraw({ gachaId, onComplete, totalDraws }: GachaMultiDrawProps) {
   const { t, language } = useTranslations()
   const [currentIndex, setCurrentIndex] = useState(0)
-  const [showNextButton, setShowNextButton] = useState(true)
+  const [results, setResults] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [isCompleted, setIsCompleted] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // 最初の1回だけ演出ありでAPI取得
+  useEffect(() => {
+    const fetchFirst = async () => {
+      setIsLoading(true)
+      try {
+        const response = await api.post(`/admin/gacha/${gachaId}/pull`, { times: 1, isFree: false })
+        if (response.data.items && Array.isArray(response.data.items) && response.data.items.length > 0) {
+          setResults([response.data.items[0]])
+        } else {
+          setError('ガチャアイテムの在庫がありません')
+        }
+      } catch (e) {
+        setError('ガチャ取得に失敗しました')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    fetchFirst()
+  }, [gachaId])
 
   // 言語に応じたアイテム名を取得する関数
   const getLocalizedName = (item: any): string => {
@@ -65,24 +88,48 @@ export function GachaMultiDraw({ items, onComplete, totalDraws }: GachaMultiDraw
     return item.name;
   }
 
-  const handleNext = () => {
-    if (currentIndex < items.length - 1) {
-      setCurrentIndex(currentIndex + 1)
+  // 次へボタンでAPIを叩いて次のカードを取得
+  const handleNext = async () => {
+    if (currentIndex < totalDraws - 1) {
+      // 2回目以降はAPIで即取得、演出なし
+      if (results.length <= currentIndex + 1) {
+        setIsLoading(true)
+        try {
+          const response = await api.post(`/admin/gacha/${gachaId}/pull`, { times: 1, isFree: false })
+          if (response.data.items && Array.isArray(response.data.items) && response.data.items.length > 0) {
+            setResults(prev => [...prev, response.data.items[0]])
+          } else {
+            setError('ガチャアイテムの在庫がありません')
+          }
+        } catch (e) {
+          setError('ガチャ取得に失敗しました')
+        } finally {
+          setIsLoading(false)
+        }
+      }
+      setCurrentIndex(idx => idx + 1)
     } else {
       setIsCompleted(true)
-      onComplete()
+      onComplete(results)
     }
   }
 
-  const currentItem = items[currentIndex]
+  const currentItem = results[currentIndex]
   const progress = `${currentIndex + 1}/${totalDraws}`
+
+  if (error) {
+    return <div className="text-red-500 text-center p-8">{error}</div>
+  }
+
+  if (isLoading || !currentItem) {
+    return <div className="text-center p-8">Loading...</div>
+  }
 
   return (
     <div className="w-full flex flex-col items-center justify-center min-h-[50vh]">
       <div className="w-full max-w-3xl text-center mb-4">
         <p className="text-gray-600">{progress}</p>
       </div>
-
       <div className="w-full max-w-md relative">
         <Card className="border-0 bg-zinc-50 overflow-hidden rounded-xl shadow-lg animate-pulse-slow">
           <div className="aspect-square relative">
@@ -101,18 +148,18 @@ export function GachaMultiDraw({ items, onComplete, totalDraws }: GachaMultiDraw
           </div>
         </Card>
       </div>
-
       <div className="w-full max-w-md mt-8 flex justify-center">
         <Button 
           onClick={handleNext}
           className="bg-[#7C3AED] hover:bg-[#6D28D9] flex items-center justify-center gap-2"
+          disabled={isLoading || isCompleted}
         >
           <span className="text-lg font-bold">
-            {currentIndex < items.length - 1 ? t("gacha.result.next") : t("gacha.result.complete")}
+            {currentIndex < totalDraws - 1 ? t("gacha.result.next") : t("gacha.result.complete")}
           </span>
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
     </div>
   )
-} 
+}
