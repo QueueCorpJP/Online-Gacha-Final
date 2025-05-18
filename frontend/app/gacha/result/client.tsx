@@ -476,11 +476,9 @@ export default function GachaResultClient() {
 
     try {
       setIsDrawing(true);
-      
       // 在庫確認を実行
       try {
         const stockCheck = await api.get(`/admin/gacha/${gacha.id}/stock-check`).catch(() => null);
-        
         if (stockCheck?.data?.availableItems === 0 || stockCheck?.data?.isEmpty) {
           toast.error("ガチャアイテムの在庫がありません");
           setHasStock(false);
@@ -490,43 +488,66 @@ export default function GachaResultClient() {
       } catch (stockError) {
         // 在庫確認APIがない場合は無視して続行
       }
-      
-      // Purchase and pull gacha
-      const response = await api.post(`/admin/gacha/${gacha.id}/pull`, {
-        times: purchaseInfo.times,
-        isFree: false,
-      })
 
-      // Show results
-      if (response.data.items && Array.isArray(response.data.items) && response.data.items.length > 0) {
-        // Store the result data and redirect
+      // --- ここから複数回ガチャ時の個別API呼び出しロジック ---
+      if (purchaseInfo.times > 1) {
+        let allResults: GachaResult[] = [];
+        setMultiDrawMode(true); // 多重引きモードON
+        setShowActionButtons(false);
+        setShowSummary(false);
+        for (let i = 0; i < purchaseInfo.times; i++) {
+          // 1回ずつAPIを叩く
+          const response = await api.post(`/admin/gacha/${gacha.id}/pull`, { times: 1, isFree: false });
+          if (response.data.items && Array.isArray(response.data.items) && response.data.items.length > 0) {
+            allResults.push(response.data.items[0]);
+            // 1回分の演出はGachaMultiDrawで順番に表示されるため、ここでは配列に追加するだけ
+          } else {
+            toast.error(`ガチャ${i + 1}回目で在庫切れ`);
+            break;
+          }
+        }
+        // 全回数分終わったらリザルト画面に遷移
         const resultData = {
-          items: response.data.items,
+          items: allResults,
           gachaId: gacha.id,
           pullTime: new Date().toISOString()
         };
-
-        // 新しいガチャ結果のため、sessionStorageをクリア
         if (typeof window !== 'undefined') {
-          // 現在のガチャ結果に関連するキーを削除（リロード判定用）
           const currentResultKey = `gacha_result_${gacha.id}_${resultData.pullTime}`;
           sessionStorage.removeItem(currentResultKey);
         }
-
-        // Using safe redirect function
         const resultUrl = `/gacha/result?data=${encodeURIComponent(JSON.stringify(resultData))}`;
         if (!isRedirecting.current) {
           isRedirecting.current = true;
           safeRedirect(resultUrl);
         }
       } else {
-        // アイテムが空の場合はトーストだけ表示
-        toast.error("ガチャアイテムの在庫がありません");
-        setHasStock(false);
-        // 現在のページにとどまる（エラー画面に遷移しない）
+        // 単発は従来通り
+        const response = await api.post(`/admin/gacha/${gacha.id}/pull`, {
+          times: purchaseInfo.times,
+          isFree: false,
+        });
+        if (response.data.items && Array.isArray(response.data.items) && response.data.items.length > 0) {
+          const resultData = {
+            items: response.data.items,
+            gachaId: gacha.id,
+            pullTime: new Date().toISOString()
+          };
+          if (typeof window !== 'undefined') {
+            const currentResultKey = `gacha_result_${gacha.id}_${resultData.pullTime}`;
+            sessionStorage.removeItem(currentResultKey);
+          }
+          const resultUrl = `/gacha/result?data=${encodeURIComponent(JSON.stringify(resultData))}`;
+          if (!isRedirecting.current) {
+            isRedirecting.current = true;
+            safeRedirect(resultUrl);
+          }
+        } else {
+          toast.error("ガチャアイテムの在庫がありません");
+          setHasStock(false);
+        }
       }
     } catch (error: any) {
-      // エラーメッセージの詳細化
       if (error.response?.data?.code === 'OUT_OF_STOCK' || 
           error.response?.status === 409 || 
           error.response?.data?.message?.includes('stock') || 
