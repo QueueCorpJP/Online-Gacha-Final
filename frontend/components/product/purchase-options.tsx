@@ -70,14 +70,18 @@ export function GachaPurchaseOptions({ options, gachaId }: GachaPurchaseOptionsP
     if (!gachaId) return;
     
     try {
-      const response = await api.get(`/gacha/${gachaId}/stock-check`).catch(() => null);
+      // エンドポイントを変更: /stock-check は404エラーを返すため /gacha/${gachaId} を使用
+      const response = await api.get(`/gacha/${gachaId}`).catch(() => null);
       
       if (response?.data) {
-        const hasAvailableItems = !(response.data.availableItems === 0 || response.data.isEmpty);
+        // レスポンス形式を修正して対応
+        const availableItems = response.data.availableItems ?? response.data.remainingItems;
+        const hasAvailableItems = availableItems !== undefined ? availableItems > 0 : true;
         setHasStock(hasAvailableItems);
         
         if (!hasAvailableItems) {
           // 在庫がない状態
+          console.log('在庫がありません');
         }
       }
     } catch (error) {
@@ -136,21 +140,27 @@ export function GachaPurchaseOptions({ options, gachaId }: GachaPurchaseOptionsP
       
       // 在庫確認（APIがサポートしている場合）
       try {
-        const stockCheck = await api.get(`/gacha/${gachaId}/stock-check`).catch(() => null);
+        // エンドポイントを変更: /stock-check は404エラーを返すため /gacha/${gachaId} を使用
+        const stockCheck = await api.get(`/gacha/${gachaId}`).catch(() => null);
         
-        if (stockCheck?.data?.availableItems === 0 || stockCheck?.data?.isEmpty) {
-          toast.error("ガチャアイテムの在庫がありません");
-          setHasStock(false);
-          setIsProcessing(false);
-          setConfirmDialogOpen(false);
-          return;
+        if (stockCheck?.data) {
+          // レスポンス形式を修正して対応
+          const availableItems = stockCheck.data.availableItems ?? stockCheck.data.remainingItems;
+          if (availableItems !== undefined && availableItems <= 0) {
+            toast.error("ガチャアイテムの在庫がありません");
+            setHasStock(false);
+            setIsProcessing(false);
+            setConfirmDialogOpen(false);
+            return;
+          }
         }
       } catch (stockError) {
         // 在庫確認APIがない場合は無視して続行
+        console.error('在庫確認エラー:', stockError);
       }
       
       // APIを呼び出してガチャを購入・引く
-      const response = await api.post(`/admin/gacha/${gachaId}/pull`, {
+      const response = await api.post(`/gacha/${gachaId}/pull`, {
         times: selectedOption.times || 1,
         isFree: selectedOption.isFree || false,
       });
