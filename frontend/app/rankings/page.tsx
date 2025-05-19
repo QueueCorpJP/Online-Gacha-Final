@@ -1,6 +1,5 @@
 "use client";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { TopUser } from "@/components/rankings/top-user"
 import { RankingTable } from "@/components/rankings/ranking-table"
 import { useTranslations } from "@/hooks/use-translations"
 import { useState } from "react"
@@ -38,7 +37,6 @@ export default function RankingsPage() {
       </Tabs>
 
       <div className="mt-8 space-y-8">
-        <TopUser period={selectedPeriod} />
         <RankingTable period={selectedPeriod} />
       </div>
     </main>
