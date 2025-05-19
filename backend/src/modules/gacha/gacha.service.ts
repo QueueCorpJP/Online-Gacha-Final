@@ -328,6 +328,11 @@ export class GachaService {
       throw new NotFoundException('Gacha not found');
     }
 
+    if (!gacha.items || gacha.items.length === 0) {
+      console.error(`[pullItems] Gacha items not found or empty: gachaId=${gachaId}`);
+      throw new NotFoundException('Gacha items not found');
+    }
+
     const pityThreshold = gacha.pityThreshold;
     let pullHistory = await this.pullHistoryRepository.findOne({
       where: { userId, gachaId }
@@ -345,6 +350,11 @@ export class GachaService {
     const items: GachaItem[] = [];
     let availableItems = gacha.items.filter(item => item.stock === null || item.stock > 0);
     console.log(`[pullItems] availableItems:`, availableItems.map(i => ({id: i.id, rarity: i.rarity, prob: i.probability, stock: i.stock})));
+
+    if (availableItems.length === 0) {
+      console.error(`[pullItems] No available items for gachaId=${gachaId}`);
+      throw new BadRequestException('No available items');
+    }
 
     // Check for last one prize
     const totalRemainingStock = availableItems.reduce((sum, item) => {
@@ -373,7 +383,7 @@ export class GachaService {
     for (let i = 0; i < times; i++) {
       availableItems = gacha.items.filter(item => item.stock === null || item.stock > 0);
       if (availableItems.length === 0) {
-        console.warn(`[pullItems] No more available items at draw ${i}`);
+        console.warn(`[pullItems] No more available items at draw ${i}, gachaId=${gachaId}`);
         break;
       }
       pullHistory.pullCount++;
@@ -426,7 +436,7 @@ export class GachaService {
           }
         }
         if (!selectedItem) {
-          console.warn(`[pullItems] 通常抽選で何も当たらなかった: rand=${rand}, totalProb=${totalProb}, availableItems=`, availableItems.map(i => ({id: i.id, rarity: i.rarity, prob: i.probability, stock: i.stock})));
+          console.warn(`[pullItems] selectedItemがnull: draw=${i}, gachaId=${gachaId}, availableItems=`, availableItems);
         }
       }
       if (selectedItem) {
@@ -441,8 +451,6 @@ export class GachaService {
           }
         }
         items.push(selectedItem);
-      } else {
-        console.warn(`[pullItems] selectedItemがnull: draw=${i}`);
       }
     }
     await this.pullHistoryRepository.save(pullHistory);
@@ -454,7 +462,7 @@ export class GachaService {
         item.rarity === lowestRarity && 
         (item.stock === null || item.stock > 0)
       );
-      console.warn(`[pullItems] D埋め処理: remainingPulls=${remainingPulls}, lowestRarityItems=`, lowestRarityItems.map(i => ({id: i.id, prob: i.probability, stock: i.stock})));
+      console.warn(`[pullItems] D埋め処理: remainingPulls=${remainingPulls}, lowestRarityItems=`, lowestRarityItems.map(i => ({id: i.id, prob: i.probability, stock: i.stock})), `gachaId=${gachaId}`);
       for (let i = 0; i < remainingPulls && lowestRarityItems.length > 0; i++) {
         const randomIndex = Math.floor(Math.random() * lowestRarityItems.length);
         const selectedItem = { ...lowestRarityItems[randomIndex] };
@@ -466,10 +474,10 @@ export class GachaService {
           }
         }
         items.push(selectedItem);
-        console.log(`[pullItems] D埋め: i=${i}, selectedItem=`, selectedItem);
+        console.log(`[pullItems] D埋め: i=${i}, selectedItem=`, selectedItem, `gachaId=${gachaId}`);
       }
     }
-    console.log(`[pullItems] 結果: items=`, items.map(i => ({id: i.id, rarity: i.rarity, prob: i.probability, stock: i.stock})));
+    console.log(`[pullItems] 結果: items=`, items.map(i => ({id: i.id, rarity: i.rarity, prob: i.probability, stock: i.stock})), `gachaId=${gachaId}`);
     return items;
   }
 }

@@ -60,14 +60,14 @@ export function GachaMultiDraw({ gachaId, onComplete, totalDraws }: GachaMultiDr
   const [isCompleted, setIsCompleted] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // 最初の1回だけ演出ありでAPI取得
+  // useEffectで最初に10連分まとめて取得
   useEffect(() => {
-    const fetchFirst = async () => {
+    const fetchAll = async () => {
       setIsLoading(true)
       try {
-        const response = await api.post(`/admin/gacha/${gachaId}/pull`, { times: 1, isFree: false })
+        const response = await api.post(`/admin/gacha/${gachaId}/pull`, { times: totalDraws, isFree: false })
         if (response.data.items && Array.isArray(response.data.items) && response.data.items.length > 0) {
-          setResults([response.data.items[0]])
+          setResults(response.data.items)
         } else {
           setError('ガチャアイテムの在庫がありません')
         }
@@ -77,8 +77,8 @@ export function GachaMultiDraw({ gachaId, onComplete, totalDraws }: GachaMultiDr
         setIsLoading(false)
       }
     }
-    fetchFirst()
-  }, [gachaId])
+    fetchAll()
+  }, [gachaId, totalDraws])
 
   // 言語に応じたアイテム名を取得する関数
   const getLocalizedName = (item: any): string => {
@@ -88,25 +88,9 @@ export function GachaMultiDraw({ gachaId, onComplete, totalDraws }: GachaMultiDr
     return item.name;
   }
 
-  // 次へボタンでAPIを叩いて次のカードを取得
-  const handleNext = async () => {
+  // handleNextではAPIを叩かず、次のインデックスに進むだけ
+  const handleNext = () => {
     if (currentIndex < totalDraws - 1) {
-      // 2回目以降はAPIで即取得、演出なし
-      if (results.length <= currentIndex + 1) {
-        setIsLoading(true)
-        try {
-          const response = await api.post(`/admin/gacha/${gachaId}/pull`, { times: 1, isFree: false })
-          if (response.data.items && Array.isArray(response.data.items) && response.data.items.length > 0) {
-            setResults(prev => [...prev, response.data.items[0]])
-          } else {
-            setError('ガチャアイテムの在庫がありません')
-          }
-        } catch (e) {
-          setError('ガチャ取得に失敗しました')
-        } finally {
-          setIsLoading(false)
-        }
-      }
       setCurrentIndex(idx => idx + 1)
     } else {
       setIsCompleted(true)
@@ -155,7 +139,7 @@ export function GachaMultiDraw({ gachaId, onComplete, totalDraws }: GachaMultiDr
           disabled={isLoading || isCompleted}
         >
           <span className="text-lg font-bold">
-            {currentIndex < totalDraws - 1 ? t("gacha.result.next") : t("gacha.result.complete")}
+            {currentIndex < totalDraws - 1 ? '次へ' : '結果を確認する'}
           </span>
           <ChevronRight className="h-4 w-4" />
         </Button>
