@@ -15,6 +15,7 @@ import { fetchGachaById } from "@/redux/features/gachaSlice"
 import { toast } from 'sonner'
 import { api } from '@/lib/axios'
 import { GachaMultiDraw } from "@/components/product/gacha-multi-draw"
+import { GachaHundredDraw } from "@/components/product/gacha-hundred-draw"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -172,6 +173,7 @@ export default function GachaResultClient() {
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false)
   const [purchaseInfo, setPurchaseInfo] = useState<{ times: number; price: number | string }>({ times: 1, price: 0 })
   const [multiDrawMode, setMultiDrawMode] = useState(false) // 新しい多重引きモード状態
+  const [hundredDrawMode, setHundredDrawMode] = useState(false) // 100連ガチャモード
   const [showActionButtons, setShowActionButtons] = useState(true) // アクションボタンの表示状態
   const [showSummary, setShowSummary] = useState(false) // 結果サマリーの表示状態
 
@@ -490,6 +492,14 @@ export default function GachaResultClient() {
         // 在庫確認APIがない場合は無視して続行
       }
 
+      // 100連ガチャの場合
+      if (purchaseInfo.times === 100) {
+        setShowActionButtons(false);
+        setShowSummary(false);
+        setHundredDrawMode(true);
+        return;
+      }
+      
       // --- ここから複数回ガチャ時のAPI呼び出しロジック ---
       if (purchaseInfo.times > 1) {
         setShowActionButtons(false);
@@ -581,6 +591,40 @@ export default function GachaResultClient() {
     showPurchaseConfirmation(times);
   };
 
+  // 100連ガチャ処理
+  const handleHundredDraw = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!hasStock) {
+      toast.error("ガチャアイテムの在庫がありません");
+      return;
+    }
+    
+    // 購入確認ダイアログを表示
+    showPurchaseConfirmation(100);
+  };
+
+  // 100連ガチャの完了ハンドラ
+  const handleHundredDrawComplete = (results: any[]) => {
+    // 結果を保存
+    const resultData = {
+      items: results,
+      gachaId: gacha?.id,
+      pullTime: new Date().toISOString()
+    };
+    
+    // 結果画面に遷移
+    if (typeof window !== 'undefined') {
+      const currentResultKey = `gacha_result_${gacha?.id}_${resultData.pullTime}`;
+      sessionStorage.removeItem(currentResultKey);
+    }
+    
+    const resultUrl = `/gacha/result?data=${encodeURIComponent(JSON.stringify(resultData))}`;
+    if (!isRedirecting.current) {
+      isRedirecting.current = true;
+      safeRedirect(resultUrl);
+    }
+  };
+
   const handlePrevious = () => {
     setCurrentIndex((prev) => Math.max(prev - 1, 0))
   }
@@ -656,134 +700,191 @@ export default function GachaResultClient() {
 
   return (
     <>
-      <div className={`min-h-screen bg-white flex flex-col items-center py-8 px-4 
-        ${showResults ? 'animate-fadeIn' : 'opacity-0'}`}>
-        {/* タイトル・サマリーに10連の回数を明示 */}
-        <div className="w-full max-h-3xl text-center mb-8">
-          <h1 className="text-2xl font-bold mb-2">
-            {isMultiDraw && originalItems.length > 1 ? `ガチャ結果（${originalItems.length}連）` : 'ガチャ結果'}
-          </h1>
-          <p className="text-gray-600">
-            おめでとうございます！
-          </p>
+      {/* 100連ガチャモード */}
+      {hundredDrawMode && gacha?.id && (
+        <div className="min-h-screen bg-white flex flex-col items-center py-8 px-4">
+          <div className="w-full max-h-3xl text-center mb-8">
+            <h1 className="text-2xl font-bold mb-2">100連ガチャを引いています</h1>
+          </div>
+          <GachaHundredDraw 
+            gachaId={gacha.id} 
+            onComplete={handleHundredDrawComplete}
+            totalBatches={10} // 10バッチで合計100連
+            batchSize={10}   // 1バッチは10連
+          />
         </div>
+      )}
 
-        {/* 10連・複数回ガチャも単発と同じリザルトUIでまとめて表示 */}
-        <div className="w-full max-w-3xl mt-8 space-y-4">
-          <h3 className="text-xl font-semibold">{isMultiDraw && originalItems.length > 1 ? `結果一覧（${originalItems.length}枚）` : '結果一覧'}</h3>
-          <div className="bg-white p-4 rounded-xl shadow">
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-              {originalItems.map((item, idx) => (
-                <div key={idx} className="flex flex-col items-center bg-zinc-50 p-3 rounded-lg border border-gray-100">
-                  <div className="h-20 w-20 relative mb-2">
-                    <Image
-                      src={item.imageUrl ? `${process.env.NEXT_PUBLIC_API_URL}${item.imageUrl}` : "/placeholder.svg"}
-                      alt={getLocalizedName(item)}
-                      fill
-                      className="object-contain rounded"
-                    />
+      {/* 通常の結果表示 */}
+      {!hundredDrawMode && (
+        <div className={`min-h-screen bg-white flex flex-col items-center py-8 px-4 
+          ${showResults ? 'animate-fadeIn' : 'opacity-0'}`}>
+          {/* タイトル・サマリーに10連の回数を明示 */}
+          <div className="w-full max-h-3xl text-center mb-8">
+            <h1 className="text-2xl font-bold mb-2">
+              {isMultiDraw && originalItems.length > 1 ? `ガチャ結果（${originalItems.length}連）` : 'ガチャ結果'}
+            </h1>
+            <p className="text-gray-600">
+              おめでとうございます！
+            </p>
+          </div>
+
+          {/* 10連・複数回ガチャも単発と同じリザルトUIでまとめて表示 */}
+          <div className="w-full max-w-3xl mt-8 space-y-4">
+            <h3 className="text-xl font-semibold">{isMultiDraw && originalItems.length > 1 ? `結果一覧（${originalItems.length}枚）` : '結果一覧'}</h3>
+            <div className="bg-white p-4 rounded-xl shadow">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+                {originalItems.map((item, idx) => (
+                  <div key={idx} className="flex flex-col items-center bg-zinc-50 p-3 rounded-lg border border-gray-100">
+                    <div className="h-20 w-20 relative mb-2">
+                      <Image
+                        src={item.imageUrl ? `${process.env.NEXT_PUBLIC_API_URL}${item.imageUrl}` : "/placeholder.svg"}
+                        alt={getLocalizedName(item)}
+                        fill
+                        className="object-contain rounded"
+                      />
+                    </div>
+                    <div className="w-full text-center">
+                      <p className="text-sm font-medium truncate">{getLocalizedName(item)}</p>
+                      <span className={`text-xs font-bold ${getRarityColor(item.rarity)} px-2 py-0.5 rounded`}>{formatRarity(item.rarity)}</span>
+                    </div>
                   </div>
-                  <div className="w-full text-center">
-                    <p className="text-sm font-medium truncate">{getLocalizedName(item)}</p>
-                    <span className={`text-xs font-bold ${getRarityColor(item.rarity)} px-2 py-0.5 rounded`}>{formatRarity(item.rarity)}</span>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* サマリー（集計）表示はそのまま残す */}
+          <div className="w-full max-w-3xl mt-8 space-y-4">
+            <h3 className="text-xl font-semibold">{isMultiDraw && originalItems.length > 1 ? `サマリー（${originalItems.length}枚）` : 'サマリー'}</h3>
+            <div className="bg-white p-4 rounded-xl shadow">
+              {Object.entries(groupedResults).sort(([rarityA], [rarityB]) => {
+                return (RARITY_ORDER[(rarityB.toUpperCase() as RarityKey)] || 0) - 
+                      (RARITY_ORDER[(rarityA.toUpperCase() as RarityKey)] || 0);
+              }).map(([rarity, items]) => (
+                <div key={rarity} className="mb-4 last:mb-0">
+                  <h4 className={`${getRarityColor(rarity)} inline-block px-2 py-1 rounded text-sm font-medium mb-2`}>
+                    {formatRarity(rarity)}
+                  </h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {items.map((item) => (
+                      <div key={item.id} className="flex items-center gap-2 bg-zinc-50 p-2 rounded">
+                        <div className="h-10 w-10 relative flex-shrink-0">
+                          <Image 
+                            src={item.imageUrl ? `${process.env.NEXT_PUBLIC_API_URL}${item.imageUrl}` : "/placeholder.svg"}
+                            alt={getLocalizedName(item)}
+                            fill
+                            className="object-contain"
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{getLocalizedName(item)}</p>
+                          <p className="text-xs text-gray-500">×{(item as UniqueGachaResult).count}</p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               ))}
             </div>
           </div>
-        </div>
 
-        {/* サマリー（集計）表示はそのまま残す */}
-        <div className="w-full max-w-3xl mt-8 space-y-4">
-          <h3 className="text-xl font-semibold">{isMultiDraw && originalItems.length > 1 ? `サマリー（${originalItems.length}枚）` : 'サマリー'}</h3>
-          <div className="bg-white p-4 rounded-xl shadow">
-            {Object.entries(groupedResults).sort(([rarityA], [rarityB]) => {
-              return (RARITY_ORDER[(rarityB.toUpperCase() as RarityKey)] || 0) - 
-                    (RARITY_ORDER[(rarityA.toUpperCase() as RarityKey)] || 0);
-            }).map(([rarity, items]) => (
-              <div key={rarity} className="mb-4 last:mb-0">
-                <h4 className={`${getRarityColor(rarity)} inline-block px-2 py-1 rounded text-sm font-medium mb-2`}>
-                  {formatRarity(rarity)}
-                </h4>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {items.map((item) => (
-                    <div key={item.id} className="flex items-center gap-2 bg-zinc-50 p-2 rounded">
-                      <div className="h-10 w-10 relative flex-shrink-0">
-                        <Image 
-                          src={item.imageUrl ? `${process.env.NEXT_PUBLIC_API_URL}${item.imageUrl}` : "/placeholder.svg"}
-                          alt={getLocalizedName(item)}
-                          fill
-                          className="object-contain"
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{getLocalizedName(item)}</p>
-                        <p className="text-xs text-gray-500">×{(item as UniqueGachaResult).count}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+          {/* アクションボタン（単発/10連ガチャボタンはリザルト下に表示） */}
+          {showActionButtons && (
+            <div className="w-full max-w-3xl mt-8 flex justify-center relative z-10">
+              <div className="flex gap-4 w-full max-w-md flex-wrap">
+                <Button 
+                  onClick={(e) => handleDraw(e, 1)}
+                  disabled={isDrawing || !hasStock}
+                  className="bg-[#7C3AED] hover:bg-[#6D28D9] flex items-center justify-center flex-1"
+                >
+                  <p className="text-lg font-bold">単発</p>
+                  <Coins className="mr-2 h-4 w-4" />
+                  <p className="text-lg font-bold">
+                    ¥{(() => {
+                      try {
+                        return safeGacha.price !== undefined && safeGacha.price !== null 
+                          ? Number(safeGacha.price).toLocaleString() 
+                          : '0';
+                      } catch (e) {
+                        return '0';
+                      }
+                    })()}
+                  </p>
+                  {!hasStock && (
+                    <span className="absolute top-0 right-0 -mt-1 -mr-1">
+                      <AlertCircle className="h-4 w-4 text-red-500" />
+                    </span>
+                  )}
+                </Button>
+                {/* もう一度引くボタン */}
+                <Button 
+                  onClick={handleRetryGacha}
+                  disabled={isDrawing || !hasStock}
+                  className="bg-[#7C3AED] hover:bg-[#6D28D9] flex items-center justify-center"
+                >
+                  <RotateCcw className="mr-2 h-4 w-4" />
+                  <p className="text-lg font-bold">もう一度</p>
+                  {!hasStock && (
+                    <span className="absolute top-0 right-0 -mt-1 -mr-1">
+                      <AlertCircle className="h-4 w-4 text-red-500" />
+                    </span>
+                  )}
+                </Button>
+                <Button 
+                  onClick={(e) => handleDraw(e, 10)}
+                  disabled={isDrawing || !hasStock}
+                  className="bg-[#7C3AED] hover:bg-[#6D28D9] flex items-center justify-center flex-1"
+                >
+                  <p className="text-lg font-bold">10連</p>
+                  <RotateCcw className="mr-2 h-4 w-4" />
+                  <p className="text-lg font-bold">
+                    ¥{(() => {
+                      try {
+                        return safeGacha.price !== undefined && safeGacha.price !== null
+                          ? (Number(safeGacha.price) * 10).toLocaleString()
+                          : '0';
+                      } catch (e) {
+                        return '0';
+                      }
+                    })()}
+                  </p>
+                  {!hasStock && (
+                    <span className="absolute top-0 right-0 -mt-1 -mr-1">
+                      <AlertCircle className="h-4 w-4 text-red-500" />
+                    </span>
+                  )}
+                </Button>
+                {/* 100連ガチャボタン */}
+                <Button 
+                  onClick={handleHundredDraw}
+                  disabled={isDrawing || !hasStock}
+                  className="bg-[#7C3AED] hover:bg-[#6D28D9] flex items-center justify-center w-full mt-2"
+                >
+                  <p className="text-lg font-bold">100連ガチャ</p>
+                  <Coins className="mx-2 h-4 w-4" />
+                  <p className="text-lg font-bold">
+                    ¥{(() => {
+                      try {
+                        return safeGacha.price !== undefined && safeGacha.price !== null
+                          ? (Number(safeGacha.price) * 100).toLocaleString()
+                          : '0';
+                      } catch (e) {
+                        return '0';
+                      }
+                    })()}
+                  </p>
+                  {!hasStock && (
+                    <span className="absolute top-0 right-0 -mt-1 -mr-1">
+                      <AlertCircle className="h-4 w-4 text-red-500" />
+                    </span>
+                  )}
+                </Button>
               </div>
-            ))}
-          </div>
-        </div>
-
-        {/* アクションボタン（単発/10連ガチャボタンはリザルト下に表示） */}
-        {showActionButtons && (
-          <div className="w-full max-w-3xl mt-8 flex justify-center relative z-10">
-            <div className="flex gap-4 w-full max-w-md">
-              <Button 
-                onClick={(e) => handleDraw(e, 1)}
-                disabled={isDrawing || !hasStock}
-                className="bg-[#7C3AED] hover:bg-[#6D28D9] flex items-center justify-center flex-1"
-              >
-                <p className="text-lg font-bold">単発</p>
-                <Coins className="mr-2 h-4 w-4" />
-                <p className="text-lg font-bold">
-                  ¥{(() => {
-                    try {
-                      return safeGacha.price !== undefined && safeGacha.price !== null 
-                        ? Number(safeGacha.price).toLocaleString() 
-                        : '0';
-                    } catch (e) {
-                      return '0';
-                    }
-                  })()}
-                </p>
-                {!hasStock && (
-                  <span className="absolute top-0 right-0 -mt-1 -mr-1">
-                    <AlertCircle className="h-4 w-4 text-red-500" />
-                  </span>
-                )}
-              </Button>
-              <Button 
-                onClick={(e) => handleDraw(e, 10)}
-                disabled={isDrawing || !hasStock}
-                className="bg-[#7C3AED] hover:bg-[#6D28D9] flex items-center justify-center flex-1"
-              >
-                <p className="text-lg font-bold">10連</p>
-                <RotateCcw className="mr-2 h-4 w-4" />
-                <p className="text-lg font-bold">
-                  ¥{(() => {
-                    try {
-                      return safeGacha.price !== undefined && safeGacha.price !== null
-                        ? (Number(safeGacha.price) * 10).toLocaleString()
-                        : '0';
-                    } catch (e) {
-                      return '0';
-                    }
-                  })()}
-                </p>
-                {!hasStock && (
-                  <span className="absolute top-0 right-0 -mt-1 -mr-1">
-                    <AlertCircle className="h-4 w-4 text-red-500" />
-                  </span>
-                )}
-              </Button>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
       {/* 購入確認ダイアログ */}
       <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
@@ -791,10 +892,20 @@ export default function GachaResultClient() {
           <AlertDialogHeader>
             <AlertDialogTitle>購入の確認</AlertDialogTitle>
             <AlertDialogDescription>
-              {purchaseInfo.times === 1 ? "単発" : "10連"}ガチャを引きます。
+              {purchaseInfo.times === 1 ? "単発" : 
+               purchaseInfo.times === 10 ? "10連" : 
+               purchaseInfo.times === 100 ? "100連" : `${purchaseInfo.times}連`}
+              ガチャを引きます。
               <br />
               価格: ¥{typeof purchaseInfo.price === 'number' ? purchaseInfo.price.toLocaleString() : purchaseInfo.price}
               <br />
+              {purchaseInfo.times === 100 && 
+                <span className="text-red-500 mt-2 block">
+                  ※100連ガチャは10連を10回実行します。
+                  <br/>
+                  各カードの表示後、次に進むボタンをクリックしてください。
+                </span>
+              }
               よろしいですか？
             </AlertDialogDescription>
           </AlertDialogHeader>
