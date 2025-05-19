@@ -79,10 +79,10 @@ export function GachaHundredDraw({ gachaId, onComplete, totalBatches, batchSize 
     setIsLoading(true);
     try {
       console.log(`バッチ${batchIndex + 1}/${totalBatches}の実行: ${gachaId}`);
-      // 1回のリクエストで10連ガチャを実行
+      // 1回のリクエストで10連ガチャを実行（無料パラメータをtrueに設定）
       const response = await api.post(`/gacha/${gachaId}/pull`, { 
         times: batchSize, 
-        isFree: false 
+        isFree: true // 無料に設定
       });
       if (response.data.items && Array.isArray(response.data.items) && response.data.items.length > 0) {
         const newBatchResults = response.data.items;
@@ -148,6 +148,7 @@ export function GachaHundredDraw({ gachaId, onComplete, totalBatches, batchSize 
 
   const currentItem = batchResults[currentIndex]
   const progressText = `${progress}% 完了 (${allResults.length}/${totalBatches * batchSize})`
+  const remainingText = `あと${totalBatches - currentBatch - 1}回の10連ガチャが無料で引けます`;
 
   if (error) {
     return <div className="text-red-500 text-center p-8">{error}</div>
@@ -157,13 +158,13 @@ export function GachaHundredDraw({ gachaId, onComplete, totalBatches, batchSize 
   if (!isStarted && !isLoading) {
     return (
       <div className="text-center p-8 flex flex-col items-center">
-        <h2 className="text-xl font-bold mb-4">100連ガチャを引く準備ができました</h2>
-        <p className="text-gray-600 mb-6">「ガチャを始める」ボタンをクリックすると、10連×10回のガチャがスタートします。</p>
+        <h2 className="text-xl font-bold mb-4">無料10連ガチャを10回引けます！</h2>
+        <p className="text-gray-600 mb-6">「ガチャを始める」ボタンをクリックすると、無料の10連ガチャがスタートします。</p>
         <Button
           onClick={handleStart}
           className="bg-[#7C3AED] hover:bg-[#6D28D9] flex items-center justify-center gap-2"
         >
-          <span className="text-lg font-bold">ガチャを始める</span>
+          <span className="text-lg font-bold">無料ガチャを始める</span>
         </Button>
       </div>
     );
@@ -182,6 +183,9 @@ export function GachaHundredDraw({ gachaId, onComplete, totalBatches, batchSize 
     <div className="w-full flex flex-col items-center justify-center min-h-[50vh]">
       <div className="w-full max-w-3xl text-center mb-4">
         <p className="text-gray-600 mb-2">{progressText}</p>
+        {currentBatch < totalBatches - 1 && (
+          <p className="text-green-600 font-bold mb-2">{remainingText}</p>
+        )}
         <Progress value={progress} className="w-full h-2" />
       </div>
       {currentItem && (

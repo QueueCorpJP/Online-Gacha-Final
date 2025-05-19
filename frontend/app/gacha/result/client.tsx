@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Image from "next/image"
 import Link from "next/link"
-import { Coins, RotateCcw, ChevronLeft, ChevronRight, AlertCircle } from "lucide-react"
+import { Coins, RotateCcw, ChevronLeft, ChevronRight, AlertCircle, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
@@ -171,7 +171,7 @@ export default function GachaResultClient() {
   const isRedirecting = useRef(false) // リダイレクト状態を管理する参照
   const [skipVideo, setSkipVideo] = useState(false) // 動画をスキップするかどうか
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false)
-  const [purchaseInfo, setPurchaseInfo] = useState<{ times: number; price: number | string }>({ times: 1, price: 0 })
+  const [purchaseInfo, setPurchaseInfo] = useState<{ times: number; price: number | string; isFreeHundred: boolean }>({ times: 1, price: 0, isFreeHundred: false })
   const [multiDrawMode, setMultiDrawMode] = useState(false) // 新しい多重引きモード状態
   const [hundredDrawMode, setHundredDrawMode] = useState(false) // 100連ガチャモード
   const [showActionButtons, setShowActionButtons] = useState(true) // アクションボタンの表示状態
@@ -500,21 +500,23 @@ export default function GachaResultClient() {
   }
 
   // 購入確認ダイアログを表示する関数
-  const showPurchaseConfirmation = (times: number) => {
-    // 価格を計算
+  const showPurchaseConfirmation = (times: number, isFreeHundred: boolean = false) => {
+    // 価格を計算（100連無料ガチャの場合は0円）
     let price: number | string = 0;
     try {
-      if (gacha?.price) {
+      if (gacha?.price && !isFreeHundred) {
         price = times === 1 
           ? Number(gacha.price) 
           : Number(gacha.price) * times;
+      } else if (isFreeHundred) {
+        price = 0;
       }
     } catch (e) {
       price = "不明";
     }
 
     // 購入情報を設定
-    setPurchaseInfo({ times, price });
+    setPurchaseInfo({ times, price, isFreeHundred });
     
     // ダイアログを表示
     setConfirmDialogOpen(true);
@@ -557,6 +559,7 @@ export default function GachaResultClient() {
         setShowActionButtons(false);
         setShowSummary(false);
         setHundredDrawMode(true);
+        setConfirmDialogOpen(false);
         return;
       }
       
@@ -685,8 +688,8 @@ export default function GachaResultClient() {
       return;
     }
     
-    // 購入確認ダイアログを表示
-    showPurchaseConfirmation(100);
+    // 無料の100連ガチャとして購入確認ダイアログを表示（価格は0円）
+    showPurchaseConfirmation(100, true);
   };
 
   // 100連ガチャの完了ハンドラ
@@ -797,9 +800,9 @@ export default function GachaResultClient() {
       {hundredDrawMode && gacha?.id && (
         <div className="min-h-screen bg-white flex flex-col items-center py-8 px-4">
           <div className="w-full max-w-3xl text-center mb-8">
-            <h1 className="text-2xl font-bold mb-2">100連ガチャを引いています</h1>
+            <h1 className="text-2xl font-bold mb-2">無料10連ガチャを10回引いています</h1>
             <p className="text-gray-600">
-              10連×10回を順番に実行しています。すべて完了するまでお待ちください。
+              特別キャンペーンで10連ガチャを10回まで無料で引くことができます。「次へ」ボタンで次のガチャに進みます。
             </p>
           </div>
           <GachaHundredDraw 
@@ -957,19 +960,7 @@ export default function GachaResultClient() {
                   disabled={isDrawing || !hasStock}
                   className="bg-[#7C3AED] hover:bg-[#6D28D9] flex items-center justify-center w-full mt-2"
                 >
-                  <p className="text-lg font-bold">100連ガチャ</p>
-                  <Coins className="mx-2 h-4 w-4" />
-                  <p className="text-lg font-bold">
-                    ¥{(() => {
-                      try {
-                        return safeGacha.price !== undefined && safeGacha.price !== null
-                          ? (Number(safeGacha.price) * 100).toLocaleString()
-                          : '0';
-                      } catch (e) {
-                        return '0';
-                      }
-                    })()}
-                  </p>
+                  <p className="text-lg font-bold">無料10連×10回</p>
                   {!hasStock && (
                     <span className="absolute top-0 right-0 -mt-1 -mr-1">
                       <AlertCircle className="h-4 w-4 text-red-500" />
@@ -986,29 +977,25 @@ export default function GachaResultClient() {
       <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>購入の確認</AlertDialogTitle>
+            <AlertDialogTitle>
+              {purchaseInfo.times === 100 ? "無料10連ガチャ×10回を引きますか？" : 
+                `${purchaseInfo.times}連ガチャを引きますか？`}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              {purchaseInfo.times === 1 ? "単発" : 
-               purchaseInfo.times === 10 ? "10連" : 
-               purchaseInfo.times === 100 ? "100連" : `${purchaseInfo.times}連`}
-              ガチャを引きます。
-              <br />
-              価格: ¥{typeof purchaseInfo.price === 'number' ? purchaseInfo.price.toLocaleString() : purchaseInfo.price}
-              <br />
-              {purchaseInfo.times === 100 && 
-                <span className="text-red-500 mt-2 block">
-                  ※100連ガチャは10連を10回実行します。
-                  <br/>
-                  各カードの表示後、次に進むボタンをクリックしてください。
-                </span>
-              }
-              よろしいですか？
+              {purchaseInfo.times === 100 ? 
+                "この特別キャンペーンで10連ガチャを10回、無料で引くことができます。" : 
+                `価格: ¥${typeof purchaseInfo.price === 'number' ? purchaseInfo.price.toLocaleString() : purchaseInfo.price}`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>キャンセル</AlertDialogCancel>
             <AlertDialogAction onClick={executePurchase} disabled={isDrawing}>
-              {isDrawing ? "処理中..." : "購入する"}
+              {isDrawing ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  <span>処理中...</span>
+                </>
+              ) : purchaseInfo.times === 100 ? "無料ガチャを引く" : "ガチャを引く"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
