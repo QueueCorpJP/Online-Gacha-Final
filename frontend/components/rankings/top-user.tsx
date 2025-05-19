@@ -51,6 +51,11 @@ export function TopUser({ period }: TopUserProps) {
     return <div className="relative rounded-lg bg-gradient-to-r from-[#9333EA] to-[#6B21A8] p-6 mb-10 animate-pulse" />;
   }
 
+  // 404やエラー時は何も表示しない
+  if (error) {
+    return null;
+  }
+
   const getInitials = (username?: string) => {
     return username?.charAt(0).toUpperCase() || 'U';
   }
