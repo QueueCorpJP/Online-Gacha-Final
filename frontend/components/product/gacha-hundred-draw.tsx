@@ -76,7 +76,7 @@ export function GachaHundredDraw({ gachaId, onComplete, totalBatches, batchSize 
 
       setIsLoading(true)
       try {
-        const response = await api.post(`/admin/gacha/${gachaId}/pull`, { times: batchSize, isFree: false })
+        const response = await api.post(`/gacha/${gachaId}/pull`, { times: batchSize, isFree: false })
         if (response.data.items && Array.isArray(response.data.items) && response.data.items.length > 0) {
           const newBatchResults = response.data.items
           setBatchResults(newBatchResults)
@@ -90,8 +90,21 @@ export function GachaHundredDraw({ gachaId, onComplete, totalBatches, batchSize 
           setError('ガチャアイテムの在庫がありません')
           setIsCompleted(true)
         }
-      } catch (e) {
-        setError('ガチャ取得に失敗しました')
+      } catch (e: any) {
+        console.error('100連ガチャでエラーが発生しました:', e);
+        // より詳細なエラーメッセージ
+        if (e.response?.data?.code === 'OUT_OF_STOCK' || 
+            e.response?.status === 409 || 
+            e.response?.data?.message?.includes('stock') || 
+            e.response?.data?.message?.includes('在庫')) {
+          setError('ガチャアイテムの在庫がありません');
+        } else if (e.response?.status === 401 || e.response?.status === 403) {
+          setError('認証に失敗しました。再度ログインしてください。');
+        } else if (e.response?.status === 404) {
+          setError('ガチャが見つかりません。');
+        } else {
+          setError(`ガチャ取得に失敗しました: ${e.response?.data?.message || e.message || '不明なエラー'}`);
+        }
         setIsCompleted(true)
       } finally {
         setIsLoading(false)
