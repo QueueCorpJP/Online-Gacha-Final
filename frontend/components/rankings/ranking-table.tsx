@@ -9,6 +9,7 @@ import { coinService } from "@/services/coinService"
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { api } from "@/lib/axios"
+import type { GachaPurchaseStats } from '@/services/coinService';
 
 interface RankingTableProps {
   period: 'daily' | 'weekly' | 'monthly';
@@ -44,8 +45,8 @@ export function RankingTable({ period }: RankingTableProps) {
     return <div className="p-4 text-center">{t("common.error")}</div>
   }
 
-  // Get transactions excluding the first one (top user)
-  const transactions = stats?.recentTransactions.slice(1) || []
+  // 全ての順位を表示
+  const transactions = stats?.recentTransactions || []
 
   const getInitials = (username?: string) => {
     return username?.charAt(0).toUpperCase() || 'U';
@@ -72,7 +73,7 @@ export function RankingTable({ period }: RankingTableProps) {
               </TableRow>
             </TableHeader>
             <TableBody className="mx-6">
-              {transactions.map((transaction, index) => {
+              {transactions.map((transaction: GachaPurchaseStats['recentTransactions'][0], index: number) => {
                 // プロフィール画像URLの存在を確認
                 const hasProfileImage = !!(transaction.user?.profileUrl);
                 
@@ -87,7 +88,7 @@ export function RankingTable({ period }: RankingTableProps) {
                           index > 1 && "text-gray-600",
                         )}
                       >
-                        {index + 2}
+                        {index + 1}
                       </div>
                     </TableCell>
                     
