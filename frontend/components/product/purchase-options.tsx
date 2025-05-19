@@ -70,7 +70,7 @@ export function GachaPurchaseOptions({ options, gachaId }: GachaPurchaseOptionsP
     if (!gachaId) return;
     
     try {
-      const response = await api.get(`/admin/gacha/${gachaId}/stock-check`).catch(() => null);
+      const response = await api.get(`/gacha/${gachaId}/stock-check`).catch(() => null);
       
       if (response?.data) {
         const hasAvailableItems = !(response.data.availableItems === 0 || response.data.isEmpty);
@@ -136,7 +136,7 @@ export function GachaPurchaseOptions({ options, gachaId }: GachaPurchaseOptionsP
       
       // 在庫確認（APIがサポートしている場合）
       try {
-        const stockCheck = await api.get(`/admin/gacha/${gachaId}/stock-check`).catch(() => null);
+        const stockCheck = await api.get(`/gacha/${gachaId}/stock-check`).catch(() => null);
         
         if (stockCheck?.data?.availableItems === 0 || stockCheck?.data?.isEmpty) {
           toast.error("ガチャアイテムの在庫がありません");
