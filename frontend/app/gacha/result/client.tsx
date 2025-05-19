@@ -15,7 +15,6 @@ import { fetchGachaById } from "@/redux/features/gachaSlice"
 import { toast } from 'sonner'
 import { api } from '@/lib/axios'
 import { GachaMultiDraw } from "@/components/product/gacha-multi-draw"
-import { GachaHundredDraw } from "@/components/product/gacha-hundred-draw"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -173,9 +172,10 @@ export default function GachaResultClient() {
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false)
   const [purchaseInfo, setPurchaseInfo] = useState<{ times: number; price: number | string; isFreeHundred: boolean }>({ times: 1, price: 0, isFreeHundred: false })
   const [multiDrawMode, setMultiDrawMode] = useState(false) // 新しい多重引きモード状態
-  const [hundredDrawMode, setHundredDrawMode] = useState(false) // 100連ガチャモード
   const [showActionButtons, setShowActionButtons] = useState(true) // アクションボタンの表示状態
   const [showSummary, setShowSummary] = useState(false) // 結果サマリーの表示状態
+  const [showHundredModeIndicator, setShowHundredModeIndicator] = useState(false)
+  const [remainingHundredDraws, setRemainingHundredDraws] = useState(0)
 
   // gachaがnullの場合の型エラー対策: gachaがnullの場合はデフォルト値を使う
   const safeGacha = gacha ?? { id: '', price: 0 };
@@ -501,14 +501,21 @@ export default function GachaResultClient() {
 
   // 購入確認ダイアログを表示する関数
   const showPurchaseConfirmation = (times: number, isFreeHundred: boolean = false) => {
+    // 100連ガチャモードの場合
+    if (times === 10 && isFreeHundred) {
+      // セッションストレージに100連モードを保存
+      sessionStorage.setItem('gacha_hundred_mode', 'true');
+      sessionStorage.setItem('gacha_hundred_remaining', '9'); // 残り9回
+    }
+
     // 価格を計算（100連無料ガチャの場合は0円）
     let price: number | string = 0;
     try {
-      if (gacha?.price && !isFreeHundred) {
+      if (gacha?.price && !(times === 10 && isFreeHundred)) {
         price = times === 1 
           ? Number(gacha.price) 
           : Number(gacha.price) * times;
-      } else if (isFreeHundred) {
+      } else if (times === 10 && isFreeHundred) {
         price = 0;
       }
     } catch (e) {
@@ -554,25 +561,13 @@ export default function GachaResultClient() {
         // 在庫確認APIがない場合は無視して続行
       }
 
-      // 100連ガチャの場合
-      if (purchaseInfo.times === 100) {
-        setShowActionButtons(false);
-        setShowSummary(false);
-        setHundredDrawMode(true);
-        setConfirmDialogOpen(false);
-        return;
-      }
-      
-      // --- ここから複数回ガチャ時のAPI呼び出しロジック ---
+      // 複数回ガチャの場合
       if (purchaseInfo.times > 1) {
-        setShowActionButtons(false);
-        setShowSummary(false);
-        
         // 10連ガチャの場合、サーバー側で各回ごとに独立した確率計算が行われる
         // timesパラメータは単に回数を指定するだけで、各回は個別の抽選として処理される
         const response = await api.post(`/gacha/${gacha.id}/pull`, { 
           times: purchaseInfo.times, 
-          isFree: false 
+          isFree: purchaseInfo.isFreeHundred // 100連ガチャモードの場合は無料パラメータを設定
         });
         
         if (response.data.items && Array.isArray(response.data.items) && response.data.items.length > 0) {
@@ -688,36 +683,88 @@ export default function GachaResultClient() {
       return;
     }
     
-    // 無料の100連ガチャとして購入確認ダイアログを表示（価格は0円）
-    showPurchaseConfirmation(100, true);
+    // 無料の100連ガチャとして10連ガチャ購入確認ダイアログを表示
+    showPurchaseConfirmation(10, true);
   };
 
-  // 100連ガチャの完了ハンドラ
-  const handleHundredDrawComplete = (results: any[]) => {
-    // 結果を保存
-    const resultData = {
-      items: results,
-      gachaId: gacha?.id,
-      pullTime: new Date().toISOString()
-    };
+  // 100連モードの管理 (useEffect内で確認)
+  useEffect(() => {
+    // URLパラメータからデータまたはキーを取得した後に実行
+    if (showResults) {
+      // 100連モードかどうかをセッションストレージから確認
+      const isHundredMode = sessionStorage.getItem('gacha_hundred_mode') === 'true';
+      const remainingCount = parseInt(sessionStorage.getItem('gacha_hundred_remaining') || '0', 10);
+      
+      if (isHundredMode && remainingCount > 0) {
+        // 残りのガチャ回数を表示する
+        setShowHundredModeIndicator(true);
+        setRemainingHundredDraws(remainingCount);
+      } else if (isHundredMode && remainingCount <= 0) {
+        // 100連完了したらフラグをリセット
+        sessionStorage.removeItem('gacha_hundred_mode');
+        sessionStorage.removeItem('gacha_hundred_remaining');
+        setShowHundredModeIndicator(false);
+      }
+    }
+  }, [showResults]);
+
+  // 次の10連ガチャを引く処理
+  const handleNextTenDraw = async () => {
+    const remainingCount = parseInt(sessionStorage.getItem('gacha_hundred_remaining') || '0', 10);
     
-    // データをセッションストレージに保存（URLではなく）
-    if (typeof window !== 'undefined') {
-      try {
-        // ユニークなキーを生成
+    if (remainingCount <= 0) {
+      // 100連完了したらフラグをリセット
+      sessionStorage.removeItem('gacha_hundred_mode');
+      sessionStorage.removeItem('gacha_hundred_remaining');
+      setShowHundredModeIndicator(false);
+      return;
+    }
+    
+    try {
+      setIsDrawing(true);
+      
+      // 10連ガチャを実行
+      const response = await api.post(`/gacha/${gacha?.id}/pull`, { 
+        times: 10, 
+        isFree: true // 無料パラメータを設定
+      });
+      
+      if (response.data.items && Array.isArray(response.data.items) && response.data.items.length > 0) {
+        const resultData = {
+          items: response.data.items,
+          gachaId: gacha?.id,
+          pullTime: new Date().toISOString()
+        };
+        
+        // 残りカウントを減らす
+        const newRemainingCount = remainingCount - 1;
+        sessionStorage.setItem('gacha_hundred_remaining', newRemainingCount.toString());
+        
+        // データをセッションストレージに保存
         const storageKey = `gacha_result_${gacha?.id}_${Date.now()}`;
-        // セッションストレージに保存
         sessionStorage.setItem(storageKey, JSON.stringify(resultData));
-        // 結果画面へリダイレクト（キーのみを渡す）
+        
+        // 結果画面へリダイレクト
         if (!isRedirecting.current) {
           isRedirecting.current = true;
           safeRedirect(`/gacha/result?key=${encodeURIComponent(storageKey)}`);
         }
-      } catch (e) {
-        console.error('結果の保存に失敗しました:', e);
-        toast.error('ガチャ結果の保存に失敗しました。もう一度お試しください。');
-        setIsDrawing(false);
+      } else {
+        toast.error("ガチャアイテムの在庫がありません");
+        setHasStock(false);
       }
+    } catch (error: any) {
+      if (error.response?.data?.code === 'OUT_OF_STOCK' || 
+          error.response?.status === 409 || 
+          error.response?.data?.message?.includes('stock') || 
+          error.response?.data?.message?.includes('在庫')) {
+        toast.error("ガチャアイテムの在庫がありません");
+        setHasStock(false);
+      } else {
+        toast.error("ガチャ処理でエラーが発生しました。再度お試しください。");
+      }
+    } finally {
+      setIsDrawing(false);
     }
   };
 
@@ -796,195 +843,207 @@ export default function GachaResultClient() {
 
   return (
     <>
-      {/* 100連ガチャモード */}
-      {hundredDrawMode && gacha?.id && (
-        <div className="min-h-screen bg-white flex flex-col items-center py-8 px-4">
-          <div className="w-full max-w-3xl text-center mb-8">
-            <h1 className="text-2xl font-bold mb-2">無料10連ガチャを10回引いています</h1>
-            <p className="text-gray-600">
-              特別キャンペーンで10連ガチャを10回まで無料で引くことができます。「次へ」ボタンで次のガチャに進みます。
-            </p>
-          </div>
-          <GachaHundredDraw 
-            gachaId={gacha.id} 
-            onComplete={handleHundredDrawComplete}
-            totalBatches={10} // 10バッチで合計100連
-            batchSize={10}   // 1バッチは10連
-          />
-        </div>
-      )}
-
       {/* 通常の結果表示 */}
-      {!hundredDrawMode && (
-        <div className={`min-h-screen bg-white flex flex-col items-center py-8 px-4 
-          ${showResults ? 'animate-fadeIn' : 'opacity-0'}`}>
-          {/* タイトル・サマリーに10連の回数を明示 */}
-          <div className="w-full max-h-3xl text-center mb-8">
-            <h1 className="text-2xl font-bold mb-2">
-              {isMultiDraw && originalItems.length > 1 ? `ガチャ結果（${originalItems.length}連）` : 'ガチャ結果'}
-            </h1>
-            <p className="text-gray-600">
-              おめでとうございます！
-            </p>
-          </div>
-
-          {/* 10連・複数回ガチャも単発と同じリザルトUIでまとめて表示 */}
-          <div className="w-full max-w-3xl mt-8 space-y-4">
-            <h3 className="text-xl font-semibold">{isMultiDraw && originalItems.length > 1 ? `結果一覧（${originalItems.length}枚）` : '結果一覧'}</h3>
-            <div className="bg-white p-4 rounded-xl shadow">
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-                {originalItems.map((item, idx) => (
-                  <div key={idx} className="flex flex-col items-center bg-zinc-50 p-3 rounded-lg border border-gray-100">
-                    <div className="h-20 w-20 relative mb-2">
-                      <Image
-                        src={item.imageUrl ? `${process.env.NEXT_PUBLIC_API_URL}${item.imageUrl}` : "/placeholder.svg"}
-                        alt={getLocalizedName(item)}
-                        fill
-                        className="object-contain rounded"
-                      />
-                    </div>
-                    <div className="w-full text-center">
-                      <p className="text-sm font-medium truncate">{getLocalizedName(item)}</p>
-                      <span className={`text-xs font-bold ${getRarityColor(item.rarity)} px-2 py-0.5 rounded`}>{formatRarity(item.rarity)}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
+      <div className={`min-h-screen bg-white flex flex-col items-center py-8 px-4 
+        ${showResults ? 'animate-fadeIn' : 'opacity-0'}`}>
+        {/* タイトル・サマリーに10連の回数を明示 */}
+        <div className="w-full max-h-3xl text-center mb-8">
+          <h1 className="text-2xl font-bold mb-2">
+            {isMultiDraw && originalItems.length > 1 ? `ガチャ結果（${originalItems.length}連）` : 'ガチャ結果'}
+          </h1>
+          <p className="text-gray-600">
+            おめでとうございます！
+          </p>
+          
+          {/* 100連モードのインジケーター */}
+          {showHundredModeIndicator && (
+            <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-4">
+              <p className="text-green-800 font-medium">100連ガチャ</p>
+              <p className="text-green-700">あと{remainingHundredDraws}回の無料10連ガチャが引けます！</p>
             </div>
-          </div>
+          )}
+        </div>
 
-          {/* サマリー（集計）表示はそのまま残す */}
-          <div className="w-full max-w-3xl mt-8 space-y-4">
-            <h3 className="text-xl font-semibold">{isMultiDraw && originalItems.length > 1 ? `サマリー（${originalItems.length}枚）` : 'サマリー'}</h3>
-            <div className="bg-white p-4 rounded-xl shadow">
-              {Object.entries(groupedResults).sort(([rarityA], [rarityB]) => {
-                return (RARITY_ORDER[(rarityB.toUpperCase() as RarityKey)] || 0) - 
-                      (RARITY_ORDER[(rarityA.toUpperCase() as RarityKey)] || 0);
-              }).map(([rarity, items]) => (
-                <div key={rarity} className="mb-4 last:mb-0">
-                  <h4 className={`${getRarityColor(rarity)} inline-block px-2 py-1 rounded text-sm font-medium mb-2`}>
-                    {formatRarity(rarity)}
-                  </h4>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    {items.map((item) => (
-                      <div key={item.id} className="flex items-center gap-2 bg-zinc-50 p-2 rounded">
-                        <div className="h-10 w-10 relative flex-shrink-0">
-                          <Image 
-                            src={item.imageUrl ? `${process.env.NEXT_PUBLIC_API_URL}${item.imageUrl}` : "/placeholder.svg"}
-                            alt={getLocalizedName(item)}
-                            fill
-                            className="object-contain"
-                          />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{getLocalizedName(item)}</p>
-                          <p className="text-xs text-gray-500">×{(item as UniqueGachaResult).count}</p>
-                        </div>
-                      </div>
-                    ))}
+        {/* 10連・複数回ガチャも単発と同じリザルトUIでまとめて表示 */}
+        <div className="w-full max-w-3xl mt-8 space-y-4">
+          <h3 className="text-xl font-semibold">{isMultiDraw && originalItems.length > 1 ? `結果一覧（${originalItems.length}枚）` : '結果一覧'}</h3>
+          <div className="bg-white p-4 rounded-xl shadow">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+              {originalItems.map((item, idx) => (
+                <div key={idx} className="flex flex-col items-center bg-zinc-50 p-3 rounded-lg border border-gray-100">
+                  <div className="h-20 w-20 relative mb-2">
+                    <Image
+                      src={item.imageUrl ? `${process.env.NEXT_PUBLIC_API_URL}${item.imageUrl}` : "/placeholder.svg"}
+                      alt={getLocalizedName(item)}
+                      fill
+                      className="object-contain rounded"
+                    />
+                  </div>
+                  <div className="w-full text-center">
+                    <p className="text-sm font-medium truncate">{getLocalizedName(item)}</p>
+                    <span className={`text-xs font-bold ${getRarityColor(item.rarity)} px-2 py-0.5 rounded`}>{formatRarity(item.rarity)}</span>
                   </div>
                 </div>
               ))}
             </div>
           </div>
-
-          {/* アクションボタン（単発/10連ガチャボタンはリザルト下に表示） */}
-          {showActionButtons && (
-            <div className="w-full max-w-3xl mt-8 flex justify-center relative z-10">
-              <div className="flex gap-4 w-full max-w-md flex-wrap">
-                <Button 
-                  onClick={(e) => handleDraw(e, 1)}
-                  disabled={isDrawing || !hasStock}
-                  className="bg-[#7C3AED] hover:bg-[#6D28D9] flex items-center justify-center flex-1"
-                >
-                  <p className="text-lg font-bold">単発</p>
-                  <Coins className="mr-2 h-4 w-4" />
-                  <p className="text-lg font-bold">
-                    ¥{(() => {
-                      try {
-                        return safeGacha.price !== undefined && safeGacha.price !== null 
-                          ? Number(safeGacha.price).toLocaleString() 
-                          : '0';
-                      } catch (e) {
-                        return '0';
-                      }
-                    })()}
-                  </p>
-                  {!hasStock && (
-                    <span className="absolute top-0 right-0 -mt-1 -mr-1">
-                      <AlertCircle className="h-4 w-4 text-red-500" />
-                    </span>
-                  )}
-                </Button>
-                {/* もう一度引くボタン */}
-                <Button 
-                  onClick={handleRetryGacha}
-                  disabled={isDrawing || !hasStock}
-                  className="bg-[#7C3AED] hover:bg-[#6D28D9] flex items-center justify-center"
-                >
-                  <RotateCcw className="mr-2 h-4 w-4" />
-                  <p className="text-lg font-bold">もう一度</p>
-                  {!hasStock && (
-                    <span className="absolute top-0 right-0 -mt-1 -mr-1">
-                      <AlertCircle className="h-4 w-4 text-red-500" />
-                    </span>
-                  )}
-                </Button>
-                <Button 
-                  onClick={(e) => handleDraw(e, 10)}
-                  disabled={isDrawing || !hasStock}
-                  className="bg-[#7C3AED] hover:bg-[#6D28D9] flex items-center justify-center flex-1"
-                >
-                  <p className="text-lg font-bold">10連</p>
-                  <RotateCcw className="mr-2 h-4 w-4" />
-                  <p className="text-lg font-bold">
-                    ¥{(() => {
-                      try {
-                        return safeGacha.price !== undefined && safeGacha.price !== null
-                          ? (Number(safeGacha.price) * 10).toLocaleString()
-                          : '0';
-                      } catch (e) {
-                        return '0';
-                      }
-                    })()}
-                  </p>
-                  {!hasStock && (
-                    <span className="absolute top-0 right-0 -mt-1 -mr-1">
-                      <AlertCircle className="h-4 w-4 text-red-500" />
-                    </span>
-                  )}
-                </Button>
-                {/* 100連ガチャボタン */}
-                <Button 
-                  onClick={handleHundredDraw}
-                  disabled={isDrawing || !hasStock}
-                  className="bg-[#7C3AED] hover:bg-[#6D28D9] flex items-center justify-center w-full mt-2"
-                >
-                  <p className="text-lg font-bold">無料10連×10回</p>
-                  {!hasStock && (
-                    <span className="absolute top-0 right-0 -mt-1 -mr-1">
-                      <AlertCircle className="h-4 w-4 text-red-500" />
-                    </span>
-                  )}
-                </Button>
-              </div>
-            </div>
-          )}
         </div>
-      )}
+
+        {/* サマリー（集計）表示はそのまま残す */}
+        <div className="w-full max-w-3xl mt-8 space-y-4">
+          <h3 className="text-xl font-semibold">{isMultiDraw && originalItems.length > 1 ? `サマリー（${originalItems.length}枚）` : 'サマリー'}</h3>
+          <div className="bg-white p-4 rounded-xl shadow">
+            {Object.entries(groupedResults).sort(([rarityA], [rarityB]) => {
+              return (RARITY_ORDER[(rarityB.toUpperCase() as RarityKey)] || 0) - 
+                    (RARITY_ORDER[(rarityA.toUpperCase() as RarityKey)] || 0);
+            }).map(([rarity, items]) => (
+              <div key={rarity} className="mb-4 last:mb-0">
+                <h4 className={`${getRarityColor(rarity)} inline-block px-2 py-1 rounded text-sm font-medium mb-2`}>
+                  {formatRarity(rarity)}
+                </h4>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {items.map((item) => (
+                    <div key={item.id} className="flex items-center gap-2 bg-zinc-50 p-2 rounded">
+                      <div className="h-10 w-10 relative flex-shrink-0">
+                        <Image 
+                          src={item.imageUrl ? `${process.env.NEXT_PUBLIC_API_URL}${item.imageUrl}` : "/placeholder.svg"}
+                          alt={getLocalizedName(item)}
+                          fill
+                          className="object-contain"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{getLocalizedName(item)}</p>
+                        <p className="text-xs text-gray-500">×{(item as UniqueGachaResult).count}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* 100連モードの場合の次へボタン */}
+        {showHundredModeIndicator && (
+          <div className="w-full max-w-3xl mt-8 flex justify-center">
+            <Button 
+              onClick={handleNextTenDraw}
+              disabled={isDrawing}
+              className="bg-[#7C3AED] hover:bg-[#6D28D9] flex items-center justify-center gap-2 w-full max-w-md"
+            >
+              {isDrawing ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  <span>処理中...</span>
+                </>
+              ) : (
+                <>
+                  <span className="text-lg font-bold">次の無料10連を引く</span>
+                  <ChevronRight className="h-4 w-4" />
+                </>
+              )}
+            </Button>
+          </div>
+        )}
+
+        {/* 通常のアクションボタン（100連モードでない場合のみ表示） */}
+        {showActionButtons && !showHundredModeIndicator && (
+          <div className="w-full max-w-3xl mt-8 flex justify-center relative z-10">
+            <div className="flex gap-4 w-full max-w-md flex-wrap">
+              <Button 
+                onClick={(e) => handleDraw(e, 1)}
+                disabled={isDrawing || !hasStock}
+                className="bg-[#7C3AED] hover:bg-[#6D28D9] flex items-center justify-center flex-1"
+              >
+                <p className="text-lg font-bold">単発</p>
+                <Coins className="mr-2 h-4 w-4" />
+                <p className="text-lg font-bold">
+                  ¥{(() => {
+                    try {
+                      return safeGacha.price !== undefined && safeGacha.price !== null 
+                        ? Number(safeGacha.price).toLocaleString() 
+                        : '0';
+                    } catch (e) {
+                      return '0';
+                    }
+                  })()}
+                </p>
+                {!hasStock && (
+                  <span className="absolute top-0 right-0 -mt-1 -mr-1">
+                    <AlertCircle className="h-4 w-4 text-red-500" />
+                  </span>
+                )}
+              </Button>
+              {/* もう一度引くボタン */}
+              <Button 
+                onClick={handleRetryGacha}
+                disabled={isDrawing || !hasStock}
+                className="bg-[#7C3AED] hover:bg-[#6D28D9] flex items-center justify-center"
+              >
+                <RotateCcw className="mr-2 h-4 w-4" />
+                <p className="text-lg font-bold">もう一度</p>
+                {!hasStock && (
+                  <span className="absolute top-0 right-0 -mt-1 -mr-1">
+                    <AlertCircle className="h-4 w-4 text-red-500" />
+                  </span>
+                )}
+              </Button>
+              <Button 
+                onClick={(e) => handleDraw(e, 10)}
+                disabled={isDrawing || !hasStock}
+                className="bg-[#7C3AED] hover:bg-[#6D28D9] flex items-center justify-center flex-1"
+              >
+                <p className="text-lg font-bold">10連</p>
+                <RotateCcw className="mr-2 h-4 w-4" />
+                <p className="text-lg font-bold">
+                  ¥{(() => {
+                    try {
+                      return safeGacha.price !== undefined && safeGacha.price !== null
+                        ? (Number(safeGacha.price) * 10).toLocaleString()
+                        : '0';
+                    } catch (e) {
+                      return '0';
+                    }
+                  })()}
+                </p>
+                {!hasStock && (
+                  <span className="absolute top-0 right-0 -mt-1 -mr-1">
+                    <AlertCircle className="h-4 w-4 text-red-500" />
+                  </span>
+                )}
+              </Button>
+              {/* 100連ガチャボタン */}
+              <Button 
+                onClick={handleHundredDraw}
+                disabled={isDrawing || !hasStock}
+                className="bg-[#7C3AED] hover:bg-[#6D28D9] flex items-center justify-center w-full mt-2"
+              >
+                <p className="text-lg font-bold">無料10連×10回 特別企画</p>
+                {!hasStock && (
+                  <span className="absolute top-0 right-0 -mt-1 -mr-1">
+                    <AlertCircle className="h-4 w-4 text-red-500" />
+                  </span>
+                )}
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* 購入確認ダイアログ */}
       <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {purchaseInfo.times === 100 ? "無料10連ガチャ×10回を引きますか？" : 
-                `${purchaseInfo.times}連ガチャを引きますか？`}
+              {purchaseInfo.times === 10 && purchaseInfo.isFreeHundred 
+                ? "無料10連ガチャ特別企画" 
+                : `${purchaseInfo.times}連ガチャを引きますか？`}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {purchaseInfo.times === 100 ? 
-                "この特別キャンペーンで10連ガチャを10回、無料で引くことができます。" : 
-                `価格: ¥${typeof purchaseInfo.price === 'number' ? purchaseInfo.price.toLocaleString() : purchaseInfo.price}`}
+              {purchaseInfo.times === 10 && purchaseInfo.isFreeHundred
+                ? "特別企画として10連ガチャを10回まで無料で引くことができます！まずは最初の10連から始めましょう。"
+                : `価格: ¥${typeof purchaseInfo.price === 'number' ? purchaseInfo.price.toLocaleString() : purchaseInfo.price}`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -995,7 +1054,9 @@ export default function GachaResultClient() {
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
                   <span>処理中...</span>
                 </>
-              ) : purchaseInfo.times === 100 ? "無料ガチャを引く" : "ガチャを引く"}
+              ) : purchaseInfo.times === 10 && purchaseInfo.isFreeHundred 
+                ? "無料10連ガチャを始める" 
+                : "ガチャを引く"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
