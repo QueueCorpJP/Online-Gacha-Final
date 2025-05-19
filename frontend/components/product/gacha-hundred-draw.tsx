@@ -67,59 +67,66 @@ export function GachaHundredDraw({ gachaId, onComplete, totalBatches, batchSize 
 
   // 各バッチを順番に取得
   useEffect(() => {
-    const fetchNextBatch = async () => {
-      if (currentBatch >= totalBatches) {
-        setIsCompleted(true)
-        onComplete(allResults)
-        return
+    // 初期表示時に最初のバッチだけを取得
+    const fetchFirstBatch = async () => {
+      if (allResults.length === 0 && !isLoading && !isCompleted) {
+        await fetchBatch(0);
       }
+    };
+    
+    fetchFirstBatch();
+  }, []);  // 依存配列を空にして初回のみ実行
 
-      setIsLoading(true)
-      try {
-        console.log(`バッチ${currentBatch + 1}/${totalBatches}の実行: ${gachaId}`)
-        // 通常ガチャと同じAPIパスを使用
-        const response = await api.post(`/gacha/${gachaId}/pull`, { 
-          times: batchSize, 
-          isFree: false 
-        });
-        if (response.data.items && Array.isArray(response.data.items) && response.data.items.length > 0) {
-          const newBatchResults = response.data.items
-          setBatchResults(newBatchResults)
-          setAllResults(prev => [...prev, ...newBatchResults])
-          setCurrentIndex(0) // バッチ内の最初のアイテムから表示
-          
-          // 進捗を更新
-          const newProgress = Math.round(((currentBatch + 1) / totalBatches) * 100)
-          setProgress(newProgress)
-        } else {
-          setError('ガチャアイテムの在庫がありません')
-          setIsCompleted(true)
-        }
-      } catch (e: any) {
-        console.error('100連ガチャでエラーが発生しました:', e);
-        // より詳細なエラーメッセージ
-        if (e.response?.data?.code === 'OUT_OF_STOCK' || 
-            e.response?.status === 409 || 
-            e.response?.data?.message?.includes('stock') || 
-            e.response?.data?.message?.includes('在庫')) {
-          setError('ガチャアイテムの在庫がありません');
-        } else if (e.response?.status === 401 || e.response?.status === 403) {
-          setError('認証に失敗しました。再度ログインしてください。');
-        } else if (e.response?.status === 404) {
-          setError('ガチャが見つかりません。');
-        } else {
-          setError(`ガチャ取得に失敗しました: ${e.response?.data?.message || e.message || '不明なエラー'}`);
-        }
-        setIsCompleted(true)
-      } finally {
-        setIsLoading(false)
-      }
+  // バッチ取得関数を独立させる
+  const fetchBatch = async (batchIndex: number) => {
+    if (batchIndex >= totalBatches) {
+      setIsCompleted(true);
+      onComplete(allResults);
+      return;
     }
 
-    if (!isCompleted && !isLoading) {
-      fetchNextBatch()
+    setIsLoading(true);
+    try {
+      console.log(`バッチ${batchIndex + 1}/${totalBatches}の実行: ${gachaId}`);
+      // 通常ガチャと同じAPIパスを使用
+      const response = await api.post(`/gacha/${gachaId}/pull`, { 
+        times: batchSize, 
+        isFree: false 
+      });
+      if (response.data.items && Array.isArray(response.data.items) && response.data.items.length > 0) {
+        const newBatchResults = response.data.items;
+        setBatchResults(newBatchResults);
+        setAllResults(prev => [...prev, ...newBatchResults]);
+        setCurrentIndex(0); // バッチ内の最初のアイテムから表示
+        setCurrentBatch(batchIndex);
+        
+        // 進捗を更新
+        const newProgress = Math.round(((batchIndex + 1) / totalBatches) * 100);
+        setProgress(newProgress);
+      } else {
+        setError('ガチャアイテムの在庫がありません');
+        setIsCompleted(true);
+      }
+    } catch (e: any) {
+      console.error('100連ガチャでエラーが発生しました:', e);
+      // より詳細なエラーメッセージ
+      if (e.response?.data?.code === 'OUT_OF_STOCK' || 
+          e.response?.status === 409 || 
+          e.response?.data?.message?.includes('stock') || 
+          e.response?.data?.message?.includes('在庫')) {
+        setError('ガチャアイテムの在庫がありません');
+      } else if (e.response?.status === 401 || e.response?.status === 403) {
+        setError('認証に失敗しました。再度ログインしてください。');
+      } else if (e.response?.status === 404) {
+        setError('ガチャが見つかりません。');
+      } else {
+        setError(`ガチャ取得に失敗しました: ${e.response?.data?.message || e.message || '不明なエラー'}`);
+      }
+      setIsCompleted(true);
+    } finally {
+      setIsLoading(false);
     }
-  }, [currentBatch, gachaId, batchSize, totalBatches, isCompleted, allResults, onComplete, isLoading])
+  };
 
   // 言語に応じたアイテム名を取得する関数
   const getLocalizedName = (item: any): string => {
@@ -133,12 +140,12 @@ export function GachaHundredDraw({ gachaId, onComplete, totalBatches, batchSize 
   const handleNext = () => {
     if (currentIndex < batchResults.length - 1) {
       // 同じバッチ内で次のアイテムへ
-      setCurrentIndex(idx => idx + 1)
+      setCurrentIndex(idx => idx + 1);
     } else {
-      // 次のバッチへ
-      setCurrentBatch(batch => batch + 1)
+      // 次のバッチを取得
+      fetchBatch(currentBatch + 1);
     }
-  }
+  };
 
   const currentItem = batchResults[currentIndex]
   const progressText = `${progress}% 完了 (${allResults.length}/${totalBatches * batchSize})`
