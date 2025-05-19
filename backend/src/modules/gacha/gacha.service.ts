@@ -480,4 +480,13 @@ export class GachaService {
     console.log(`[pullItems] 結果: items=`, items.map(i => ({id: i.id, rarity: i.rarity, prob: i.probability, stock: i.stock})), `gachaId=${gachaId}`);
     return items;
   }
+
+  // ユーザーのお気に入り・ディスライク状態を取得する
+  async getFavoriteStatus(gachaId: string, userId: string) {
+    const favorite = await this.favoriteRepository.findOne({ where: { gachaId, userId } });
+    return {
+      favorited: !!favorite && favorite.type === 'like',
+      disliked: !!favorite && favorite.type === 'dislike',
+    };
+  }
 }

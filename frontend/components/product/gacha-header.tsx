@@ -104,8 +104,13 @@ export function GachaHeader({
         setIsFavorited(response.data.favorited);
         setIsDisliked(response.data.disliked);
       }
-    } catch (error) {
+    } catch (error: any) {
       // リアクションの更新に失敗した場合のエラー処理
+      if (error.response) {
+        console.error('API 500 Error:', error.response.data);
+      } else {
+        console.error('API Error:', error);
+      }
     }
   };
 
