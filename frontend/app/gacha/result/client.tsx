@@ -116,7 +116,7 @@ function getVideoByRarity(items: GachaResult[]): string {
     return 'D';
   }
   
-  // 最高レアリティを取得
+  // 最高レアリティを取得（10連の場合も全アイテムから最高レアリティを検索）
   const highestRarity = getHighestRarity(items);
   
   // レア度を大文字に統一して返す
@@ -125,6 +125,7 @@ function getVideoByRarity(items: GachaResult[]): string {
   
   // 有効なレア度のみを許可（A, B, C, D, S）
   if (['A', 'B', 'C', 'D', 'S'].includes(normalizedRarity)) {
+    console.log(`10連ガチャの場合、最高レアリティ ${normalizedRarity} の演出を表示します`);
     return normalizedRarity;
   }
   
@@ -229,13 +230,24 @@ export default function GachaResultClient() {
   };
 
   // 在庫チェック関数
-  const checkGachaStock = async (gachaId: string): Promise<boolean> => {
+  const checkStock = async () => {
+    if (!gacha?.id) return;
+    
     try {
-      const stockCheckResponse = await api.get(`/gacha/${gachaId}/stock-check`);
-      return stockCheckResponse.data.hasStock;
+      // /admin/gacha/ を /gacha/ に変更
+      const response = await api.get(`/gacha/${gacha.id}/stock-check`).catch(() => null);
+      
+      if (response?.data) {
+        const hasAvailableItems = !(response.data.availableItems === 0 || response.data.isEmpty);
+        setHasStock(hasAvailableItems);
+        
+        if (!hasAvailableItems) {
+          // 在庫がない
+        }
+      }
     } catch (error) {
-      // 在庫確認APIがない場合は利用可能と見なす
-      return true;
+      // APIがサポートされていない場合は在庫ありと仮定
+      setHasStock(true);
     }
   };
 
@@ -251,11 +263,16 @@ export default function GachaResultClient() {
       }
       
       // 在庫確認
-      const hasAvailableStock = await checkGachaStock(gacha.id);
-      if (!hasAvailableStock) {
-        toast.error("ガチャアイテムの在庫がありません");
-        setIsDrawing(false);
-        return;
+      try {
+        // checkGachaStock関数の代わりに直接APIを呼び出す
+        const stockCheckResponse = await api.get(`/gacha/${gacha.id}/stock-check`).catch(() => null);
+        if (stockCheckResponse?.data?.availableItems === 0 || stockCheckResponse?.data?.isEmpty) {
+          toast.error("ガチャアイテムの在庫がありません");
+          setIsDrawing(false);
+          return;
+        }
+      } catch (stockError) {
+        // 在庫確認APIがない場合は続行
       }
       
       // ガチャを引く
@@ -274,27 +291,6 @@ export default function GachaResultClient() {
       toast.error("エラーが発生しました。もう一度お試しください。");
     } finally {
       setIsDrawing(false);
-    }
-  };
-
-  // 在庫確認関数
-  const checkStock = async () => {
-    if (!gacha?.id) return;
-    
-    try {
-      const response = await api.get(`/admin/gacha/${gacha.id}/stock-check`).catch(() => null);
-      
-      if (response?.data) {
-        const hasAvailableItems = !(response.data.availableItems === 0 || response.data.isEmpty);
-        setHasStock(hasAvailableItems);
-        
-        if (!hasAvailableItems) {
-          // 在庫がない
-        }
-      }
-    } catch (error) {
-      // APIがサポートされていない場合は在庫ありと仮定
-      setHasStock(true);
     }
   };
 
@@ -371,7 +367,9 @@ export default function GachaResultClient() {
       }
 
       // 最高レアリティに基づいて動画ファイルを決定
+      // 10連ガチャの場合も、全アイテムの中から最もレアリティの高いものの演出を選択
       const rarity = getVideoByRarity(parsedItems);
+      console.log(`選択された演出動画: ${rarity}.webm (${parsedItems.length}連ガチャ)`);
       const videoPath = `/movies/${rarity}.webm`;
 
       // ビデオ要素の初期化
@@ -481,8 +479,8 @@ export default function GachaResultClient() {
       setIsDrawing(true);
       // 在庫確認を実行
       try {
-        const stockCheck = await api.get(`/admin/gacha/${gacha.id}/stock-check`).catch(() => null);
-        if (stockCheck?.data?.availableItems === 0 || stockCheck?.data?.isEmpty) {
+        const stockResponse = await api.get(`/gacha/${gacha.id}/stock-check`).catch(() => null);
+        if (stockResponse?.data?.availableItems === 0 || stockResponse?.data?.isEmpty) {
           toast.error("ガチャアイテムの在庫がありません");
           setHasStock(false);
           setIsDrawing(false);
@@ -496,20 +494,30 @@ export default function GachaResultClient() {
       if (purchaseInfo.times > 1) {
         setShowActionButtons(false);
         setShowSummary(false);
-        // 1回だけAPIを叩く
-        const response = await api.post(`/admin/gacha/${gacha.id}/pull`, { times: purchaseInfo.times, isFree: false });
+        
+        // 10連ガチャの場合、サーバー側で各回ごとに独立した確率計算が行われる
+        // timesパラメータは単に回数を指定するだけで、各回は個別の抽選として処理される
+        const response = await api.post(`/gacha/${gacha.id}/pull`, { 
+          times: purchaseInfo.times, 
+          isFree: false 
+        });
+        
         if (response.data.items && Array.isArray(response.data.items) && response.data.items.length > 0) {
+          // 各アイテムはサーバー側で個別に確率計算された結果
           const allResults = response.data.items;
-          // 10個まとめてリザルト画面に遷移
+          
+          // 10個のアイテムを結果画面に表示するためのデータを準備
           const resultData = {
-            items: allResults,
+            items: allResults, // 10個の個別に抽選されたアイテム
             gachaId: gacha.id,
             pullTime: new Date().toISOString()
           };
+          
           if (typeof window !== 'undefined') {
             const currentResultKey = `gacha_result_${gacha.id}_${resultData.pullTime}`;
             sessionStorage.removeItem(currentResultKey);
           }
+          
           const resultUrl = `/gacha/result?data=${encodeURIComponent(JSON.stringify(resultData))}`;
           if (!isRedirecting.current) {
             isRedirecting.current = true;
@@ -521,7 +529,7 @@ export default function GachaResultClient() {
         }
       } else {
         // 単発は従来通り
-        const response = await api.post(`/admin/gacha/${gacha.id}/pull`, {
+        const response = await api.post(`/gacha/${gacha.id}/pull`, {
           times: purchaseInfo.times,
           isFree: false,
         });
@@ -653,16 +661,16 @@ export default function GachaResultClient() {
         {/* タイトル・サマリーに10連の回数を明示 */}
         <div className="w-full max-h-3xl text-center mb-8">
           <h1 className="text-2xl font-bold mb-2">
-            {t("gacha.result.title")} {isMultiDraw && originalItems.length > 1 ? `（${originalItems.length}連）` : ''}
+            {isMultiDraw && originalItems.length > 1 ? `ガチャ結果（${originalItems.length}連）` : 'ガチャ結果'}
           </h1>
           <p className="text-gray-600">
-            {t("gacha.result.congratulations")}
+            おめでとうございます！
           </p>
         </div>
 
         {/* 10連・複数回ガチャも単発と同じリザルトUIでまとめて表示 */}
         <div className="w-full max-w-3xl mt-8 space-y-4">
-          <h3 className="text-xl font-semibold">{t("gacha.result.resultList")} {isMultiDraw && originalItems.length > 1 ? `（${originalItems.length}枚）` : ''}</h3>
+          <h3 className="text-xl font-semibold">{isMultiDraw && originalItems.length > 1 ? `結果一覧（${originalItems.length}枚）` : '結果一覧'}</h3>
           <div className="bg-white p-4 rounded-xl shadow">
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
               {originalItems.map((item, idx) => (
@@ -687,7 +695,7 @@ export default function GachaResultClient() {
 
         {/* サマリー（集計）表示はそのまま残す */}
         <div className="w-full max-w-3xl mt-8 space-y-4">
-          <h3 className="text-xl font-semibold">{t("gacha.result.summary")} {isMultiDraw && originalItems.length > 1 ? `（${originalItems.length}枚）` : ''}</h3>
+          <h3 className="text-xl font-semibold">{isMultiDraw && originalItems.length > 1 ? `サマリー（${originalItems.length}枚）` : 'サマリー'}</h3>
           <div className="bg-white p-4 rounded-xl shadow">
             {Object.entries(groupedResults).sort(([rarityA], [rarityB]) => {
               return (RARITY_ORDER[(rarityB.toUpperCase() as RarityKey)] || 0) - 
@@ -729,7 +737,7 @@ export default function GachaResultClient() {
                 disabled={isDrawing || !hasStock}
                 className="bg-[#7C3AED] hover:bg-[#6D28D9] flex items-center justify-center flex-1"
               >
-                <p className="text-lg font-bold">{t("gacha.result.oneDraw")}</p>
+                <p className="text-lg font-bold">単発</p>
                 <Coins className="mr-2 h-4 w-4" />
                 <p className="text-lg font-bold">
                   ¥{(() => {
@@ -753,7 +761,7 @@ export default function GachaResultClient() {
                 disabled={isDrawing || !hasStock}
                 className="bg-[#7C3AED] hover:bg-[#6D28D9] flex items-center justify-center flex-1"
               >
-                <p className="text-lg font-bold">{t("gacha.result.multi_draw")}</p>
+                <p className="text-lg font-bold">10連</p>
                 <RotateCcw className="mr-2 h-4 w-4" />
                 <p className="text-lg font-bold">
                   ¥{(() => {
