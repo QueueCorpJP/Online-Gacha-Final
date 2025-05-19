@@ -300,14 +300,19 @@ export default function GachaResultClient() {
       const response = await api.post(`/gacha/${gacha.id}/pull`);
       const resultData = response.data;
       
-      // ガチャ結果をURLパラメータとして渡す
-      const encodedData = btoa(JSON.stringify(resultData));
-      
-      // 結果画面への遷移URL
-      const resultUrl = `/gacha/result?data=${encodedData}`;
-      
-      // 結果画面へリダイレクト
-      safeRedirect(resultUrl);
+      try {
+        // データをセッションストレージに保存
+        if (typeof window !== 'undefined') {
+          const storageKey = `gacha_result_${gacha.id}_${Date.now()}`;
+          sessionStorage.setItem(storageKey, JSON.stringify(resultData));
+          safeRedirect(`/gacha/result?key=${encodeURIComponent(storageKey)}`);
+        }
+      } catch (storageError) {
+        console.error('結果の保存に失敗しました:', storageError);
+        // 従来の方法にフォールバック
+        const encodedData = btoa(JSON.stringify(resultData));
+        safeRedirect(`/gacha/result?data=${encodedData}`);
+      }
     } catch (error) {
       toast.error("エラーが発生しました。もう一度お試しください。");
     } finally {
@@ -616,14 +621,28 @@ export default function GachaResultClient() {
             gachaId: gacha.id,
             pullTime: new Date().toISOString()
           };
-          if (typeof window !== 'undefined') {
-            const currentResultKey = `gacha_result_${gacha.id}_${resultData.pullTime}`;
-            sessionStorage.removeItem(currentResultKey);
-          }
-          const resultUrl = `/gacha/result?data=${encodeURIComponent(JSON.stringify(resultData))}`;
-          if (!isRedirecting.current) {
-            isRedirecting.current = true;
-            safeRedirect(resultUrl);
+          
+          try {
+            // データをセッションストレージに保存（URLではなく）
+            if (typeof window !== 'undefined') {
+              // ユニークなキーを生成
+              const storageKey = `gacha_result_${gacha.id}_${Date.now()}`;
+              // セッションストレージに保存
+              sessionStorage.setItem(storageKey, JSON.stringify(resultData));
+              // 結果画面へリダイレクト（キーのみを渡す）
+              if (!isRedirecting.current) {
+                isRedirecting.current = true;
+                safeRedirect(`/gacha/result?key=${encodeURIComponent(storageKey)}`);
+              }
+            }
+          } catch (storageError) {
+            console.error('結果の保存に失敗しました:', storageError);
+            // データサイズが大きすぎる場合は従来の方法を試みる
+            const resultUrl = `/gacha/result?data=${encodeURIComponent(JSON.stringify(resultData))}`;
+            if (!isRedirecting.current) {
+              isRedirecting.current = true;
+              safeRedirect(resultUrl);
+            }
           }
         } else {
           toast.error("ガチャアイテムの在庫がありません");
