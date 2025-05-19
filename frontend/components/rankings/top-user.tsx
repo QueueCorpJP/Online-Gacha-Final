@@ -94,7 +94,7 @@ export function TopUser({ period }: TopUserProps) {
                 <div className="h-full w-full bg-purple-800 flex items-center justify-center text-white text-4xl font-bold">
                   {getInitials(topUser?.user.username)}
                 </div>
-              )}
+              ) }
             </div>
             <Crown className="absolute -top-2 -right-2 h-8 w-8 text-yellow-400" />
           </div>+
