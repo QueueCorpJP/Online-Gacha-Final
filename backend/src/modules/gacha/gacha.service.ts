@@ -404,11 +404,11 @@ export class GachaService {
           const rarity = sortedRarities[0];
           const rareItems = itemsByRarity[rarity].filter(item => item.stock === null || item.stock > 0);
           if (rareItems.length > 0) {
-            let rand = Math.random();
+            let rand = Math.random() * rareItems.reduce((sum, item) => sum + Number(item.probability), 0);
             let currentSum = 0;
             const shuffledRareItems = [...rareItems];
             for (const item of shuffledRareItems) {
-              currentSum += item.probability;
+              currentSum += Number(item.probability);
               if (rand <= currentSum) {
                 selectedItem = { ...item };
                 pullHistory.pullsSinceLastRare = 0;
@@ -421,11 +421,11 @@ export class GachaService {
       }
       // 通常確率抽選
       if (!selectedItem && availableItems.length > 0) {
-        const totalProb = availableItems.reduce((sum, item) => sum + item.probability, 0);
+        const totalProb = availableItems.reduce((sum, item) => sum + Number(item.probability), 0);
         const rand = Math.random() * totalProb;
         let cumulativeProb = 0;
         for (const item of availableItems) {
-          cumulativeProb += item.probability;
+          cumulativeProb += Number(item.probability);
           if (rand <= cumulativeProb) {
             selectedItem = { ...item };
             if (this.RARITY_LEVELS.indexOf(item.rarity) < this.RARITY_LEVELS.indexOf('D')) {
