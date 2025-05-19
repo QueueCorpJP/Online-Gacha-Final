@@ -31,7 +31,7 @@ export function TopUser({ period }: TopUserProps) {
       try {
         setLoading(true);
         const response = await api.get(`/rankings/${period}/top`);
-        
+        console.log('トップユーザーAPIレスポンス', response.data); // レスポンス確認用
         if (response.data?.user) {
           setTopUser(response.data);
         } else {
@@ -51,9 +51,15 @@ export function TopUser({ period }: TopUserProps) {
     return <div className="relative rounded-lg bg-gradient-to-r from-[#9333EA] to-[#6B21A8] p-6 mb-10 animate-pulse" />;
   }
 
-  // 404やエラー時は何も表示しない
-  if (error) {
-    return null;
+  // 404やエラー時、データがない場合は「データがありません」と表示
+  if (error || noData) {
+    return (
+      <div className="relative rounded-lg bg-gradient-to-r from-[#9333EA] to-[#6B21A8] p-6 mb-10">
+        <div className="flex flex-col items-center gap-4 text-white">
+          <div className="text-xl">データがありません</div>
+        </div>
+      </div>
+    );
   }
 
   const getInitials = (username?: string) => {
