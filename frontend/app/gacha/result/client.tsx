@@ -703,8 +703,11 @@ export default function GachaResultClient() {
       {/* 100連ガチャモード */}
       {hundredDrawMode && gacha?.id && (
         <div className="min-h-screen bg-white flex flex-col items-center py-8 px-4">
-          <div className="w-full max-h-3xl text-center mb-8">
+          <div className="w-full max-w-3xl text-center mb-8">
             <h1 className="text-2xl font-bold mb-2">100連ガチャを引いています</h1>
+            <p className="text-gray-600">
+              10連×10回を順番に実行しています。すべて完了するまでお待ちください。
+            </p>
           </div>
           <GachaHundredDraw 
             gachaId={gacha.id} 
