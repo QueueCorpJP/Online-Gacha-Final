@@ -489,4 +489,17 @@ export class GachaService {
       disliked: !!favorite && favorite.type === 'dislike',
     };
   }
+
+  /**
+   * ガチャを引いた履歴を保存する
+   */
+  async recordPulls(id: string, userId: string, items: any[]) {
+    // pullHistoryRepositoryのpullCountをitems.length分インクリメント
+    await this.pullHistoryRepository.increment(
+      { userId, gachaId: id },
+      'pullCount',
+      items.length,
+    );
+    // 必要に応じて追加のロジック（pityリセット等）をここに
+  }
 }
