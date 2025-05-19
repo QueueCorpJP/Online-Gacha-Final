@@ -76,7 +76,12 @@ export function GachaHundredDraw({ gachaId, onComplete, totalBatches, batchSize 
 
       setIsLoading(true)
       try {
-        const response = await api.post(`/gacha/${gachaId}/pull`, { times: batchSize, isFree: false })
+        console.log(`バッチ${currentBatch + 1}/${totalBatches}の実行: ${gachaId}`)
+        // 通常ガチャと同じAPIパスを使用
+        const response = await api.post(`/gacha/${gachaId}/pull`, { 
+          times: batchSize, 
+          isFree: false 
+        });
         if (response.data.items && Array.isArray(response.data.items) && response.data.items.length > 0) {
           const newBatchResults = response.data.items
           setBatchResults(newBatchResults)

@@ -236,18 +236,30 @@ export default function GachaResultClient() {
     if (!gacha?.id) return;
     
     try {
-      // /admin/gacha/ を /gacha/ に変更
-      const response = await api.get(`/gacha/${gacha.id}/stock-check`).catch(() => null);
+      // エンドポイントを変更してみる（404エラーが出ている）
+      // /gacha/{id}/stock-check は404エラーだったので、代わりに使用可能数を確認
+      const response = await api.get(`/gacha/${gacha.id}`).catch(() => null);
       
       if (response?.data) {
-        const hasAvailableItems = !(response.data.availableItems === 0 || response.data.isEmpty);
-        setHasStock(hasAvailableItems);
-        
-        if (!hasAvailableItems) {
-          // 在庫がない
+        // 在庫情報がある場合は直接使用
+        if (response.data.availableItems !== undefined || response.data.remainingItems !== undefined) {
+          const availableItems = response.data.availableItems ?? response.data.remainingItems;
+          const hasAvailableItems = availableItems > 0;
+          setHasStock(hasAvailableItems);
+          
+          if (!hasAvailableItems) {
+            console.log('在庫がありません');
+          }
+        } else {
+          // 在庫情報がない場合はとりあえず在庫ありとする
+          setHasStock(true);
         }
+      } else {
+        // レスポンスがない場合は在庫ありと仮定
+        setHasStock(true);
       }
     } catch (error) {
+      console.error('在庫確認中にエラーが発生しました:', error);
       // APIがサポートされていない場合は在庫ありと仮定
       setHasStock(true);
     }
@@ -266,14 +278,21 @@ export default function GachaResultClient() {
       
       // 在庫確認
       try {
-        // checkGachaStock関数の代わりに直接APIを呼び出す
-        const stockCheckResponse = await api.get(`/gacha/${gacha.id}/stock-check`).catch(() => null);
-        if (stockCheckResponse?.data?.availableItems === 0 || stockCheckResponse?.data?.isEmpty) {
-          toast.error("ガチャアイテムの在庫がありません");
-          setIsDrawing(false);
-          return;
+        // 修正した在庫確認APIを使用
+        const stockCheckResponse = await api.get(`/gacha/${gacha.id}`).catch(() => null);
+        if (stockCheckResponse?.data) {
+          // 在庫情報がある場合は直接使用
+          if (stockCheckResponse.data.availableItems !== undefined || stockCheckResponse.data.remainingItems !== undefined) {
+            const availableItems = stockCheckResponse.data.availableItems ?? stockCheckResponse.data.remainingItems;
+            if (availableItems <= 0) {
+              toast.error("ガチャアイテムの在庫がありません");
+              setIsDrawing(false);
+              return;
+            }
+          }
         }
       } catch (stockError) {
+        console.error('在庫確認中にエラーが発生しました:', stockError);
         // 在庫確認APIがない場合は続行
       }
       
@@ -481,14 +500,23 @@ export default function GachaResultClient() {
       setIsDrawing(true);
       // 在庫確認を実行
       try {
-        const stockResponse = await api.get(`/gacha/${gacha.id}/stock-check`).catch(() => null);
-        if (stockResponse?.data?.availableItems === 0 || stockResponse?.data?.isEmpty) {
-          toast.error("ガチャアイテムの在庫がありません");
-          setHasStock(false);
-          setIsDrawing(false);
-          return;
+        // 修正した在庫確認APIを使用
+        const stockResponse = await api.get(`/gacha/${gacha.id}`).catch(() => null);
+        if (stockResponse?.data) {
+          // 在庫情報がある場合は直接使用
+          if (stockResponse.data.availableItems !== undefined || stockResponse.data.remainingItems !== undefined) {
+            const availableItems = stockResponse.data.availableItems ?? stockResponse.data.remainingItems;
+            if (availableItems <= 0) {
+              toast.error("ガチャアイテムの在庫がありません");
+              setHasStock(false);
+              setIsDrawing(false);
+              setConfirmDialogOpen(false);
+              return;
+            }
+          }
         }
       } catch (stockError) {
+        console.error('在庫確認中にエラーが発生しました:', stockError);
         // 在庫確認APIがない場合は無視して続行
       }
 
