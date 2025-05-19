@@ -502,4 +502,42 @@ export class GachaService {
     );
     // 必要に応じて追加のロジック（pityリセット等）をここに
   }
+
+  /**
+   * イイね・バットのトグル処理
+   */
+  async toggleReaction(gachaId: string, userId: string, type: 'like' | 'dislike') {
+    const gacha = await this.gachaRepository.findOne({ where: { id: gachaId } });
+    if (!gacha) throw new NotFoundException('Gacha not found');
+
+    let favorite = await this.favoriteRepository.findOne({ where: { gachaId, userId } });
+
+    if (!favorite) {
+      favorite = this.favoriteRepository.create({ gachaId, userId, type });
+      await this.favoriteRepository.save(favorite);
+    } else {
+      // 既に同じリアクションなら削除（トグル動作）
+      if (favorite.type === type) {
+        await this.favoriteRepository.remove(favorite);
+      } else {
+        favorite.type = type;
+        await this.favoriteRepository.save(favorite);
+      }
+    }
+
+    // 最新のlike/dislike数を集計
+    const likes = await this.favoriteRepository.count({ where: { gachaId, type: 'like' } });
+    const dislikes = await this.favoriteRepository.count({ where: { gachaId, type: 'dislike' } });
+
+    gacha.likes = likes;
+    gacha.dislikes = dislikes;
+    await this.gachaRepository.save(gacha);
+
+    return {
+      likes,
+      dislikes,
+      favorited: !!(await this.favoriteRepository.findOne({ where: { gachaId, userId, type: 'like' } })),
+      disliked: !!(await this.favoriteRepository.findOne({ where: { gachaId, userId, type: 'dislike' } })),
+    };
+  }
 }
