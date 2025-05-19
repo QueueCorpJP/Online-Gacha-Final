@@ -138,6 +138,7 @@ export function GachaMultiDraw({ gachaId, onComplete, totalDraws }: GachaMultiDr
           className="bg-[#7C3AED] hover:bg-[#6D28D9] flex items-center justify-center gap-2"
           disabled={isLoading || isCompleted}
         >
+          
           <span className="text-lg font-bold">
             {currentIndex < totalDraws - 1 ? '次へ' : '結果を確認する'}
           </span>
