@@ -65,17 +65,8 @@ export function GachaHundredDraw({ gachaId, onComplete, totalBatches, batchSize 
   const [error, setError] = useState<string | null>(null)
   const [progress, setProgress] = useState(0)
 
-  // 各バッチを順番に取得
-  useEffect(() => {
-    // 初期表示時に最初のバッチだけを取得
-    const fetchFirstBatch = async () => {
-      if (allResults.length === 0 && !isLoading && !isCompleted) {
-        await fetchBatch(0);
-      }
-    };
-    
-    fetchFirstBatch();
-  }, []);  // 依存配列を空にして初回のみ実行
+  // 最初のバッチを取得するためのボタンを表示するための状態
+  const [isStarted, setIsStarted] = useState(false)
 
   // バッチ取得関数を独立させる
   const fetchBatch = async (batchIndex: number) => {
@@ -88,7 +79,7 @@ export function GachaHundredDraw({ gachaId, onComplete, totalBatches, batchSize 
     setIsLoading(true);
     try {
       console.log(`バッチ${batchIndex + 1}/${totalBatches}の実行: ${gachaId}`);
-      // 通常ガチャと同じAPIパスを使用
+      // 1回のリクエストで10連ガチャを実行
       const response = await api.post(`/gacha/${gachaId}/pull`, { 
         times: batchSize, 
         isFree: false 
@@ -103,6 +94,7 @@ export function GachaHundredDraw({ gachaId, onComplete, totalBatches, batchSize 
         // 進捗を更新
         const newProgress = Math.round(((batchIndex + 1) / totalBatches) * 100);
         setProgress(newProgress);
+        setIsStarted(true);
       } else {
         setError('ガチャアイテムの在庫がありません');
         setIsCompleted(true);
@@ -147,11 +139,34 @@ export function GachaHundredDraw({ gachaId, onComplete, totalBatches, batchSize 
     }
   };
 
+  // ガチャを開始する
+  const handleStart = () => {
+    if (!isStarted && !isLoading) {
+      fetchBatch(0);
+    }
+  };
+
   const currentItem = batchResults[currentIndex]
   const progressText = `${progress}% 完了 (${allResults.length}/${totalBatches * batchSize})`
 
   if (error) {
     return <div className="text-red-500 text-center p-8">{error}</div>
+  }
+
+  // 初期状態（まだ開始していない場合）
+  if (!isStarted && !isLoading) {
+    return (
+      <div className="text-center p-8 flex flex-col items-center">
+        <h2 className="text-xl font-bold mb-4">100連ガチャを引く準備ができました</h2>
+        <p className="text-gray-600 mb-6">「ガチャを始める」ボタンをクリックすると、10連×10回のガチャがスタートします。</p>
+        <Button
+          onClick={handleStart}
+          className="bg-[#7C3AED] hover:bg-[#6D28D9] flex items-center justify-center gap-2"
+        >
+          <span className="text-lg font-bold">ガチャを始める</span>
+        </Button>
+      </div>
+    );
   }
 
   if (isLoading && batchResults.length === 0) {
