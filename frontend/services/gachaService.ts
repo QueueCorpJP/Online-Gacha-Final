@@ -38,17 +38,17 @@ export interface CreateGachaDto {
 
 export const gachaService = {
   createGacha: async (data: CreateGachaDto) => {
-    const response = await api.post('/gacha', data);
+    const response = await api.post('/admin/gacha', data);
     return response.data;
   },
   
   updateGacha: async (id: string, data: Partial<CreateGachaDto>) => {
-    const response = await api.put(`/gacha/${id}`, data);
+    const response = await api.put(`/admin/gacha/${id}`, data);
     return response.data;
   },
   
   getGacha: async (id: string) => {
-    const response = await api.get<GachaData>(`/gacha/${id}`);
+    const response = await api.get<GachaData>(`/admin/gacha/${id}`);
     return response.data;
   },
 
@@ -69,12 +69,12 @@ export const gachaService = {
       if (filters.sortBy) params.append('sortBy', filters.sortBy);
     }
 
-    const response = await api.get(`/gachas?${params.toString()}`);
+    const response = await api.get(`/admin/gacha?${params.toString()}`);
     return response.data;
   },
   
   deleteGacha: async (id: string) => {
-    const response = await api.delete(`/gacha/${id}`);
+    const response = await api.delete(`/admin/gacha/${id}`);
     return response.data;
   }
 };

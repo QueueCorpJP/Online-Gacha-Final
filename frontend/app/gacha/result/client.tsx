@@ -236,15 +236,14 @@ export default function GachaResultClient() {
     if (!gacha?.id) return;
     
     try {
-      // エンドポイントを変更してみる（404エラーが出ている）
-      // /gacha/{id}/stock-check は404エラーだったので、代わりに使用可能数を確認
-      const response = await api.get(`/gacha/${gacha.id}`).catch(() => null);
+      // 新しいエンドポイントを使用
+      // adminエンドポイントを使用
+      const response = await api.get(`/admin/gacha/${gacha.id}`).catch(() => null);
       
       if (response?.data) {
         // 在庫情報がある場合は直接使用
-        if (response.data.availableItems !== undefined || response.data.remainingItems !== undefined) {
-          const availableItems = response.data.availableItems ?? response.data.remainingItems;
-          const hasAvailableItems = availableItems > 0;
+        if (response.data.availableItems !== undefined || response.data.isEmpty !== undefined) {
+          const hasAvailableItems = !(response.data.availableItems === 0 || response.data.isEmpty);
           setHasStock(hasAvailableItems);
           
           if (!hasAvailableItems) {
@@ -279,16 +278,14 @@ export default function GachaResultClient() {
       // 在庫確認
       try {
         // 修正した在庫確認APIを使用
-        const stockCheckResponse = await api.get(`/gacha/${gacha.id}`).catch(() => null);
+        const stockCheckResponse = await api.get(`/admin/gacha/${gacha.id}`).catch(() => null);
+        
         if (stockCheckResponse?.data) {
           // 在庫情報がある場合は直接使用
-          if (stockCheckResponse.data.availableItems !== undefined || stockCheckResponse.data.remainingItems !== undefined) {
-            const availableItems = stockCheckResponse.data.availableItems ?? stockCheckResponse.data.remainingItems;
-            if (availableItems <= 0) {
-              toast.error("ガチャアイテムの在庫がありません");
-              setIsDrawing(false);
-              return;
-            }
+          if (stockCheckResponse.data.availableItems === 0 || stockCheckResponse.data.isEmpty) {
+            toast.error("ガチャアイテムの在庫がありません");
+            setIsDrawing(false);
+            return;
           }
         }
       } catch (stockError) {
@@ -297,7 +294,7 @@ export default function GachaResultClient() {
       }
       
       // ガチャを引く
-      const response = await api.post(`/gacha/${gacha.id}/pull`);
+      const response = await api.post(`/admin/gacha/${gacha.id}/pull`);
       const resultData = response.data;
       
       try {
@@ -565,7 +562,7 @@ export default function GachaResultClient() {
       if (purchaseInfo.times > 1) {
         // 10連ガチャの場合、サーバー側で各回ごとに独立した確率計算が行われる
         // timesパラメータは単に回数を指定するだけで、各回は個別の抽選として処理される
-        const response = await api.post(`/gacha/${gacha.id}/pull`, { 
+        const response = await api.post(`/admin/gacha/${gacha.id}/pull`, { 
           times: purchaseInfo.times, 
           isFree: purchaseInfo.isFreeHundred // 100連ガチャモードの場合は無料パラメータを設定
         });
@@ -609,7 +606,7 @@ export default function GachaResultClient() {
         }
       } else {
         // 単発は従来通り
-        const response = await api.post(`/gacha/${gacha.id}/pull`, {
+        const response = await api.post(`/admin/gacha/${gacha.id}/pull`, {
           times: purchaseInfo.times,
           isFree: false,
         });
@@ -724,7 +721,7 @@ export default function GachaResultClient() {
       setIsDrawing(true);
       
       // 10連ガチャを実行
-      const response = await api.post(`/gacha/${gacha?.id}/pull`, { 
+      const response = await api.post(`/admin/gacha/${gacha?.id}/pull`, { 
         times: 10, 
         isFree: true // 無料パラメータを設定
       });

@@ -80,7 +80,7 @@ export function GachaHundredDraw({ gachaId, onComplete, totalBatches, batchSize 
     try {
       console.log(`バッチ${batchIndex + 1}/${totalBatches}の実行: ${gachaId}`);
       // 1回のリクエストで10連ガチャを実行（無料パラメータをtrueに設定）
-      const response = await api.post(`/gacha/${gachaId}/pull`, { 
+      const response = await api.post(`/admin/gacha/${gachaId}/pull`, { 
         times: batchSize, 
         isFree: true // 無料に設定
       });
