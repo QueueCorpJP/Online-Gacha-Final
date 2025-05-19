@@ -97,7 +97,7 @@ export function TopUser({ period }: TopUserProps) {
               )}
             </div>
             <Crown className="absolute -top-2 -right-2 h-8 w-8 text-yellow-400" />
-          </div>
+          </div>+
           <div className="flex-1">
             <h2 className="text-[20px] font-bold text-white">{topUser?.user.username || t("rankings.topUser.title")}</h2>
             <p className="text-purple-200">{t("rankings.topUser.dailyRanking")}</p>
