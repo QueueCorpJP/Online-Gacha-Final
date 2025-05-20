@@ -973,7 +973,7 @@ export default function GachaResultClient() {
                 )}
               </Button>
               {/* もう一度引くボタン */}
-              <Button 
+              {/* <Button 
                 onClick={handleRetryGacha}
                 disabled={isDrawing || !hasStock}
                 className="bg-[#7C3AED] hover:bg-[#6D28D9] flex items-center justify-center"
@@ -985,7 +985,7 @@ export default function GachaResultClient() {
                     <AlertCircle className="h-4 w-4 text-red-500" />
                   </span>
                 )}
-              </Button>
+              </Button> */}
               <Button 
                 onClick={(e) => handleDraw(e, 10)}
                 disabled={isDrawing || !hasStock}
