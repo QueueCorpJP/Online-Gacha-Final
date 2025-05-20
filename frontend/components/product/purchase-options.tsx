@@ -168,17 +168,25 @@ export function GachaPurchaseOptions({ options, gachaId }: GachaPurchaseOptionsP
           pullTime: new Date().toISOString()
         };
 
-        // 新しいガチャ結果のため、sessionStorageをクリア
-        if (typeof window !== 'undefined') {
-          const currentResultKey = `gacha_result_${gachaId}_${resultData.pullTime}`;
-          sessionStorage.removeItem(currentResultKey);
-        }
-
-        // 結果ページへリダイレクト
-        const resultUrl = `/gacha/result?data=${encodeURIComponent(JSON.stringify(resultData))}`;
-        if (!isRedirecting.current) {
-          isRedirecting.current = true;
-          safeRedirect(resultUrl);
+        try {
+          // データをセッションストレージに保存
+          if (typeof window !== 'undefined') {
+            // ユニークなキーを生成
+            const storageKey = `gacha_result_${gachaId}_${Date.now()}`;
+            // セッションストレージに保存
+            sessionStorage.setItem(storageKey, JSON.stringify(resultData));
+            // 結果画面へリダイレクト（キーのみを渡す）
+            if (!isRedirecting.current) {
+              isRedirecting.current = true;
+              safeRedirect(`/gacha/result?key=${encodeURIComponent(storageKey)}`);
+            }
+          }
+        } catch (storageError) {
+          console.error('結果の保存に失敗しました:', storageError);
+          // データサイズが大きすぎる場合はエラーメッセージを表示
+          toast.error("ガチャ結果の保存に失敗しました。もう一度お試しください。");
+          setIsProcessing(false);
+          setConfirmDialogOpen(false);
         }
       } else {
         toast.error("ガチャアイテムの在庫がありません");

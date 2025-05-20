@@ -298,17 +298,23 @@ export default function GachaResultClient() {
       const resultData = response.data;
       
       try {
-        // データをセッションストレージに保存
+        // データをセッションストレージに保存（URLではなく）
         if (typeof window !== 'undefined') {
+          // ユニークなキーを生成
           const storageKey = `gacha_result_${gacha.id}_${Date.now()}`;
+          // セッションストレージに保存
           sessionStorage.setItem(storageKey, JSON.stringify(resultData));
-          safeRedirect(`/gacha/result?key=${encodeURIComponent(storageKey)}`);
+          // 結果画面へリダイレクト（キーのみを渡す）
+          if (!isRedirecting.current) {
+            isRedirecting.current = true;
+            safeRedirect(`/gacha/result?key=${encodeURIComponent(storageKey)}`);
+          }
         }
       } catch (storageError) {
         console.error('結果の保存に失敗しました:', storageError);
-        // 従来の方法にフォールバック
-        const encodedData = btoa(JSON.stringify(resultData));
-        safeRedirect(`/gacha/result?data=${encodedData}`);
+        // データサイズが大きすぎる場合はエラーメッセージを表示
+        toast.error("ガチャ結果の保存に失敗しました。もう一度お試しください。");
+        setIsDrawing(false);
       }
     } catch (error) {
       toast.error("エラーが発生しました。もう一度お試しください。");
@@ -593,12 +599,9 @@ export default function GachaResultClient() {
             }
           } catch (storageError) {
             console.error('結果の保存に失敗しました:', storageError);
-            // データサイズが大きすぎる場合は従来の方法を試みる
-            const resultUrl = `/gacha/result?data=${encodeURIComponent(JSON.stringify(resultData))}`;
-            if (!isRedirecting.current) {
-              isRedirecting.current = true;
-              safeRedirect(resultUrl);
-            }
+            // データサイズが大きすぎる場合はエラーメッセージを表示
+            toast.error("ガチャ結果の保存に失敗しました。もう一度お試しください。");
+            setIsDrawing(false);
           }
         } else {
           toast.error("ガチャアイテムの在庫がありません");
@@ -632,12 +635,9 @@ export default function GachaResultClient() {
             }
           } catch (storageError) {
             console.error('結果の保存に失敗しました:', storageError);
-            // データサイズが大きすぎる場合は従来の方法を試みる
-            const resultUrl = `/gacha/result?data=${encodeURIComponent(JSON.stringify(resultData))}`;
-            if (!isRedirecting.current) {
-              isRedirecting.current = true;
-              safeRedirect(resultUrl);
-            }
+            // データサイズが大きすぎる場合はエラーメッセージを表示
+            toast.error("ガチャ結果の保存に失敗しました。もう一度お試しください。");
+            setIsDrawing(false);
           }
         } else {
           toast.error("ガチャアイテムの在庫がありません");
