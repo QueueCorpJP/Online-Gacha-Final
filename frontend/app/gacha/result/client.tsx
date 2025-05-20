@@ -1016,7 +1016,7 @@ export default function GachaResultClient() {
                 disabled={isDrawing || !hasStock}
                 className="bg-[#7C3AED] hover:bg-[#6D28D9] flex items-center justify-center w-full mt-2"
               >
-                <p className="text-lg font-bold">無料10連×10回 特別企画</p>
+                <p className="text-lg font-bold">100連ガチャ</p>
                 {!hasStock && (
                   <span className="absolute top-0 right-0 -mt-1 -mr-1">
                     <AlertCircle className="h-4 w-4 text-red-500" />
@@ -1080,12 +1080,12 @@ export default function GachaResultClient() {
           <AlertDialogHeader>
             <AlertDialogTitle>
               {purchaseInfo.times === 10 && purchaseInfo.isFreeHundred 
-                ? "無料10連ガチャ特別企画" 
+                ? "100連ガチャ特別企画" 
                 : `${purchaseInfo.times}連ガチャを引きますか？`}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {purchaseInfo.times === 10 && purchaseInfo.isFreeHundred
-                ? "特別企画として10連ガチャを10回まで無料で引くことができます！まずは最初の10連から始めましょう。"
+                ? "特別企画として100連ガチャを引くことができます！100連を始めましょう。"
                 : `価格: ¥${typeof purchaseInfo.price === 'number' ? purchaseInfo.price.toLocaleString() : purchaseInfo.price}`}
             </AlertDialogDescription>
           </AlertDialogHeader>
