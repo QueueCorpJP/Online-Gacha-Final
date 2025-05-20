@@ -404,7 +404,7 @@ export default function GachaResultClient() {
       if (parsedItems.length > 1) {
         setIsMultiDraw(true);
         setMultiDrawMode(true);
-        setShowActionButtons(false);
+        setShowActionButtons(true);
       } else {
         setIsMultiDraw(false);
         setMultiDrawMode(false);
@@ -1022,6 +1022,52 @@ export default function GachaResultClient() {
                     <AlertCircle className="h-4 w-4 text-red-500" />
                   </span>
                 )}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* 100連終了後のボタン表示（すべての100連が終わった後） */}
+        {isMultiDraw && showSummary && (
+          <div className="w-full max-w-3xl mt-8 flex justify-center relative z-10">
+            <div className="flex gap-4 w-full max-w-md flex-wrap">
+              <Button 
+                onClick={(e) => handleDraw(e, 1)}
+                disabled={isDrawing || !hasStock}
+                className="bg-[#7C3AED] hover:bg-[#6D28D9] flex items-center justify-center flex-1"
+              >
+                <p className="text-lg font-bold">単発</p>
+                <Coins className="mr-2 h-4 w-4" />
+                <p className="text-lg font-bold">
+                  ¥{(() => {
+                    try {
+                      return safeGacha.price !== undefined && safeGacha.price !== null 
+                        ? Number(safeGacha.price).toLocaleString() 
+                        : '0';
+                    } catch (e) {
+                      return '0';
+                    }
+                  })()}
+                </p>
+              </Button>
+              <Button 
+                onClick={(e) => handleDraw(e, 10)}
+                disabled={isDrawing || !hasStock}
+                className="bg-[#7C3AED] hover:bg-[#6D28D9] flex items-center justify-center flex-1"
+              >
+                <p className="text-lg font-bold">10連</p>
+                <Coins className="mr-2 h-4 w-4" />
+                <p className="text-lg font-bold">
+                  ¥{(() => {
+                    try {
+                      return safeGacha.price !== undefined && safeGacha.price !== null
+                        ? (Number(safeGacha.price) * 10).toLocaleString()
+                        : '0';
+                    } catch (e) {
+                      return '0';
+                    }
+                  })()}
+                </p>
               </Button>
             </div>
           </div>
