@@ -14,7 +14,6 @@ import { useSearchParams } from 'next/navigation'
 import { fetchGachaById } from "@/redux/features/gachaSlice"
 import { toast } from 'sonner'
 import { api } from '@/lib/axios'
-import { GachaMultiDraw } from "@/components/product/gacha-multi-draw"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -401,7 +400,7 @@ export default function GachaResultClient() {
       }
 
       // マルチドロー判定 (10連や100連)
-      if (parsedItems.length > 1) {
+      if (parsedItems.length >= 10) {  // 10以上の場合のみマルチドロー扱い
         setIsMultiDraw(true);
         setMultiDrawMode(true);
         setShowActionButtons(true);
@@ -846,7 +845,7 @@ export default function GachaResultClient() {
         {/* タイトル・サマリーに10連の回数を明示 */}
         <div className="w-full max-h-3xl text-center mb-8">
           <h1 className="text-2xl font-bold mb-2">
-            {isMultiDraw && originalItems.length > 1 ? `ガチャ結果（${originalItems.length}連）` : 'ガチャ結果'}
+            {isMultiDraw && originalItems.length >= 10 ? `ガチャ結果（${originalItems.length}連）` : 'ガチャ結果'}
           </h1>
           <p className="text-gray-600">
             おめでとうございます！
@@ -863,7 +862,7 @@ export default function GachaResultClient() {
 
         {/* 10連・複数回ガチャも単発と同じリザルトUIでまとめて表示 */}
         <div className="w-full max-w-3xl mt-8 space-y-4">
-          <h3 className="text-xl font-semibold">{isMultiDraw && originalItems.length > 1 ? `結果一覧（${originalItems.length}枚）` : '結果一覧'}</h3>
+          <h3 className="text-xl font-semibold">{isMultiDraw && originalItems.length >= 10 ? `結果一覧（${originalItems.length}枚）` : '結果一覧'}</h3>
           <div className="bg-white p-4 rounded-xl shadow">
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
               {originalItems.map((item, idx) => (
@@ -888,7 +887,7 @@ export default function GachaResultClient() {
 
         {/* サマリー（集計）表示はそのまま残す */}
         <div className="w-full max-w-3xl mt-8 space-y-4">
-          <h3 className="text-xl font-semibold">{isMultiDraw && originalItems.length > 1 ? `サマリー（${originalItems.length}枚）` : 'サマリー'}</h3>
+          <h3 className="text-xl font-semibold">{isMultiDraw && originalItems.length >= 10 ? `サマリー（${originalItems.length}枚）` : 'サマリー'}</h3>
           <div className="bg-white p-4 rounded-xl shadow">
             {Object.entries(groupedResults).sort(([rarityA], [rarityB]) => {
               return (RARITY_ORDER[(rarityB.toUpperCase() as RarityKey)] || 0) - 
