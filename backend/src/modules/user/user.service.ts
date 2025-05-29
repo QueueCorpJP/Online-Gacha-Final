@@ -20,6 +20,18 @@ export class UserService {
   async searchUsers(query: string): Promise<Partial<User>[]> {
     const users = await this.userRepository
       .createQueryBuilder('user')
+      .select([
+        'user.id',
+        'user.username',
+        'user.email',
+        'user.status',
+        'user.coinBalance',
+        'user.createdAt',
+        'user.roles',
+        'user.firstName',
+        'user.lastName',
+        'user.isEmailVerified',
+      ])
       .where('LOWER(user.username) LIKE LOWER(:query) OR LOWER(user.email) LIKE LOWER(:query)', {
         query: `%${query}%`,
       })
@@ -48,6 +60,7 @@ export class UserService {
         'roles',
         'firstName',
         'lastName',
+        'isEmailVerified',
       ],
     });
 

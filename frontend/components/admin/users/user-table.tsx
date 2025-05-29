@@ -17,9 +17,10 @@ interface User {
   id: string
   username: string
   email: string
-  status: "ACTIVE" | "SUSPENDED" | "BANNED"
+  status: "ACTIVE" | "SUSPENDED" | "BANNED" | "INACTIVE"
   coinBalance: number
   createdAt: string
+  isEmailVerified?: boolean
 }
 
 export function UserTable() {
@@ -32,6 +33,7 @@ export function UserTable() {
     "ACTIVE": t('admin.users.status.active'),
     "SUSPENDED": t('admin.users.status.suspended'),
     "BANNED": t('admin.users.status.banned'),
+    "INACTIVE": "非アクティブ",
   }
 
   useEffect(() => {
@@ -69,6 +71,19 @@ export function UserTable() {
     router.push(`/admin/users/${userId}`)
   }
 
+  // ユーザーの表示ステータスを取得する関数
+  const getDisplayStatus = (user: User) => {
+    if (!(user.isEmailVerified ?? true)) {
+      return "未認証"
+    }
+    return statusOptions[user.status] || user.status
+  }
+
+  // ユーザーのステータス変更が可能かどうかを判定する関数
+  const canChangeStatus = (user: User) => {
+    return user.isEmailVerified ?? false
+  }
+
   if (loading) {
     return (
       <div className="flex justify-center items-center p-4">
@@ -98,21 +113,27 @@ export function UserTable() {
                 <TableCell>{user.username}</TableCell>
                 <TableCell>{user.email}</TableCell>
                 <TableCell>
-                  <Select
-                    value={user.status}
-                    onValueChange={(value) => handleStatusChange(user.id, value)}
-                  >
-                    <SelectTrigger className="w-[120px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(statusOptions).map(([value, label]) => (
-                        <SelectItem key={value} value={value}>
-                          {label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {canChangeStatus(user) ? (
+                    <Select
+                      value={user.status}
+                      onValueChange={(value) => handleStatusChange(user.id, value)}
+                    >
+                      <SelectTrigger className="w-[120px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(statusOptions).map(([value, label]) => (
+                          <SelectItem key={value} value={value}>
+                            {label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                      {getDisplayStatus(user)}
+                    </span>
+                  )}
                 </TableCell>
                 <TableCell className="text-right font-mono">{(user.coinBalance ?? 0).toLocaleString()}</TableCell>
                 <TableCell>{new Date(user.createdAt).toLocaleDateString('ja-JP')}</TableCell>
