@@ -1,27 +1,15 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import Image from "next/image"
 import { useTranslations } from "@/hooks/use-translations"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
 import { ChevronRight } from "lucide-react"
-import { api } from '@/lib/axios'
 
-interface GachaMultiDrawProps {
-  gachaId: string;
-  onComplete: (results: any[]) => void;
-  totalDraws: number;
+interface GachaSingleDrawProps {
+  result: any;
+  onComplete: () => void;
 }
-
-type RarityKey = 'D' | 'C' | 'B' | 'A' | 'S';
-
-const RARITY_ORDER: Record<RarityKey, number> = {
-  'S': 4,
-  'A': 3,
-  'B': 2,
-  'C': 1,
-  'D': 0,
-};
 
 // レアリティに応じた色を取得する関数（最適化）
 const getRarityColor = (rarity: string): string => {
@@ -52,33 +40,9 @@ const formatRarity = (rarity: string): string => {
   return rarityMap[rarity.toUpperCase()] || rarity;
 }
 
-export function GachaMultiDraw({ gachaId, onComplete, totalDraws }: GachaMultiDrawProps) {
+export function GachaSingleDraw({ result, onComplete }: GachaSingleDrawProps) {
   const { t, language } = useTranslations()
-  const [currentIndex, setCurrentIndex] = useState(0)
-  const [results, setResults] = useState<any[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [isCompleted, setIsCompleted] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  // useEffectで最初に10連分まとめて取得
-  useEffect(() => {
-    const fetchAll = async () => {
-      setIsLoading(true)
-      try {
-        const response = await api.post(`/admin/gacha/${gachaId}/pull`, { times: totalDraws, isFree: false })
-        if (response.data.items && Array.isArray(response.data.items) && response.data.items.length > 0) {
-          setResults(response.data.items)
-        } else {
-          setError('ガチャアイテムの在庫がありません')
-        }
-      } catch (e) {
-        setError('ガチャ取得に失敗しました')
-      } finally {
-        setIsLoading(false)
-      }
-    }
-    fetchAll()
-  }, [gachaId, totalDraws])
+  const [isRevealed, setIsRevealed] = useState(false)
 
   // 言語に応じたアイテム名を取得する関数（メモ化）
   const getLocalizedName = useCallback((item: any): string => {
@@ -88,45 +52,61 @@ export function GachaMultiDraw({ gachaId, onComplete, totalDraws }: GachaMultiDr
     return item.name;
   }, [language])
 
-  // handleNextではAPIを叩かず、次のインデックスに進むだけ（最適化）
-  const handleNext = useCallback(() => {
-    if (currentIndex < totalDraws - 1) {
-      setCurrentIndex(idx => idx + 1)
-    } else {
-      setIsCompleted(true)
-      onComplete(results)
-    }
-  }, [currentIndex, totalDraws, results, onComplete])
+  // 結果を表示する処理（最適化）
+  const handleReveal = useCallback(() => {
+    setIsRevealed(true)
+  }, [])
 
-  // 現在のアイテムと進捗をメモ化
-  const currentItem = useMemo(() => results[currentIndex], [results, currentIndex])
-  const progress = useMemo(() => `${currentIndex + 1}/${totalDraws}`, [currentIndex, totalDraws])
-  
+  // 完了処理（最適化）
+  const handleComplete = useCallback(() => {
+    onComplete()
+  }, [onComplete])
+
   // 画像URLをメモ化
   const imageUrl = useMemo(() => 
-    currentItem?.imageUrl ? `${process.env.NEXT_PUBLIC_API_URL}${currentItem.imageUrl}` : "/placeholder.svg",
-    [currentItem?.imageUrl]
+    result?.imageUrl ? `${process.env.NEXT_PUBLIC_API_URL}${result.imageUrl}` : "/placeholder.svg",
+    [result?.imageUrl]
   )
 
   // レアリティ色をメモ化
-  const rarityColor = useMemo(() => getRarityColor(currentItem?.rarity || ""), [currentItem?.rarity])
+  const rarityColor = useMemo(() => getRarityColor(result?.rarity || ""), [result?.rarity])
   
   // アイテム名をメモ化
-  const itemName = useMemo(() => getLocalizedName(currentItem), [currentItem, getLocalizedName])
+  const itemName = useMemo(() => getLocalizedName(result), [result, getLocalizedName])
 
-  if (error) {
-    return <div className="text-red-500 text-center p-8">{error}</div>
+  if (!result) {
+    return <div className="text-center p-8">結果がありません</div>
   }
 
-  if (isLoading || !currentItem) {
-    return <div className="text-center p-8">Loading...</div>
+  if (!isRevealed) {
+    return (
+      <div className="w-full flex flex-col items-center justify-center min-h-[50vh]">
+        <div className="w-full max-w-md relative">
+          <Card className="border-0 bg-gradient-to-br from-purple-100 to-pink-100 overflow-hidden rounded-xl shadow-lg animate-glow">
+            <div className="aspect-square relative flex items-center justify-center">
+              <div className="text-6xl">?</div>
+            </div>
+            <div className="p-6 text-center">
+              <h2 className="text-2xl font-bold mb-2">ガチャ結果</h2>
+              <p className="text-gray-600">タップして確認</p>
+            </div>
+          </Card>
+        </div>
+        <div className="w-full max-w-md mt-8 flex justify-center">
+          <Button 
+            onClick={handleReveal}
+            className="bg-[#7C3AED] hover:bg-[#6D28D9] flex items-center justify-center gap-2 transition-colors duration-200"
+          >
+            <span className="text-lg font-bold">結果を確認</span>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+    )
   }
 
   return (
     <div className="w-full flex flex-col items-center justify-center min-h-[50vh]">
-      <div className="w-full max-w-3xl text-center mb-4">
-        <p className="text-gray-600">{progress}</p>
-      </div>
       <div className="w-full max-w-md relative">
         <Card className="border-0 bg-zinc-50 overflow-hidden rounded-xl shadow-lg transition-transform duration-200 hover:scale-105">
           <div className="aspect-square relative">
@@ -143,7 +123,7 @@ export function GachaMultiDraw({ gachaId, onComplete, totalDraws }: GachaMultiDr
           </div>
           <div className="p-6 text-center">
             <Badge className={`mb-3 bg-gradient-to-r ${rarityColor} text-white`}>
-              {formatRarity(currentItem?.rarity || "")}
+              {formatRarity(result?.rarity || "")}
             </Badge>
             <h2 className="text-2xl font-bold mb-2">{itemName}</h2>
           </div>
@@ -151,16 +131,13 @@ export function GachaMultiDraw({ gachaId, onComplete, totalDraws }: GachaMultiDr
       </div>
       <div className="w-full max-w-md mt-8 flex justify-center">
         <Button 
-          onClick={handleNext}
+          onClick={handleComplete}
           className="bg-[#7C3AED] hover:bg-[#6D28D9] flex items-center justify-center gap-2 transition-colors duration-200"
-          disabled={isLoading || isCompleted}
         >
-          <span className="text-lg font-bold">
-            {currentIndex < totalDraws - 1 ? '次へ' : '結果を確認する'}
-          </span>
+          <span className="text-lg font-bold">完了</span>
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
     </div>
   )
-}
+} 

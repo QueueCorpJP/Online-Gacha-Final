@@ -88,22 +88,20 @@ const config: Config = {
           '0%': { opacity: '0' },
           '100%': { opacity: '1' }
         },
-        'pulse-slow': {
+        'glow': {
           '0%, 100%': { 
-            transform: 'scale(1)',
-            opacity: '1'
+            boxShadow: '0 0 5px rgba(124, 58, 237, 0.5)'
           },
           '50%': { 
-            transform: 'scale(1.05)',
-            opacity: '0.9'
+            boxShadow: '0 0 20px rgba(124, 58, 237, 0.8)'
           }
-  			}
+        }
   		},
   		animation: {
   			'accordion-down': 'accordion-down 0.2s ease-out',
   			'accordion-up': 'accordion-up 0.2s ease-out',
         'fadeIn': 'fadeIn 1s ease-in-out',
-        'pulse-slow': 'pulse-slow 3s ease-in-out infinite'
+        'glow': 'glow 2s ease-in-out infinite'
   		}
   	}
   },

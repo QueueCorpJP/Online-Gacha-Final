@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import Image from "next/image"
 import { useTranslations } from "@/hooks/use-translations"
 import { Button } from "@/components/ui/button"
@@ -25,8 +25,8 @@ const RARITY_ORDER: Record<RarityKey, number> = {
   'D': 0,
 };
 
-// レアリティに応じた色を取得する関数
-function getRarityColor(rarity: string): string {
+// レアリティに応じた色を取得する関数（最適化）
+const getRarityColor = (rarity: string): string => {
   switch (rarity.toLowerCase()) {
     case 's':
       return 'from-purple-600 to-pink-500'
@@ -41,8 +41,8 @@ function getRarityColor(rarity: string): string {
   }
 }
 
-// レアリティの表示形式を整える関数
-function formatRarity(rarity: string): string {
+// レアリティの表示形式を整える関数（最適化）
+const formatRarity = (rarity: string): string => {
   const rarityMap: Record<string, string> = {
     'A': 'A',
     'B': 'B',
@@ -68,8 +68,8 @@ export function GachaHundredDraw({ gachaId, onComplete, totalBatches, batchSize 
   // 最初のバッチを取得するためのボタンを表示するための状態
   const [isStarted, setIsStarted] = useState(false)
 
-  // バッチ取得関数を独立させる
-  const fetchBatch = async (batchIndex: number) => {
+  // バッチ取得関数を独立させる（最適化）
+  const fetchBatch = useCallback(async (batchIndex: number) => {
     if (batchIndex >= totalBatches) {
       setIsCompleted(true);
       onComplete(allResults);
@@ -118,18 +118,18 @@ export function GachaHundredDraw({ gachaId, onComplete, totalBatches, batchSize 
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [gachaId, totalBatches, batchSize, allResults, onComplete]);
 
-  // 言語に応じたアイテム名を取得する関数
-  const getLocalizedName = (item: any): string => {
+  // 言語に応じたアイテム名を取得する関数（メモ化）
+  const getLocalizedName = useCallback((item: any): string => {
     if (item.translations && language && item.translations[language as keyof typeof item.translations]?.name) {
       return item.translations[language as keyof typeof item.translations].name;
     }
     return item.name;
-  }
+  }, [language])
 
-  // 次のアイテムに進む
-  const handleNext = () => {
+  // 次のアイテムに進む（最適化）
+  const handleNext = useCallback(() => {
     if (currentIndex < batchResults.length - 1) {
       // 同じバッチ内で次のアイテムへ
       setCurrentIndex(idx => idx + 1);
@@ -137,18 +137,41 @@ export function GachaHundredDraw({ gachaId, onComplete, totalBatches, batchSize 
       // 次のバッチを取得
       fetchBatch(currentBatch + 1);
     }
-  };
+  }, [currentIndex, batchResults.length, fetchBatch, currentBatch]);
 
-  // ガチャを開始する
-  const handleStart = () => {
+  // ガチャを開始する（最適化）
+  const handleStart = useCallback(() => {
     if (!isStarted && !isLoading) {
       fetchBatch(0);
     }
-  };
+  }, [isStarted, isLoading, fetchBatch]);
 
-  const currentItem = batchResults[currentIndex]
-  const progressText = `${progress}% 完了 (${allResults.length}/${totalBatches * batchSize})`
-  const remainingText = `あと${totalBatches - currentBatch - 1}回の10連ガチャが無料で引けます`;
+  // 現在のアイテムをメモ化
+  const currentItem = useMemo(() => batchResults[currentIndex], [batchResults, currentIndex])
+  
+  // 進捗テキストをメモ化
+  const progressText = useMemo(() => 
+    `${progress}% 完了 (${allResults.length}/${totalBatches * batchSize})`, 
+    [progress, allResults.length, totalBatches, batchSize]
+  )
+  
+  // 残りテキストをメモ化
+  const remainingText = useMemo(() => 
+    `あと${totalBatches - currentBatch - 1}回の10連ガチャが無料で引けます`,
+    [totalBatches, currentBatch]
+  )
+
+  // 画像URLをメモ化
+  const imageUrl = useMemo(() => 
+    currentItem?.imageUrl ? `${process.env.NEXT_PUBLIC_API_URL}${currentItem.imageUrl}` : "/placeholder.svg",
+    [currentItem?.imageUrl]
+  )
+
+  // レアリティ色をメモ化
+  const rarityColor = useMemo(() => getRarityColor(currentItem?.rarity || ""), [currentItem?.rarity])
+  
+  // アイテム名をメモ化
+  const itemName = useMemo(() => getLocalizedName(currentItem), [currentItem, getLocalizedName])
 
   if (error) {
     return <div className="text-red-500 text-center p-8">{error}</div>
@@ -162,7 +185,7 @@ export function GachaHundredDraw({ gachaId, onComplete, totalBatches, batchSize 
         <p className="text-gray-600 mb-6">「ガチャを始める」ボタンをクリックすると、無料の10連ガチャがスタートします。</p>
         <Button
           onClick={handleStart}
-          className="bg-[#7C3AED] hover:bg-[#6D28D9] flex items-center justify-center gap-2"
+          className="bg-[#7C3AED] hover:bg-[#6D28D9] flex items-center justify-center gap-2 transition-colors duration-200"
         >
           <span className="text-lg font-bold">無料ガチャを始める</span>
         </Button>
@@ -190,20 +213,24 @@ export function GachaHundredDraw({ gachaId, onComplete, totalBatches, batchSize 
       </div>
       {currentItem && (
         <div className="w-full max-w-md relative">
-          <Card className="border-0 bg-zinc-50 overflow-hidden rounded-xl shadow-lg animate-pulse-slow">
+          <Card className="border-0 bg-zinc-50 overflow-hidden rounded-xl shadow-lg transition-transform duration-200 hover:scale-105">
             <div className="aspect-square relative">
               <Image 
-                src={currentItem?.imageUrl ? `${process.env.NEXT_PUBLIC_API_URL}${currentItem.imageUrl}` : "/placeholder.svg"}
-                alt={getLocalizedName(currentItem)}
+                src={imageUrl}
+                alt={itemName}
                 fill
+                priority
+                placeholder="blur"
+                blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k="
                 className="object-contain p-4"
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
               />
             </div>
             <div className="p-6 text-center">
-              <Badge className={`mb-3 ${getRarityColor(currentItem?.rarity || "")}`}>
+              <Badge className={`mb-3 bg-gradient-to-r ${rarityColor} text-white`}>
                 {formatRarity(currentItem?.rarity || "")}
               </Badge>
-              <h2 className="text-2xl font-bold mb-2">{getLocalizedName(currentItem)}</h2>
+              <h2 className="text-2xl font-bold mb-2">{itemName}</h2>
             </div>
           </Card>
         </div>
@@ -211,7 +238,7 @@ export function GachaHundredDraw({ gachaId, onComplete, totalBatches, batchSize 
       <div className="w-full max-w-md mt-8 flex justify-center">
         <Button 
           onClick={handleNext}
-          className="bg-[#7C3AED] hover:bg-[#6D28D9] flex items-center justify-center gap-2"
+          className="bg-[#7C3AED] hover:bg-[#6D28D9] flex items-center justify-center gap-2 transition-colors duration-200"
           disabled={isLoading || isCompleted}
         >
           {isLoading ? (
