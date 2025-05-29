@@ -17,12 +17,14 @@ import {
 import { toast } from "@/components/ui/use-toast"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import { useTranslations } from "@/hooks/use-translations"
 import { useDispatch, useSelector } from "react-redux"
 import type { AppDispatch, RootState } from "@/redux/store"
 import { fetchAdminGachas, selectGacha, deleteGacha } from "@/redux/features/gachaSlice"
 import { useIsMobile } from "@/hooks/use-mobile"
+import { fetchCategories } from "@/redux/features/categorySlice"
 
 interface GachaTableProps {
   onEdit?: (id: string) => void;
@@ -33,14 +35,25 @@ export function GachaTable({ onEdit }: GachaTableProps) {
   const dispatch = useDispatch()
   const [page, setPage] = useState(1)
   const [limit] = useState(10)
+  const [sortBy, setSortBy] = useState("createdAt:desc")
+  const [selectedCategory, setSelectedCategory] = useState("")
   const isMobile = useIsMobile()
   
   const { gachas, loading, error, total } = useSelector((state: RootState) => state.gacha)
+  const { categories } = useSelector((state: RootState) => state.category)
   const totalPages = Math.ceil(total / limit)
 
   useEffect(() => {
-    dispatch(fetchAdminGachas({ page, limit }))
-  }, [dispatch, page, limit])
+    dispatch(fetchCategories())
+  }, [dispatch])
+
+  useEffect(() => {
+    const filters = {
+      sortBy: sortBy,
+      ...(selectedCategory && { categories: [selectedCategory] })
+    }
+    dispatch(fetchAdminGachas({ page, limit, filters }))
+  }, [dispatch, page, limit, sortBy, selectedCategory])
 
   const handleEdit = (id: string) => {
     // Find the selected gacha from the gachas array
@@ -63,6 +76,16 @@ export function GachaTable({ onEdit }: GachaTableProps) {
     setPage(newPage);
   };
 
+  const handleSortChange = (value: string) => {
+    setSortBy(value);
+    setPage(1); // Reset to first page when sorting changes
+  };
+
+  const handleCategoryChange = (value: string) => {
+    setSelectedCategory(value === "all" ? "" : value);
+    setPage(1); // Reset to first page when category changes
+  };
+
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -77,13 +100,17 @@ export function GachaTable({ onEdit }: GachaTableProps) {
     
     setIsDeleting(true);
     try {
-      await dispatch(deleteGacha(deleteId)).unwrap();
+      await dispatch(deleteGacha(deleteId));
       toast({
         title: t("admin.gachaTable.deleteSuccess"),
         description: t("admin.gachaTable.deleteSuccessDescription"),
       });
       // Refresh the gacha list
-      dispatch(fetchAdminGachas({ page, limit }));
+      const filters = {
+        sortBy: sortBy,
+        ...(selectedCategory && { categories: [selectedCategory] })
+      }
+      dispatch(fetchAdminGachas({ page, limit, filters }));
     } catch (error) {
       toast({
         title: t("admin.gachaTable.deleteError"),
@@ -96,6 +123,15 @@ export function GachaTable({ onEdit }: GachaTableProps) {
       setDeleteId(null);
     }
   };
+
+  const sortOptions = [
+    { value: "createdAt:desc", label: "作成日時（新しい順）" },
+    { value: "createdAt:asc", label: "作成日時（古い順）" },
+    { value: "price:asc", label: "価格（安い順）" },
+    { value: "price:desc", label: "価格（高い順）" },
+    { value: "name:asc", label: "名前（昇順）" },
+    { value: "name:desc", label: "名前（降順）" },
+  ];
 
   if (loading) {
     return (
@@ -113,6 +149,36 @@ export function GachaTable({ onEdit }: GachaTableProps) {
   if (isMobile) {
     return (
       <div className="space-y-4">
+        {/* Mobile filters */}
+        <div className="flex flex-col gap-3 mb-4">
+          <Select value={sortBy} onValueChange={handleSortChange}>
+            <SelectTrigger className="w-full bg-white">
+              <SelectValue placeholder="並び順を選択" />
+            </SelectTrigger>
+            <SelectContent>
+              {sortOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          
+          <Select value={selectedCategory || "all"} onValueChange={handleCategoryChange}>
+            <SelectTrigger className="w-full bg-white">
+              <SelectValue placeholder="カテゴリーを選択" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">全てのカテゴリー</SelectItem>
+              {categories.map((category) => (
+                <SelectItem key={category.id} value={category.id}>
+                  {category.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
         {gachas.map((item) => (
           <div key={item.id} className="bg-white border rounded-lg p-4 shadow-sm">
             <div className="flex items-center space-x-3 mb-3">
@@ -126,7 +192,7 @@ export function GachaTable({ onEdit }: GachaTableProps) {
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="text-sm font-medium text-gray-900 truncate">{item.translations.ja.name}</h3>
-                <p className="text-xs text-gray-500">{t(`admin.gachaTable.types.${item.type}`)}</p>
+                <p className="text-xs text-gray-500">{item.type}</p>
               </div>
               <Button 
                 variant="ghost" 
@@ -230,6 +296,38 @@ export function GachaTable({ onEdit }: GachaTableProps) {
       </AlertDialog>
 
       <div className="rounded-lg">
+        {/* Desktop filters */}
+        <div className="flex justify-between items-center mb-4 gap-4">
+          <div className="flex gap-3">
+            <Select value={sortBy} onValueChange={handleSortChange}>
+              <SelectTrigger className="w-[200px] bg-white">
+                <SelectValue placeholder="並び順を選択" />
+              </SelectTrigger>
+              <SelectContent>
+                {sortOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            
+            <Select value={selectedCategory || "all"} onValueChange={handleCategoryChange}>
+              <SelectTrigger className="w-[200px] bg-white">
+                <SelectValue placeholder="カテゴリーを選択" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">全てのカテゴリー</SelectItem>
+                {categories.map((category) => (
+                  <SelectItem key={category.id} value={category.id}>
+                    {category.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
@@ -257,7 +355,7 @@ export function GachaTable({ onEdit }: GachaTableProps) {
                     </div>
                   </TableCell>
                   <TableCell className="font-medium">{item.translations.ja.name}</TableCell>
-                  <TableCell>{t(`admin.gachaTable.types.${item.type}`)}</TableCell>
+                  <TableCell>{item.type}</TableCell>
                   <TableCell>{parseInt(item.price)} {t("admin.gachaTable.points")}</TableCell>
                   <TableCell>
                     {item.duration 
