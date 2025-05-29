@@ -17,10 +17,9 @@ interface User {
   id: string
   username: string
   email: string
-  status: "ACTIVE" | "SUSPENDED" | "BANNED" | "INACTIVE"
+  status: "ACTIVE" | "SUSPENDED" | "BANNED"
   coinBalance: number
   createdAt: string
-  isEmailVerified?: boolean
 }
 
 export function UserTable() {
@@ -30,10 +29,9 @@ export function UserTable() {
   const { t } = useTranslations()
 
   const statusOptions = {
-    "ACTIVE": t('admin.users.status.active'),
-    "SUSPENDED": t('admin.users.status.suspended'),
-    "BANNED": t('admin.users.status.banned'),
-    "INACTIVE": "非アクティブ",
+    "ACTIVE": "アクティブ",
+    "SUSPENDED": "停止中",
+    "BANNED": "禁止",
   }
 
   useEffect(() => {
@@ -71,17 +69,9 @@ export function UserTable() {
     router.push(`/admin/users/${userId}`)
   }
 
-  // ユーザーの表示ステータスを取得する関数
-  const getDisplayStatus = (user: User) => {
-    if (!(user.isEmailVerified ?? true)) {
-      return "未認証"
-    }
-    return statusOptions[user.status] || user.status
-  }
-
-  // ユーザーのステータス変更が可能かどうかを判定する関数
-  const canChangeStatus = (user: User) => {
-    return user.isEmailVerified ?? false
+  // ユーザーが有効なステータスを持っているかチェック
+  const hasValidStatus = (user: User) => {
+    return user.status && ['ACTIVE', 'SUSPENDED', 'BANNED'].includes(user.status)
   }
 
   if (loading) {
@@ -113,7 +103,7 @@ export function UserTable() {
                 <TableCell>{user.username}</TableCell>
                 <TableCell>{user.email}</TableCell>
                 <TableCell>
-                  {canChangeStatus(user) ? (
+                  {hasValidStatus(user) ? (
                     <Select
                       value={user.status}
                       onValueChange={(value) => handleStatusChange(user.id, value)}
@@ -131,7 +121,7 @@ export function UserTable() {
                     </Select>
                   ) : (
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                      {getDisplayStatus(user)}
+                      未認証
                     </span>
                   )}
                 </TableCell>

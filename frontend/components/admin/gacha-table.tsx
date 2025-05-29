@@ -32,6 +32,7 @@ interface GachaTableProps {
 
 export function GachaTable({ onEdit }: GachaTableProps) {
   const { t } = useTranslations()
+  
   const dispatch = useDispatch()
   const [page, setPage] = useState(1)
   const [limit] = useState(10)
