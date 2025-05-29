@@ -74,26 +74,39 @@ export class ReportService {
     });
     const globalThreshold = settings?.globalThreshold || 10;
 
-    const inventory = await this.gachaItemRepository
+    // Since GachaItem doesn't have updatedAt column, return current inventory stats
+    const totalStock = await this.gachaItemRepository
       .createQueryBuilder('item')
-      .select('DATE(item."updatedAt")', 'name')
-      .addSelect('SUM(item.stock)', 'total')
-      .addSelect(
-        `COUNT(CASE WHEN item.stock < :threshold THEN 1 END)`,
-        'lowStock'
-      )
-      .addSelect(
-        `COUNT(CASE WHEN item.stock >= :threshold THEN 1 END)`,
-        'normalStock'
-      )
-      .addSelect('COUNT(*)', 'itemCount')
-      .setParameter('threshold', globalThreshold)
-      .groupBy('DATE(item."updatedAt")')
-      .orderBy('DATE(item."updatedAt")', 'DESC')
-      .limit(10)
-      .getRawMany();
+      .select('COALESCE(SUM(item.stock), 0)', 'total')
+      .getRawOne();
 
-    return inventory.reverse();
+    const lowStockCount = await this.gachaItemRepository
+      .createQueryBuilder('item')
+      .select('COUNT(*)', 'count')
+      .where('item.stock < :threshold', { threshold: globalThreshold })
+      .getRawOne();
+
+    const normalStockCount = await this.gachaItemRepository
+      .createQueryBuilder('item')
+      .select('COUNT(*)', 'count')
+      .where('item.stock >= :threshold', { threshold: globalThreshold })
+      .getRawOne();
+
+    const totalItemCount = await this.gachaItemRepository
+      .createQueryBuilder('item')
+      .select('COUNT(*)', 'count')
+      .getRawOne();
+
+    // Return current day statistics
+    const today = new Date().toISOString().split('T')[0];
+    
+    return [{
+      name: today,
+      total: parseInt(totalStock?.total) || 0,
+      lowStock: parseInt(lowStockCount?.count) || 0,
+      normalStock: parseInt(normalStockCount?.count) || 0,
+      itemCount: parseInt(totalItemCount?.count) || 0
+    }];
   }
 
   async exportReport(type: string, format: string): Promise<ExportResult> {
