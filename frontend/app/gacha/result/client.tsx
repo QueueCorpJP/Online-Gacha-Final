@@ -173,8 +173,6 @@ export default function GachaResultClient() {
   const [multiDrawMode, setMultiDrawMode] = useState(false) // 新しい多重引きモード状態
   const [showActionButtons, setShowActionButtons] = useState(true) // アクションボタンの表示状態
   const [showSummary, setShowSummary] = useState(false) // 結果サマリーの表示状態
-  const [showHundredModeIndicator, setShowHundredModeIndicator] = useState(false)
-  const [remainingHundredDraws, setRemainingHundredDraws] = useState(0)
 
   // gachaがnullの場合の型エラー対策: gachaがnullの場合はデフォルト値を使う
   const safeGacha = gacha ?? { id: '', price: 0 };
@@ -503,22 +501,13 @@ export default function GachaResultClient() {
 
   // 購入確認ダイアログを表示する関数
   const showPurchaseConfirmation = (times: number, isFreeHundred: boolean = false) => {
-    // 100連ガチャモードの場合
-    if (times === 10 && isFreeHundred) {
-      // セッションストレージに100連モードを保存
-      sessionStorage.setItem('gacha_hundred_mode', 'true');
-      sessionStorage.setItem('gacha_hundred_remaining', '9'); // 残り9回
-    }
-
-    // 価格を計算（100連無料ガチャの場合は0円）
+    // 価格を計算
     let price: number | string = 0;
     try {
-      if (gacha?.price && !(times === 10 && isFreeHundred)) {
+      if (gacha?.price) {
         price = times === 1 
           ? Number(gacha.price) 
           : Number(gacha.price) * times;
-      } else if (times === 10 && isFreeHundred) {
-        price = 0;
       }
     } catch (e) {
       price = "不明";
@@ -565,20 +554,20 @@ export default function GachaResultClient() {
 
       // 複数回ガチャの場合
       if (purchaseInfo.times > 1) {
-        // 10連ガチャの場合、サーバー側で各回ごとに独立した確率計算が行われる
+        // 10連ガチャや100連ガチャの場合、サーバー側で各回ごとに独立した確率計算が行われる
         // timesパラメータは単に回数を指定するだけで、各回は個別の抽選として処理される
         const response = await api.post(`/admin/gacha/${gacha.id}/pull`, { 
           times: purchaseInfo.times, 
-          isFree: purchaseInfo.isFreeHundred // 100連ガチャモードの場合は無料パラメータを設定
+          isFree: false // 通常の有料ガチャとして処理
         });
         
         if (response.data.items && Array.isArray(response.data.items) && response.data.items.length > 0) {
           // 各アイテムはサーバー側で個別に確率計算された結果
           const allResults = response.data.items;
           
-          // 10個のアイテムを結果画面に表示するためのデータを準備
+          // アイテムを結果画面に表示するためのデータを準備
           const resultData = {
-            items: allResults, // 10個の個別に抽選されたアイテム
+            items: allResults, // 個別に抽選されたアイテム
             gachaId: gacha.id,
             pullTime: new Date().toISOString()
           };
@@ -679,89 +668,8 @@ export default function GachaResultClient() {
       return;
     }
     
-    // 無料の100連ガチャとして10連ガチャ購入確認ダイアログを表示
-    showPurchaseConfirmation(10, true);
-  };
-
-  // 100連モードの管理 (useEffect内で確認)
-  useEffect(() => {
-    // URLパラメータからデータまたはキーを取得した後に実行
-    if (showResults) {
-      // 100連モードかどうかをセッションストレージから確認
-      const isHundredMode = sessionStorage.getItem('gacha_hundred_mode') === 'true';
-      const remainingCount = parseInt(sessionStorage.getItem('gacha_hundred_remaining') || '0', 10);
-      
-      if (isHundredMode && remainingCount > 0) {
-        // 残りのガチャ回数を表示する
-        setShowHundredModeIndicator(true);
-        setRemainingHundredDraws(remainingCount);
-      } else if (isHundredMode && remainingCount <= 0) {
-        // 100連完了したらフラグをリセット
-        sessionStorage.removeItem('gacha_hundred_mode');
-        sessionStorage.removeItem('gacha_hundred_remaining');
-        setShowHundredModeIndicator(false);
-      }
-    }
-  }, [showResults]);
-
-  // 次の10連ガチャを引く処理
-  const handleNextTenDraw = async () => {
-    const remainingCount = parseInt(sessionStorage.getItem('gacha_hundred_remaining') || '0', 10);
-    
-    if (remainingCount <= 0) {
-      // 100連完了したらフラグをリセット
-      sessionStorage.removeItem('gacha_hundred_mode');
-      sessionStorage.removeItem('gacha_hundred_remaining');
-      setShowHundredModeIndicator(false);
-      return;
-    }
-    
-    try {
-      setIsDrawing(true);
-      
-      // 10連ガチャを実行
-      const response = await api.post(`/admin/gacha/${gacha?.id}/pull`, { 
-        times: 10, 
-        isFree: true // 無料パラメータを設定
-      });
-      
-      if (response.data.items && Array.isArray(response.data.items) && response.data.items.length > 0) {
-        const resultData = {
-          items: response.data.items,
-          gachaId: gacha?.id,
-          pullTime: new Date().toISOString()
-        };
-        
-        // 残りカウントを減らす
-        const newRemainingCount = remainingCount - 1;
-        sessionStorage.setItem('gacha_hundred_remaining', newRemainingCount.toString());
-        
-        // データをセッションストレージに保存
-        const storageKey = `gacha_result_${gacha?.id}_${Date.now()}`;
-        sessionStorage.setItem(storageKey, JSON.stringify(resultData));
-        
-        // 結果画面へリダイレクト
-        if (!isRedirecting.current) {
-          isRedirecting.current = true;
-          safeRedirect(`/gacha/result?key=${encodeURIComponent(storageKey)}`);
-        }
-      } else {
-        toast.error("ガチャアイテムの在庫がありません");
-        setHasStock(false);
-      }
-    } catch (error: any) {
-      if (error.response?.data?.code === 'OUT_OF_STOCK' || 
-          error.response?.status === 409 || 
-          error.response?.data?.message?.includes('stock') || 
-          error.response?.data?.message?.includes('在庫')) {
-        toast.error("ガチャアイテムの在庫がありません");
-        setHasStock(false);
-      } else {
-        toast.error("ガチャ処理でエラーが発生しました。再度お試しください。");
-      }
-    } finally {
-      setIsDrawing(false);
-    }
+    // 100連ガチャとして処理
+    showPurchaseConfirmation(100, false);
   };
 
   const handlePrevious = () => {
@@ -850,14 +758,6 @@ export default function GachaResultClient() {
           <p className="text-gray-600">
             おめでとうございます！
           </p>
-          
-          {/* 100連モードのインジケーター */}
-          {showHundredModeIndicator && (
-            <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-4">
-              <p className="text-green-800 font-medium">100連ガチャ</p>
-              <p className="text-green-700">あと{remainingHundredDraws}回の無料10連ガチャが引けます！</p>
-            </div>
-          )}
         </div>
 
         {/* 10連・複数回ガチャも単発と同じリザルトUIでまとめて表示 */}
@@ -920,31 +820,8 @@ export default function GachaResultClient() {
           </div>
         </div>
 
-        {/* 100連モードの場合の次へボタン */}
-        {showHundredModeIndicator && (
-          <div className="w-full max-w-3xl mt-8 flex justify-center">
-            <Button 
-              onClick={handleNextTenDraw}
-              disabled={isDrawing}
-              className="bg-[#7C3AED] hover:bg-[#6D28D9] flex items-center justify-center gap-2 w-full max-w-md"
-            >
-              {isDrawing ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  <span>処理中...</span>
-                </>
-              ) : (
-                <>
-                  <span className="text-lg font-bold">次の無料10連を引く</span>
-                  <ChevronRight className="h-4 w-4" />
-                </>
-              )}
-            </Button>
-          </div>
-        )}
-
-        {/* 通常のアクションボタン（100連モードでない場合のみ表示） */}
-        {showActionButtons && !showHundredModeIndicator && (
+        {/* 通常のアクションボタン */}
+        {showActionButtons && (
           <div className="w-full max-w-3xl mt-8 flex justify-center relative z-10">
             <div className="flex gap-4 w-full max-w-md flex-wrap">
               <Button 
