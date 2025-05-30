@@ -79,6 +79,7 @@ export class GachaController {
       filter,
       isAdmin: user?.roles?.includes(UserRole.ADMIN)
     });
+    console.log('SortBy parameter type and value:', typeof sortBy, sortBy);
 
     return this.gachaService.getGachas({
       categories: processedCategories,

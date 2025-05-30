@@ -50,14 +50,17 @@ export function GachaGrid({ initialFilters }: GachaGridProps) {
         maxPrice: filters?.maxPrice ?? undefined,
       }
     } else {
+      // initialFiltersを適用する際、sortByは現在のRedux stateの値を保持
       newFilters = {
         ...filters,
         ...initialFilters,
+        sortBy: filters?.sortBy || initialFilters?.sortBy || 'popularity', // sortBy値を保持
         minPrice: undefined,
         maxPrice: undefined,
       }
     }
    
+    console.log("Redux filters state:", filters);
     console.log("Fetching gachas with filters:", newFilters);
     
     dispatch(fetchGachas(newFilters))      
@@ -105,6 +108,7 @@ export function GachaGrid({ initialFilters }: GachaGridProps) {
         break;
     }
 
+    console.log("Sort change:", { selectedValue: value, convertedSortBy: sortBy, currentFilters: filters });
     dispatch(setFilters({ ...filters, sortBy }));
   };
 

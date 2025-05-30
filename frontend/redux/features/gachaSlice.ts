@@ -80,7 +80,7 @@ const initialState: GachaState = {
     minPrice: null,
     maxPrice: null,
     ratings: [],
-    sortBy: 'recommended'
+    sortBy: 'popularity'
   },
   total: 0
 };
