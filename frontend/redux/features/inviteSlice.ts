@@ -23,8 +23,8 @@ export const generateInviteCode = createAsyncThunk(
   'invite/generate',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await api.get('/referrals/code');
-      return response.data.referralCode;
+      const response = await api.post('/invite/generate');
+      return response.data.code;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to generate invite code');
     }
@@ -35,11 +35,11 @@ export const fetchInviteStats = createAsyncThunk(
   'invite/stats',
   async (_, { rejectWithValue }) => {
     try {
-      // For now, return mock data since backend doesn't have stats endpoint
+      const response = await api.get('/invite/stats');
       return {
-        totalInvites: 0,
-        successfulInvites: 0,
-        pendingInvites: 0,
+        totalInvites: response.data.totalInvites,
+        successfulInvites: response.data.totalInvites, // 成功した招待数として総招待数を使用
+        pendingInvites: response.data.pendingInvites,
       };
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch invite stats');
