@@ -345,4 +345,22 @@ export class GachaController {
     await this.gachaService.initializeRatings();
     return { message: 'Ratings initialized successfully' };
   }
+
+  @Get('debug/ratings')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  async debugRatings() {
+    const gachas = await this.gachaService.getGachas({ isAdmin: true });
+    return {
+      message: 'Debug gacha ratings',
+      gachas: gachas.map(g => ({
+        id: g.id,
+        name: g.translations?.ja?.name || 'No name',
+        rating: g.rating,
+        likes: g.likes,
+        dislikes: g.dislikes,
+        isActive: g.isActive
+      }))
+    };
+  }
 }

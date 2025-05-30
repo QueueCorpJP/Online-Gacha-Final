@@ -79,8 +79,10 @@ export const gachaApi = {
       if (filters.minPrice !== undefined) params.append('minPrice', filters.minPrice.toString());
       if (filters.maxPrice !== undefined) params.append('maxPrice', filters.maxPrice.toString());
       if (filters.ratings?.length) {
-        // カンマ区切りの文字列として送信
-        params.append('ratings', filters.ratings.join(','));
+        // 複数のratingsパラメータとして送信
+        filters.ratings.forEach(rating => {
+          params.append('ratings', rating.toString());
+        });
       }
       if (filters.sortBy) params.append('sortBy', filters.sortBy);
       if (filters.filter) params.append('filter', filters.filter);
@@ -119,8 +121,10 @@ export const gachaApi = {
       if (filters.minPrice !== undefined) params.append('minPrice', filters.minPrice.toString());
       if (filters.maxPrice !== undefined) params.append('maxPrice', filters.maxPrice.toString());
       if (filters.ratings?.length) {
-        // カンマ区切りの文字列として送信
-        params.append('ratings', filters.ratings.join(','));
+        // 複数のratingsパラメータとして送信
+        filters.ratings.forEach(rating => {
+          params.append('ratings', rating.toString());
+        });
       }
       if (filters.sortBy) params.append('sortBy', filters.sortBy);
       if (filters.filter) params.append('filter', filters.filter);

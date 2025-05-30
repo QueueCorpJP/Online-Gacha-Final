@@ -277,7 +277,10 @@ export class GachaService {
       if (filters.ratings?.length) {
         // 最低の評価基準を取得（例：[3,4,5] なら 3 = 3.0以上を表示）
         const minRating = Math.min(...filters.ratings);
-        console.log('Applying rating filter:', { originalRatings: filters.ratings, minRating });
+        console.log('=== RATING FILTER DEBUG ===');
+        console.log('Original ratings array:', filters.ratings);
+        console.log('Min rating:', minRating);
+        console.log('Includes 0?', filters.ratings.includes(0));
         
         // 0が含まれている場合は、全てのガチャを表示（評価0も含む）
         if (filters.ratings.includes(0)) {
@@ -289,6 +292,7 @@ export class GachaService {
             minRating: minRating,
           });
         }
+        console.log('=== END RATING FILTER DEBUG ===');
       }
 
       switch (filters.filter) {
@@ -341,7 +345,21 @@ export class GachaService {
       queryBuilder.orderBy('gacha.likes', 'DESC');
     }
 
-    return queryBuilder.getMany();
+    const results = await queryBuilder.getMany();
+    
+    // デバッグ用：取得したガチャの評価を表示
+    console.log('=== GACHA RESULTS DEBUG ===');
+    console.log('Total gachas found:', results.length);
+    console.log('Gacha ratings:', results.map(g => ({ 
+      id: g.id, 
+      name: g.translations?.ja?.name || 'No name', 
+      rating: g.rating,
+      likes: g.likes,
+      dislikes: g.dislikes 
+    })));
+    console.log('=== END GACHA RESULTS DEBUG ===');
+    
+    return results;
   }
 
   async pullItems(gachaId: string, times: number, userId: string): Promise<GachaItem[]> {
