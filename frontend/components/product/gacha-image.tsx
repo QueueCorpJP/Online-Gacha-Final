@@ -17,7 +17,7 @@ export function GachaImage({ src, alt, className, priority = false, sizes = "100
   const imageUrl = src.startsWith('http') ? src : `${process.env.NEXT_PUBLIC_API_URL}${src}`
 
   return (
-    <div className={cn("relative overflow-hidden min-h-[300px]", className)}>
+    <div className={cn("relative overflow-hidden min-h-[300px] rounded-lg", className)}>
       <Image
         src={error ? "/placeholder.svg" : imageUrl}
         alt={alt}
@@ -25,7 +25,7 @@ export function GachaImage({ src, alt, className, priority = false, sizes = "100
         priority={priority}
         sizes={sizes}
         className={cn(
-          "object-cover transition-opacity duration-300",
+          "object-cover transition-opacity duration-300 rounded-lg",
           isLoading ? "opacity-0" : "opacity-100"
         )}
         onLoad={() => setIsLoading(false)}
@@ -36,7 +36,7 @@ export function GachaImage({ src, alt, className, priority = false, sizes = "100
         }}
       />
       {isLoading && (
-        <div className="absolute inset-0 bg-gray-200 animate-pulse" />
+        <div className="absolute inset-0 bg-gray-200 animate-pulse rounded-lg" />
       )}
     </div>
   )

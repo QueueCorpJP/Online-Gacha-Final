@@ -142,7 +142,7 @@ export default function GachaDetailPage() {
                 <GachaImage
                     src={gacha.thumbnail || "/placeholder.svg"}
                     alt={gachaTitle}
-                    className="aspect-square w-full h-96"
+                    className="w-full h-48 md:h-96 rounded-lg"
                 />
                 <div className="space-y-6">
                     <GachaHeader

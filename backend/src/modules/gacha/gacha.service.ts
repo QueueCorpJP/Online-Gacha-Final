@@ -275,11 +275,18 @@ export class GachaService {
       }
 
       if (filters.ratings?.length) {
-        // 最高の評価基準を取得（例：[3,4,5] なら 5）
-        const highestRating = Math.max(...filters.ratings);
-        queryBuilder.andWhere('gacha.rating >= :minRating AND gacha.rating IS NOT NULL', {
-          minRating: highestRating,
-        });
+        // 最低の評価基準を取得（例：[3,4,5] なら 3 = 3.0以上を表示）
+        const minRating = Math.min(...filters.ratings);
+        console.log('Applying rating filter:', { originalRatings: filters.ratings, minRating });
+        
+        if (minRating <= 0) {
+          // 0以下の場合は全てのガチャを表示（フィルターなし）
+          // フィルター条件を追加しない
+        } else {
+          queryBuilder.andWhere('gacha.rating >= :minRating', {
+            minRating: minRating,
+          });
+        }
       }
 
       switch (filters.filter) {
@@ -567,9 +574,57 @@ export class GachaService {
    * 既存のガチャでratingがnullのものを0に初期化する
    */
   async initializeRatings() {
-    await this.gachaRepository.update(
-      { rating: null },
-      { rating: 0, likes: 0, dislikes: 0, reviews: 0 }
-    );
+    // まず、likes/dislikesがあるガチャのratingを計算
+    const gachasWithReactions = await this.gachaRepository.find({
+      where: [
+        { rating: null },
+        { rating: 0 }
+      ]
+    });
+
+    for (const gacha of gachasWithReactions) {
+      const totalReactions = (gacha.likes || 0) + (gacha.dislikes || 0);
+      if (totalReactions > 0) {
+        const likeRatio = (gacha.likes || 0) / totalReactions;
+        gacha.rating = Math.round((likeRatio * 4 + 1) * 10) / 10; // 1.0-5.0の範囲で計算
+      } else {
+        gacha.rating = 0; // 反応がない場合は0
+      }
+      
+      // likes, dislikesがnullの場合は0で初期化
+      if (gacha.likes === null) gacha.likes = 0;
+      if (gacha.dislikes === null) gacha.dislikes = 0;
+      if (gacha.reviews === null) gacha.reviews = 0;
+    }
+
+    // 一括更新
+    await this.gachaRepository.save(gachasWithReactions);
+    
+    console.log(`Initialized ratings for ${gachasWithReactions.length} gachas`);
+    gachasWithReactions.forEach(g => {
+      console.log(`Gacha ${g.translations?.ja?.name}: likes=${g.likes}, dislikes=${g.dislikes}, rating=${g.rating}`);
+    });
+  }
+
+  /**
+   * ガチャを削除する
+   */
+  async deleteGacha(id: string): Promise<void> {
+    const gacha = await this.gachaRepository.findOne({
+      where: { id },
+      relations: ['items']
+    });
+
+    if (!gacha) {
+      throw new NotFoundException(`Gacha with ID ${id} not found`);
+    }
+
+    // ガチャアイテムも削除
+    if (gacha.items && gacha.items.length > 0) {
+      await this.gachaItemRepository.remove(gacha.items);
+    }
+
+    // ガチャ自体を削除
+    await this.gachaRepository.remove(gacha);
   }
 }

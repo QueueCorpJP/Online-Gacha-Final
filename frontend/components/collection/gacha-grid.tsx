@@ -58,8 +58,18 @@ export function GachaGrid({ initialFilters }: GachaGridProps) {
       }
     }
    
+    console.log("Fetching gachas with filters:", newFilters);
+    
     dispatch(fetchGachas(newFilters))      
   }, [dispatch, filters])
+
+  // ガチャデータを確認するためのuseEffect
+  useEffect(() => {
+    if (gachas.length > 0) {
+      console.log("Loaded gachas count:", gachas.length);
+      console.log("Gacha ratings:", gachas.map(g => ({ id: g.id, name: g.name, rating: g.rating, likes: g.likes, dislikes: g.dislikes })));
+    }
+  }, [gachas]);
 
   const sortOptions = [
     { value: "recommended", label: t("product.sort.recommended") },
@@ -117,6 +127,15 @@ export function GachaGrid({ initialFilters }: GachaGridProps) {
     const newRatings = checked
       ? [...(filters?.ratings ?? []), rating]
       : (filters?.ratings ?? []).filter((r) => r !== rating)
+    
+    console.log("Rating filter changed:", { 
+      rating, 
+      checked, 
+      newRatings, 
+      minRating: newRatings.length > 0 ? Math.min(...newRatings) : null 
+    });
+    console.log("Current filters before dispatch:", filters);
+    
     dispatch(setFilters({ ratings: newRatings }))
   }
 

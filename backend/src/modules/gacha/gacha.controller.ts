@@ -66,6 +66,18 @@ export class GachaController {
 
     console.log(user);
 
+    // デバッグ用：受信したパラメータ
+    console.log('Raw params:', { categories, minPrice, maxPrice, ratings, sortBy, filter });
+    console.log('Processed params:', {
+      categories: processedCategories,
+      minPrice: minPrice ? Number(minPrice) : undefined,
+      maxPrice: maxPrice ? Number(maxPrice) : undefined,
+      ratings: processedRatings,
+      sortBy,
+      filter,
+      isAdmin: user?.roles?.includes(UserRole.ADMIN)
+    });
+
     return this.gachaService.getGachas({
       categories: processedCategories,
       minPrice: minPrice ? Number(minPrice) : undefined,
