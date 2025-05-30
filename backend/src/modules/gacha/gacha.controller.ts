@@ -322,4 +322,12 @@ export class GachaController {
   async deleteGacha(@Param('id') id: string) {
     return this.gachaService.deleteGacha(id);
   }
+
+  @Post('initialize-ratings')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  async initializeRatings() {
+    await this.gachaService.initializeRatings();
+    return { message: 'Ratings initialized successfully' };
+  }
 }

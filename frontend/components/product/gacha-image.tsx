@@ -17,21 +17,20 @@ export function GachaImage({ src, alt, className, priority = false, sizes = "100
   const imageUrl = src.startsWith('http') ? src : `${process.env.NEXT_PUBLIC_API_URL}${src}`
 
   return (
-    <div className={cn("relative overflow-hidden", className)}>
+    <div className={cn("relative overflow-hidden min-h-[300px]", className)}>
       <Image
         src={error ? "/placeholder.svg" : imageUrl}
         alt={alt}
         fill
         priority={priority}
         sizes={sizes}
-        placeholder="blur"
-        blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k="
         className={cn(
-          "object-contain transition-opacity duration-300",
+          "object-cover transition-opacity duration-300",
           isLoading ? "opacity-0" : "opacity-100"
         )}
         onLoad={() => setIsLoading(false)}
         onError={() => {
+          console.error("Failed to load image:", imageUrl);
           setError(true)
           setIsLoading(false)
         }}

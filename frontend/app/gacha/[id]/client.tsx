@@ -140,8 +140,9 @@ export default function GachaDetailPage() {
         <div className="container mx-auto px-4 py-8">
             <div className="grid gap-8 lg:grid-cols-2">
                 <GachaImage
-                    src={`${process.env.NEXT_PUBLIC_API_URL}${gacha.thumbnail}` || "/placeholder.svg"}
+                    src={gacha.thumbnail || "/placeholder.svg"}
                     alt={gachaTitle}
+                    className="aspect-square w-full h-96"
                 />
                 <div className="space-y-6">
                     <GachaHeader

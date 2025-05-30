@@ -48,7 +48,11 @@ export class GachaService {
       thumbnail: createGachaDto.thumbnailUrl,
       category: { id: createGachaDto.category } as any, // Fix category relation
       isActive: createGachaDto.isActive ?? true,
-      lastOnePrizeId: createGachaDto.lastOnePrize?.id
+      lastOnePrizeId: createGachaDto.lastOnePrize?.id,
+      rating: 0, // 初期評価値を0に設定
+      likes: 0,
+      dislikes: 0,
+      reviews: 0
     } as DeepPartial<Gacha>);
 
     const savedGacha = await this.gachaRepository.save(gacha);
@@ -271,8 +275,10 @@ export class GachaService {
       }
 
       if (filters.ratings?.length) {
-        queryBuilder.andWhere('gacha.rating IN (:...ratings)', {
-          ratings: filters.ratings,
+        // 最高の評価基準を取得（例：[3,4,5] なら 5）
+        const highestRating = Math.max(...filters.ratings);
+        queryBuilder.andWhere('gacha.rating >= :minRating AND gacha.rating IS NOT NULL', {
+          minRating: highestRating,
         });
       }
 
@@ -301,6 +307,12 @@ export class GachaService {
           break;
         case 'price:desc':
           queryBuilder.orderBy('gacha.price', 'DESC');
+          break;
+        case 'createdAt:desc':
+          queryBuilder.orderBy('gacha.createdAt', 'DESC');
+          break;
+        case 'createdAt:asc':
+          queryBuilder.orderBy('gacha.createdAt', 'ASC');
           break;
         case 'rating':
           queryBuilder.orderBy('gacha.rating', 'DESC');
@@ -531,6 +543,16 @@ export class GachaService {
 
     gacha.likes = likes;
     gacha.dislikes = dislikes;
+    
+    // rating を計算（likes + dislikes が合計反応数、likesの割合から5段階評価を計算）
+    const totalReactions = likes + dislikes;
+    if (totalReactions > 0) {
+      const likeRatio = likes / totalReactions;
+      gacha.rating = Math.round((likeRatio * 4 + 1) * 10) / 10; // 1.0-5.0の範囲で計算
+    } else {
+      gacha.rating = 0; // 反応がない場合は0
+    }
+    
     await this.gachaRepository.save(gacha);
 
     return {
@@ -539,5 +561,15 @@ export class GachaService {
       favorited: !!(await this.favoriteRepository.findOne({ where: { gachaId, userId, type: 'like' } })),
       disliked: !!(await this.favoriteRepository.findOne({ where: { gachaId, userId, type: 'dislike' } })),
     };
+  }
+
+  /**
+   * 既存のガチャでratingがnullのものを0に初期化する
+   */
+  async initializeRatings() {
+    await this.gachaRepository.update(
+      { rating: null },
+      { rating: 0, likes: 0, dislikes: 0, reviews: 0 }
+    );
   }
 }

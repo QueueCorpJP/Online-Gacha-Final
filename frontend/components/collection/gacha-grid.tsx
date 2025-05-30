@@ -75,34 +75,27 @@ export function GachaGrid({ initialFilters }: GachaGridProps) {
   ]
 
   const handleSortChange = (value: "recommended" | "newest" | "price-asc" | "price-desc") => {
-    let sortField: string;
-    let sortOrder: string;
-
-    // フィルター変更の処理
+    let sortBy: string;
 
     setSortType(value);
 
     switch (value) {
       case "newest":
-        sortField = "createdAt";
-        sortOrder = "desc";
+        sortBy = "createdAt:desc";
         break;
       case "price-asc":
-        sortField = "price";
-        sortOrder = "asc";
+        sortBy = "price:asc";
         break;
       case "price-desc":
-        sortField = "price";
-        sortOrder = "desc";
+        sortBy = "price:desc";
         break;
       case "recommended":
       default:
-        sortField = "createdAt"; // Default sort by creation date
-        sortOrder = "desc";
+        sortBy = "popularity"; // おすすめ順は人気順（いいね数順）に変更
+        break;
     }
 
-
-    dispatch(setFilters({ ...filters, sortBy: `${sortField}:${sortOrder}` }));
+    dispatch(setFilters({ ...filters, sortBy }));
   };
 
   const handleCategoryChange = (categoryId: string, checked: boolean) => {
