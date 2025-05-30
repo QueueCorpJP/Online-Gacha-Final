@@ -20,7 +20,6 @@ export function GachaGrid({ initialFilters }: GachaGridProps) {
   const { gachas, loading, filters } = useSelector((state: RootState) => state.gacha)
   const { categories } = useSelector((state: RootState) => state.category);
   const [sortType, setSortType] = useState<"recommended" | "newest" | "price-asc" | "price-desc">('recommended');
-  const [selected, setSelected] = useState<boolean>(false);
   const [visibleGachas, setVisibleGachas] = useState(3);
 
   const handleLoadMore = () => {
@@ -32,7 +31,7 @@ export function GachaGrid({ initialFilters }: GachaGridProps) {
     if (initialFilters) {
       dispatch(setFilters(initialFilters))
     }
-  }, [initialFilters, dispatch]) // Add dependencies
+  }, [initialFilters, dispatch])
 
   useEffect(() => {
     dispatch(fetchCategories())
@@ -42,7 +41,6 @@ export function GachaGrid({ initialFilters }: GachaGridProps) {
     // ガチャデータを取得
     const newFilters = {
       ...filters,
-      ...initialFilters,
       minPrice: filters?.minPrice !== null ? filters?.minPrice : undefined,
       maxPrice: filters?.maxPrice !== null ? filters?.maxPrice : undefined,
     };
@@ -102,39 +100,26 @@ export function GachaGrid({ initialFilters }: GachaGridProps) {
   };
 
   const handleCategoryChange = (categoryId: string, checked: boolean) => {
-    setSelected(true);
     const newCategories = checked
       ? [...(filters?.categories ?? []), categoryId]
       : (filters?.categories ?? []).filter((id) => id !== categoryId)
-    dispatch(setFilters({ categories: newCategories }))
+    dispatch(setFilters({ ...filters, categories: newCategories }))
   }
 
   const handlePriceChange = (type: 'min' | 'max', value: string) => {
-    setSelected(true);
     const numValue = value ? Number(value) : null
-    dispatch(setFilters({ [type === 'min' ? 'minPrice' : 'maxPrice']: numValue }))
+    dispatch(setFilters({ ...filters, [type === 'min' ? 'minPrice' : 'maxPrice']: numValue }))
   }
 
   const handleRatingChange = (rating: number, checked: boolean) => {
-    setSelected(true);
-    
     let newRatings: number[];
     
-    if (rating === 0) {
-      // 「全て」が選択された場合
-      if (checked) {
-        newRatings = [0]; // 「全て」のみ選択
-      } else {
-        newRatings = []; // 何も選択しない
-      }
+    if (checked) {
+      // 評価を追加
+      newRatings = [...(filters?.ratings ?? []), rating];
     } else {
-      // 特定の評価が選択された場合
-      if (checked) {
-        // 「全て」を除外して、新しい評価を追加
-        newRatings = [...(filters?.ratings ?? []).filter(r => r !== 0), rating];
-      } else {
-        newRatings = (filters?.ratings ?? []).filter((r) => r !== rating);
-      }
+      // 評価を削除
+      newRatings = (filters?.ratings ?? []).filter((r) => r !== rating);
     }
     
     console.log("Rating filter changed:", { 
@@ -145,7 +130,7 @@ export function GachaGrid({ initialFilters }: GachaGridProps) {
     });
     console.log("Current filters before dispatch:", filters);
     
-    dispatch(setFilters({ ratings: newRatings }))
+    dispatch(setFilters({ ...filters, ratings: newRatings }))
   }
 
   return (
