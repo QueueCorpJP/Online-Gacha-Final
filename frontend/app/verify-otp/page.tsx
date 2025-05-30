@@ -5,12 +5,16 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { useTranslations } from "@/hooks/use-translations"
 import { api } from "@/lib/axios"
 import { toast } from "sonner"
+import { useDispatch } from "react-redux"
+import { setUser } from "@/redux/features/authSlice"
+import type { AppDispatch } from "@/redux/store"
 
 export default function VerifyOTP() {
   const { t } = useTranslations()
   const router = useRouter()
   const searchParams = useSearchParams()
   const email = searchParams.get('email')
+  const dispatch = useDispatch<AppDispatch>()
   
   const [otp, setOtp] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -25,13 +29,21 @@ export default function VerifyOTP() {
 
     setIsLoading(true)
     try {
-      await api.post('/auth/verify-otp', {
+      const response = await api.post('/auth/verify-otp', {
         email,
         otp
       })
       
+      // OTP認証成功時にログイン状態にする
+      const { token, user } = response.data
+      if (token && user) {
+        localStorage.setItem('token', token)
+        api.defaults.headers.common['Authorization'] = `Bearer ${token}`
+        dispatch(setUser(user))
+      }
+      
       toast.success(t("otp.success"))
-      router.push('/profile/invite')
+      router.push('/')
     } catch (error: any) {
       toast.error(error.response?.data?.message || t("otp.errors.verification"))
     } finally {

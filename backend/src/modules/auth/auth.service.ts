@@ -12,6 +12,7 @@ import { SecurityLogService } from '../security/security-log.service';
 import { SecurityEventType } from '../security/security-log.entity';
 import { Request } from 'express';
 import { LineSettings } from '../line/entities/line-settings.entity';
+import { InviteCode } from '../invite/entities/invite-code.entity';
 
 interface RegisterData {
   email: string;
@@ -39,6 +40,8 @@ export class AuthService {
     private readonly lineSettingsRepository: Repository<LineSettings>,
     @InjectRepository(OTP)
     private readonly otpRepository: Repository<OTP>,
+    @InjectRepository(InviteCode)
+    private readonly inviteCodeRepository: Repository<InviteCode>,
     private readonly jwtService: JwtService,
     private readonly mailService: MailService,
     private readonly securityLogService: SecurityLogService,
@@ -71,11 +74,22 @@ export class AuthService {
     // 招待コードの処理
     let referredBy = null;
     if (registerData.referralCode) {
-      const referrer = await this.userRepository.findOne({ 
-        where: { referralCode: registerData.referralCode } 
+      const inviteCode = await this.inviteCodeRepository.findOne({
+        where: { 
+          code: registerData.referralCode,
+          isUsed: false,
+          expiresAt: MoreThan(new Date())
+        }
       });
-      if (referrer) {
-        referredBy = referrer.id;
+      
+      if (inviteCode) {
+        referredBy = inviteCode.createdById;
+        
+        // 招待コードを使用済みにマーク
+        inviteCode.isUsed = true;
+        inviteCode.usedAt = new Date();
+        inviteCode.usedById = null; // 新規ユーザーのIDは後で設定
+        await this.inviteCodeRepository.save(inviteCode);
       }
     }
 
@@ -93,6 +107,14 @@ export class AuthService {
     });
 
     const savedUser = await this.userRepository.save(user);
+
+    // 招待コードが使用された場合、usedByIdを更新
+    if (registerData.referralCode && referredBy) {
+      await this.inviteCodeRepository.update(
+        { code: registerData.referralCode },
+        { usedById: savedUser.id }
+      );
+    }
 
     const lineSettings = this.lineSettingsRepository.create({
       userId: savedUser.id,
@@ -241,7 +263,20 @@ export class AuthService {
     // Clear OTP
     await this.clearOTP(email);
 
-    return { message: 'Email verified successfully' };
+    // Generate JWT token for automatic login
+    const payload: JwtPayload = {
+      id: user.id,
+      email: user.email,
+      username: user.username,
+      roles: user.roles
+    };
+
+    const { password: _, ...userData } = user;
+    return {
+      message: 'Email verified successfully',
+      user: userData,
+      token: this.jwtService.sign(payload)
+    };
   }
 
   async resendOTP(email: string) {
