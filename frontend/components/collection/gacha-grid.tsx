@@ -70,9 +70,10 @@ export function GachaGrid({ initialFilters }: GachaGridProps) {
   ]
 
   const ratings = [
-    { value: 5, label: t("product.rating.fiveStars") },
-    { value: 4, label: t("product.rating.fourStars") },
+    { value: 0, label: "すべて表示" },
     { value: 3, label: t("product.rating.threeStars") },
+    { value: 4, label: t("product.rating.fourStars") },
+    { value: 5, label: t("product.rating.fiveStars") },
   ]
 
   const handleSortChange = (value: "recommended" | "newest" | "price-asc" | "price-desc") => {
@@ -116,9 +117,25 @@ export function GachaGrid({ initialFilters }: GachaGridProps) {
 
   const handleRatingChange = (rating: number, checked: boolean) => {
     setSelected(true);
-    const newRatings = checked
-      ? [...(filters?.ratings ?? []), rating]
-      : (filters?.ratings ?? []).filter((r) => r !== rating)
+    
+    let newRatings: number[];
+    
+    if (rating === 0) {
+      // 「全て」が選択された場合
+      if (checked) {
+        newRatings = [0]; // 「全て」のみ選択
+      } else {
+        newRatings = []; // 何も選択しない
+      }
+    } else {
+      // 特定の評価が選択された場合
+      if (checked) {
+        // 「全て」を除外して、新しい評価を追加
+        newRatings = [...(filters?.ratings ?? []).filter(r => r !== 0), rating];
+      } else {
+        newRatings = (filters?.ratings ?? []).filter((r) => r !== rating);
+      }
+    }
     
     console.log("Rating filter changed:", { 
       rating, 

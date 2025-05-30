@@ -279,11 +279,11 @@ export class GachaService {
         const minRating = Math.min(...filters.ratings);
         console.log('Applying rating filter:', { originalRatings: filters.ratings, minRating });
         
-        if (minRating <= 0) {
-          // 0以下の場合は全てのガチャを表示（フィルターなし）
-          console.log('Rating filter: showing all gachas (minRating <= 0)');
-          // フィルター条件を追加しない
-        } else {
+        // 0が含まれている場合は、全てのガチャを表示（評価0も含む）
+        if (filters.ratings.includes(0)) {
+          console.log('Rating filter: includes 0, showing all gachas');
+          // フィルター条件を追加しない（全て表示）
+        } else if (minRating > 0) {
           console.log('Rating filter: applying WHERE gacha.rating >=', minRating);
           queryBuilder.andWhere('gacha.rating >= :minRating', {
             minRating: minRating,
