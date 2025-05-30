@@ -86,7 +86,7 @@ export const gachaApi = {
       if (filters.filter) params.append('filter', filters.filter);
     }
 
-    const response = await api.get<GachaResponse[]>('/admin/gacha', { params });
+    const response = await api.get<GachaResponse[]>('/gacha', { params });
     return response.data;
   },
 

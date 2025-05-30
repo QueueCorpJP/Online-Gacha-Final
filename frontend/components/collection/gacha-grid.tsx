@@ -27,14 +27,12 @@ export function GachaGrid({ initialFilters }: GachaGridProps) {
     setVisibleGachas(prev => prev + 3);
   };
 
-  // 初期フィルターの設定
-
   // Initialize filters with initialFilters prop
   useEffect(() => {
     if (initialFilters) {
       dispatch(setFilters(initialFilters))
     }
-  }, []) // Run only once on mount
+  }, [initialFilters, dispatch]) // Add dependencies
 
   useEffect(() => {
     dispatch(fetchCategories())
@@ -42,25 +40,15 @@ export function GachaGrid({ initialFilters }: GachaGridProps) {
 
   useEffect(() => {
     // ガチャデータを取得
-    let newFilters: GachaFilters;
-    if (selected) {
-      newFilters = {
-        ...filters,
-        minPrice: filters?.minPrice ?? undefined,
-        maxPrice: filters?.maxPrice ?? undefined,
-      }
-    } else {
-      // initialFiltersを適用する際、sortByは現在のRedux stateの値を保持
-      newFilters = {
-        ...filters,
-        ...initialFilters,
-        sortBy: filters?.sortBy || initialFilters?.sortBy || 'popularity', // sortBy値を保持
-        minPrice: undefined,
-        maxPrice: undefined,
-      }
-    }
+    const newFilters = {
+      ...filters,
+      ...initialFilters,
+      minPrice: filters?.minPrice !== null ? filters?.minPrice : undefined,
+      maxPrice: filters?.maxPrice !== null ? filters?.maxPrice : undefined,
+    };
    
     console.log("Redux filters state:", filters);
+    console.log("Initial filters:", initialFilters);
     console.log("Fetching gachas with filters:", newFilters);
     
     dispatch(fetchGachas(newFilters))      
@@ -94,7 +82,7 @@ export function GachaGrid({ initialFilters }: GachaGridProps) {
 
     switch (value) {
       case "newest":
-        sortBy = "createdAt:desc";
+        sortBy = "newest";
         break;
       case "price-asc":
         sortBy = "price:asc";
@@ -104,7 +92,7 @@ export function GachaGrid({ initialFilters }: GachaGridProps) {
         break;
       case "recommended":
       default:
-        sortBy = "popularity"; // おすすめ順は人気順（いいね数順）に変更
+        sortBy = "recommended";
         break;
     }
 

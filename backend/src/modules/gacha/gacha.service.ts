@@ -318,23 +318,30 @@ export class GachaService {
           queryBuilder.orderBy('gacha.price', 'DESC');
           break;
         case 'createdAt:desc':
+        case 'newest':
           queryBuilder.orderBy('gacha.createdAt', 'DESC');
           break;
         case 'createdAt:asc':
           queryBuilder.orderBy('gacha.createdAt', 'ASC');
           break;
         case 'rating':
+        case 'rating-desc':
           queryBuilder.orderBy('gacha.rating', 'DESC');
           break;
         case 'popularity':
+        case 'recommended':
           queryBuilder.orderBy('gacha.likes', 'DESC');
           break;
         default:
-          queryBuilder.orderBy('gacha.createdAt', 'DESC');
+          // デフォルトは人気順（いいね数順）
+          queryBuilder.orderBy('gacha.likes', 'DESC');
       }
+    } else {
+      // フィルターが指定されていない場合も人気順
+      queryBuilder.orderBy('gacha.likes', 'DESC');
     }
 
-    return queryBuilder.orderBy('gacha.createdAt', 'DESC').getMany();
+    return queryBuilder.getMany();
   }
 
   async pullItems(gachaId: string, times: number, userId: string): Promise<GachaItem[]> {
