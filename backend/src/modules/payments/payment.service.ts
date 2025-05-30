@@ -87,7 +87,7 @@ export class PaymentService {
     if (payment.status !== 'success') {
       throw new BadRequestException('Only completed payments can be refunded');
     }
-
+//a
     if (payment.method === 'stripe' && payment.stripePaymentIntentId) {
       await this.stripe.refunds.create({
         payment_intent: payment.stripePaymentIntentId,
