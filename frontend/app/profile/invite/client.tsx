@@ -3,7 +3,6 @@
 import { useEffect } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import { InviteCode } from "@/components/profile/invite/invite-code"
-import { InviteForm } from "@/components/profile/invite/invite-form"
 import { ProfileTabs } from "@/components/profile/profile-tabs"
 import { generateInviteCode } from "@/redux/features/inviteSlice"
 import type { AppDispatch, RootState } from "@/redux/store"
@@ -27,7 +26,6 @@ export default function InviteClient() {
       <ProfileTabs />
       <div className="container-fluid py-6 px-4 lg:px-0">
         <InviteCode />
-        <InviteForm />
       </div>
     </div>
   )
