@@ -281,8 +281,10 @@ export class GachaService {
         
         if (minRating <= 0) {
           // 0以下の場合は全てのガチャを表示（フィルターなし）
+          console.log('Rating filter: showing all gachas (minRating <= 0)');
           // フィルター条件を追加しない
         } else {
+          console.log('Rating filter: applying WHERE gacha.rating >=', minRating);
           queryBuilder.andWhere('gacha.rating >= :minRating', {
             minRating: minRating,
           });

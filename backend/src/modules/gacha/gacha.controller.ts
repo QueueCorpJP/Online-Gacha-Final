@@ -61,7 +61,9 @@ export class GachaController {
     const processedRatings = ratings
       ? Array.isArray(ratings)
         ? ratings.map(Number)
-        : [Number(ratings)]
+        : typeof ratings === 'string' && ratings.includes(',')
+          ? ratings.split(',').map(Number)
+          : [Number(ratings)]
       : undefined;
 
     console.log(user);
