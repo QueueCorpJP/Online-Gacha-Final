@@ -22,6 +22,7 @@ export function SignUpForm() {
     email: "",
     password: "",
     confirmPassword: "",
+    referralCode: "",
     agreeToTerms: false,
   })
 
@@ -53,6 +54,7 @@ export function SignUpForm() {
         username: formData.username,
         firstName: formData.firstName,
         lastName: formData.lastName,
+        referralCode: formData.referralCode || undefined,
       }) as any)
 
       if (signUp.fulfilled.match(resultAction)) {
@@ -171,6 +173,24 @@ export function SignUpForm() {
           required
           className="w-full rounded-lg border border-gray-200 px-4 py-2 text-sm focus:border-[#7C3AED] focus:outline-none focus:ring-1 focus:ring-[#7C3AED]"
         />
+      </div>
+
+      <div className="space-y-2">
+        <label htmlFor="referralCode" className="block text-sm font-medium">
+          招待コード（任意）
+        </label>
+        <input
+          id="referralCode"
+          name="referralCode"
+          type="text"
+          value={formData.referralCode}
+          onChange={handleChange}
+          placeholder="招待コードをお持ちの場合は入力してください"
+          className="w-full rounded-lg border border-gray-200 px-4 py-2 text-sm focus:border-[#7C3AED] focus:outline-none focus:ring-1 focus:ring-[#7C3AED]"
+        />
+        <p className="text-xs text-gray-500">
+          友達から招待コードを受け取った場合は、こちらに入力してください。コイン購入時に紹介者への還元が適用されます。
+        </p>
       </div>
 
       <div className="flex items-center space-x-2">

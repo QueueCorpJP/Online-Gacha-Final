@@ -19,6 +19,7 @@ interface RegisterData {
   username: string;
   firstName: string;
   lastName: string;
+  referralCode?: string;
   roles?: UserRole[];
 }
 
@@ -67,13 +68,28 @@ export class AuthService {
     // Hash password
     const hashedPassword = await bcrypt.hash(registerData.password, 10);
 
+    // 招待コードの処理
+    let referredBy = null;
+    if (registerData.referralCode) {
+      const referrer = await this.userRepository.findOne({ 
+        where: { referralCode: registerData.referralCode } 
+      });
+      if (referrer) {
+        referredBy = referrer.id;
+      }
+    }
+
     // Create new user with inactive status
     const user = this.userRepository.create({
-      ...registerData,
+      email: registerData.email,
       password: hashedPassword,
+      username: registerData.username,
+      firstName: registerData.firstName,
+      lastName: registerData.lastName,
       roles: registerData.roles || [UserRole.USER],
       status: UserStatus.INACTIVE, // Set initial status as inactive
       coinBalance: 0,
+      referredBy, // 招待者のIDを設定
     });
 
     const savedUser = await this.userRepository.save(user);

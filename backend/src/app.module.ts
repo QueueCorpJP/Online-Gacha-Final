@@ -16,6 +16,7 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { ProfileModule } from './modules/profile/profile.module';
 import { InviteModule } from './modules/invite/invite.module';
+import { ReferralModule } from './modules/referrals/referral.module';
 import { CoinModule } from './modules/coin/coin.module';
 import { NotificationModule } from './modules/notifications/notification.module';
 import { LineModule } from './modules/line/line.module';
@@ -62,6 +63,7 @@ import { S3Module } from './modules/s3/s3.module';
     ReportingModule,
     ProfileModule,
     InviteModule,
+    ReferralModule,
     CoinModule,
     NotificationModule,
     LineModule,

@@ -46,7 +46,7 @@ export const login = createAsyncThunk<{ token: string; user: User }, { email: st
 
 export const signUp = createAsyncThunk<
   { token: string; user: User },
-  { email: string; password: string; username: string; firstName: string; lastName: string }
+  { email: string; password: string; username: string; firstName: string; lastName: string; referralCode?: string }
 >(
   'auth/signUp',
   async (credentials, { rejectWithValue }) => {
